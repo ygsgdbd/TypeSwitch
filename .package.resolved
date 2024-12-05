@@ -1,0 +1,33 @@
+{
+  "originHash" : "34bd913d9089fe41f02bf038193989039a85b3413c3faeddca7573d68c9a1f1d",
+  "pins" : [
+    {
+      "identity" : "defaults",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sindresorhus/Defaults",
+      "state" : {
+        "revision" : "ef1b2318fb549002bb533bec3a8ad98ae09f2cb6",
+        "version" : "9.0.0"
+      }
+    },
+    {
+      "identity" : "swift-syntax",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-syntax",
+      "state" : {
+        "revision" : "0687f71944021d616d34d922343dcef086855920",
+        "version" : "600.0.1"
+      }
+    },
+    {
+      "identity" : "swiftuix",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SwiftUIX/SwiftUIX",
+      "state" : {
+        "revision" : "e984fd2e08140ad5a95d084be38fe02b774bc15d",
+        "version" : "0.2.3"
+      }
+    }
+  ],
+  "version" : 3
+}
