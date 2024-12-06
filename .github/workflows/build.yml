@@ -28,6 +28,18 @@ jobs:
         run: |
           mise install tuist@latest
       
+      - name: Clean Tuist Cache
+        run: |
+          rm -rf ~/Library/Developer/Xcode/DerivedData
+          rm -rf ~/.tuist/Cache/PinsCache.xcworkspace
+          rm -rf .tuist-bin
+          rm -rf Derived
+          rm -rf *.xcodeproj
+          rm -rf *.xcworkspace
+      
+      - name: Fetch Tuist Dependencies
+        run: tuist fetch
+      
       - name: Generate Xcode Project
         run: tuist generate
       
