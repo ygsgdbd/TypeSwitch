@@ -19,7 +19,7 @@ jobs:
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '15.2'
+          xcode-version: '16.1'
       
       - name: Setup Swift
         uses: swift-actions/setup-swift@v1
