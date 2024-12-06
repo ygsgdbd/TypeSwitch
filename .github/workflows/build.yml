@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     name: Build and Release
-    runs-on: macos-latest
+    runs-on: macos-14
     
     steps:
       - name: Checkout
@@ -19,7 +19,12 @@ jobs:
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '15.0'
+          xcode-version: '15.2'
+      
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v1
+        with:
+          swift-version: '6.0.0'
       
       - name: Setup mise
         uses: jdx/mise-action@v2
@@ -31,12 +36,12 @@ jobs:
       
       - name: Clean Tuist Cache
         run: |
-          rm -rf ~/Library/Developer/Xcode/DerivedData
-          rm -rf ~/.tuist
-          rm -rf .tuist-bin
-          rm -rf Derived
-          rm -rf *.xcodeproj
-          rm -rf *.xcworkspace
+          rm -rf ~/Library/Developer/Xcode/DerivedData || true
+          rm -rf ~/.tuist || true
+          rm -rf .tuist-bin || true
+          rm -rf Derived || true
+          rm -rf *.xcodeproj || true
+          rm -rf *.xcworkspace || true
       
       - name: Setup Tuist
         run: |
