@@ -13,14 +13,16 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 0) {
             searchField
+            
             ScrollViewReader { proxy in
                 appList
                     .onAppear { scrollProxy = proxy }
             }
             Divider()
-            controlPanel
+            
+            ControlPanel(showError: $showError, errorMessage: $errorMessage)
         }
-        .frame(minWidth: 600, idealWidth: 800, maxWidth: .infinity, minHeight: 400)
+        .frame(minWidth: 600, idealWidth: 800, maxWidth: .infinity, minHeight: 500)
         .onExitCommand {
             if viewModel.searchText.isEmpty {
                 if let window = NSApplication.shared.keyWindow {
@@ -58,7 +60,7 @@ struct ContentView: View {
         TextField("搜索应用... (⌘F)", text: $viewModel.searchText)
             .textFieldStyle(.roundedBorder)
             .padding(.horizontal)
-            .padding(.vertical, 8)
+            .padding(.vertical, 12)
             .focused($isSearchFocused)
             .onChange(of: viewModel.searchText) { _ in
                 if let firstApp = viewModel.filteredApps.first {
@@ -82,18 +84,6 @@ struct ContentView: View {
             }
         }
         .listStyle(.plain)
-    }
-    
-    private var controlPanel: some View {
-        HStack {
-            AutoLaunchToggle(showError: $showError, errorMessage: $errorMessage)
-            Spacer()
-            HStack(spacing: 16) {
-                RefreshButton()
-                QuitButton()
-            }
-        }
-        .padding(12)
     }
 }
 

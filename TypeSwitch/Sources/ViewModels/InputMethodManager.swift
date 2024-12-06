@@ -24,6 +24,11 @@ final class InputMethodManager: ObservableObject {
     @Published var searchText = ""
     @Published private(set) var isRefreshing: Bool = false
     @Published var isHighlighted = false
+    @Published var isQuickSwitchEnabled: Bool {
+        didSet {
+            Defaults[.quickSwitchEnabled] = isQuickSwitchEnabled
+        }
+    }
     
     // 计算属性
     var filteredApps: [AppInfo] {
@@ -40,6 +45,7 @@ final class InputMethodManager: ObservableObject {
     private init() {
         // 从 Defaults 加载设置
         appSettings = Defaults[.appInputMethodSettings]
+        isQuickSwitchEnabled = Defaults[.quickSwitchEnabled]
         setupSubscriptions()
         
         // 初始化自启动状态
@@ -223,6 +229,16 @@ final class InputMethodManager: ObservableObject {
             
         } catch {
             print("切换输入法失败: \(error.localizedDescription)")
+            return (false, nil)
+        }
+    }
+    
+    // MARK: - Quick Switch
+    
+    func quickSwitch() async -> (success: Bool, inputMethodName: String?) {
+        if isQuickSwitchEnabled {
+            return await switchInputMethodForCurrentApp()
+        } else {
             return (false, nil)
         }
     }

@@ -14,8 +14,8 @@ struct TypeSwitchApp: App {
         // 注册快捷键处理
         KeyboardShortcuts.onKeyUp(for: .switchInputMethod) {
             Task { @MainActor in
-                // 先切换输入法，成功后再显示通知
-                let result = await InputMethodManager.shared.switchInputMethodForCurrentApp()
+                // 根据开关状态自动在 quickSwitch 方法内部决定行为
+                let result = await InputMethodManager.shared.quickSwitch()
                 if result.success, let inputMethodName = result.inputMethodName {
                     NotificationManager.shared.showInputMethodSwitchNotification(inputMethodName: inputMethodName)
                 }
