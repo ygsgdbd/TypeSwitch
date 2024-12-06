@@ -10,6 +10,7 @@ enum InputMethodError: LocalizedError {
     case failedToSwitchInputMethod
     case inputMethodNotEnabled
     case notOnMainThread
+    case failedToGetCurrentInputMethod
     
     var errorDescription: String? {
         switch self {
@@ -23,6 +24,8 @@ enum InputMethodError: LocalizedError {
             return "输入法未启用"
         case .notOnMainThread:
             return "必须在主线程调用"
+        case .failedToGetCurrentInputMethod:
+            return "获取当前输入法失败"
         }
     }
 }
@@ -66,7 +69,7 @@ enum InputMethodUtils {
             throw InputMethodError.notOnMainThread
         }
         
-        // 创建输入���列表
+        // 创建输入源列表
         guard let inputSourceList = TISCreateInputSourceList(nil, false)?.takeRetainedValue(),
               let inputSources = (inputSourceList as NSArray) as? [TISInputSource] else {
             logger.error("Failed to create input source list")
@@ -98,6 +101,29 @@ enum InputMethodUtils {
             throw InputMethodError.failedToSwitchInputMethod
         }
         logger.info("Successfully switched to input method: \(inputMethodID)")
+    }
+    
+    @MainActor
+    static func getCurrentInputMethodId() throws -> String {
+        // 确保在主线程调用
+        guard Thread.isMainThread else {
+            logger.error("getCurrentInputMethodId must be called on main thread")
+            throw InputMethodError.notOnMainThread
+        }
+        
+        // 获取当前输入源
+        guard let currentSource = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue() else {
+            logger.error("Failed to get current input source")
+            throw InputMethodError.failedToGetCurrentInputMethod
+        }
+        
+        // 获取输入源属性
+        guard let properties = getInputSourceProperties(currentSource) else {
+            logger.error("Failed to get current input source properties")
+            throw InputMethodError.failedToGetCurrentInputMethod
+        }
+        
+        return properties.sourceID
     }
     
     // MARK: - Private Helpers

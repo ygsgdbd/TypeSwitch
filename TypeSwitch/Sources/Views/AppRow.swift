@@ -69,10 +69,14 @@ private struct InputMethodPicker: View {
     private func makeBinding() -> Binding<String> {
         Binding(
             get: { [app, viewModel] in
-                viewModel.appSettings[app.bundleId] ?? ""
+                viewModel.appSettings[app.bundleId]?.flatMap { $0 } ?? ""
             },
             set: { [app, viewModel] newValue in
-                viewModel.appSettings[app.bundleId] = newValue
+                if newValue.isEmpty {
+                    viewModel.appSettings[app.bundleId] = nil
+                } else {
+                    viewModel.appSettings[app.bundleId] = newValue
+                }
             }
         )
     }
