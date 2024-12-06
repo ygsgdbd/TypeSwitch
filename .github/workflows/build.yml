@@ -18,9 +18,16 @@ jobs:
         with:
           xcode-version: '15.0'
       
+      - name: Install mise
+        run: |
+          curl https://mise.run | sh
+          echo 'eval "$(~/.local/bin/mise activate zsh)"' >> ~/.zshrc
+          source ~/.zshrc
+      
       - name: Install Tuist
         run: |
-          curl -Ls https://install.tuist.io | bash
+          mise use tuist@latest
+          mise install
       
       - name: Generate Xcode Project
         run: |
