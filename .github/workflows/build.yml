@@ -27,21 +27,25 @@ jobs:
       - name: Install Tuist
         run: |
           mise install tuist@latest
+          mise use -g tuist@latest
       
       - name: Clean Tuist Cache
         run: |
           rm -rf ~/Library/Developer/Xcode/DerivedData
-          rm -rf ~/.tuist/Cache/PinsCache.xcworkspace
+          rm -rf ~/.tuist
           rm -rf .tuist-bin
           rm -rf Derived
           rm -rf *.xcodeproj
           rm -rf *.xcworkspace
       
-      - name: Fetch Tuist Dependencies
-        run: tuist fetch
+      - name: Setup Tuist
+        run: |
+          tuist install
+          tuist dependencies fetch
       
       - name: Generate Xcode Project
-        run: tuist generate
+        run: |
+          tuist generate --no-open
       
       - name: Build App
         run: |
@@ -51,7 +55,7 @@ jobs:
             -configuration Release \
             -derivedDataPath ./DerivedData \
             -arch arm64 \
-            clean build
+            clean build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
       
       - name: Create DMG
         run: |
