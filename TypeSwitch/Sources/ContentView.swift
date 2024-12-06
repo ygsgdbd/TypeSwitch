@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct ContentView: View {
     @EnvironmentObject private var viewModel: InputMethodManager
@@ -24,7 +25,11 @@ struct ContentView: View {
         }
         .onExitCommand {
             if viewModel.searchText.isEmpty {
-                dismiss()
+                if let window = NSApplication.shared.keyWindow {
+                    window.close()
+                    NSApp.mainMenu?.cancelTracking()
+                    window.resignFirstResponder()
+                }
             } else {
                 viewModel.searchText = ""
             }
@@ -42,6 +47,27 @@ struct ContentView: View {
             }
         } message: {
             Text(errorMessage)
+        }
+        .onAppear {
+            setupKeyboardShortcuts()
+            // 窗口激活时自动聚焦搜索框
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                isSearchFocused = true
+            }
+        }
+    }
+    
+    private func setupKeyboardShortcuts() {
+        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            if event.keyCode == 53 { // ESC key code
+                if let window = NSApplication.shared.keyWindow {
+                    window.close()
+                    NSApp.mainMenu?.cancelTracking()
+                    window.resignFirstResponder()
+                }
+                return nil
+            }
+            return event
         }
     }
     
