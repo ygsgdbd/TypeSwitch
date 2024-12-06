@@ -3,6 +3,7 @@
 [![Swift](https://img.shields.io/badge/Swift-5.9-orange.svg)](https://swift.org)
 [![Platform](https://img.shields.io/badge/Platform-macOS%2013.0+-blue.svg)](https://www.apple.com/macos/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Build Status](https://github.com/yourusername/TypeSwitch/actions/workflows/build.yml/badge.svg)](https://github.com/yourusername/TypeSwitch/actions)
 
 TypeSwitch 是一个 macOS 应用程序，用于自动切换不同应用的输入法。它可以记住每个应用程序的输入法偏好，并在应用程序切换时自动切换到对应的输入法。
 
@@ -60,7 +61,7 @@ TypeSwitch 高度重视用户隐私和安全：
 - 权限使用说明：
   - 辅助功能权限：仅用于检测应用程序切换
   - 输入法切换权限：仅用于切换输入法
-  - 开机自启动权限：仅用于开机��启动应用
+  - 开机自启动权限：仅用于开机启动应用
 
 ## 依赖说明
 
@@ -102,6 +103,24 @@ tuist generate
 open TypeSwitch.xcworkspace
 ```
 
+### 自动构建和发布
+
+本项目使用 GitHub Actions 进行自动构建和发布：
+
+1. 推送新的版本标签会触发自动构建：
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+2. GitHub Actions 会自动：
+   - 构建应用
+   - 创建 DMG 安装包
+   - 发布新版本
+   - 生成更新日志
+
+3. 构建产物可在 [Releases](https://github.com/yourusername/TypeSwitch/releases) 页面下载
+
 ### 项目结构
 
 ```
@@ -118,7 +137,7 @@ TypeSwitch/
 
 ## 贡献指南
 
-欢迎提交 Pull Request 或创建 Issue��在提交 PR 之前，请确保：
+欢迎提交 Pull Request 或创建 Issue，在提交 PR 之前，请确保：
 
 1. 代码符合项目的代码风格
 2. 添加了必要的测试
