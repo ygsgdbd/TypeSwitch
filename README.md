@@ -3,7 +3,196 @@
 [![Swift](https://img.shields.io/badge/Swift-5.9-orange.svg)](https://swift.org)
 [![Platform](https://img.shields.io/badge/Platform-macOS%2013.0+-blue.svg)](https://www.apple.com/macos/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Build Status](https://github.com/yourusername/TypeSwitch/actions/workflows/build.yml/badge.svg)](https://github.com/yourusername/TypeSwitch/actions)
+[![Build Status](https://github.com/ygsgdbd/TypeSwitch/actions/workflows/build.yml/badge.svg)](https://github.com/ygsgdbd/TypeSwitch/actions)
+
+TypeSwitch is a macOS application that automatically switches input methods for different applications. It remembers input method preferences for each application and automatically switches to the corresponding input method when switching applications.
+
+## Screenshots
+
+<div align="center">
+  <img src="Screenshots/main.png" width="600" alt="Main Interface">
+  <p><em>Main Interface - Set default input method for different applications</em></p>
+</div>
+
+<div align="center">
+  <img src="Screenshots/search.png" width="600" alt="Search Feature">
+  <p><em>Search Feature - Quickly find and configure applications</em></p>
+</div>
+
+## Features
+
+- 🔄 Auto Switch: Automatically switch to preset input methods when changing applications
+- 🔍 Quick Search: Support fuzzy search for applications
+- 🎯 Precise Match: Set independent input method preferences for each application
+- 🚀 Auto Start: Support automatic startup
+- ⌨️ Keyboard Shortcuts:
+  - `Cmd + F` - Quick search applications
+  - `Cmd + R` - Refresh application list
+  - `Cmd + Q` - Quit application
+
+## System Requirements
+
+- macOS 13.0 or later
+- Accessibility permission for monitoring application switches
+- Input method switching permission
+
+## Installation
+
+### Option 1: Homebrew
+
+```bash
+# Add tap
+brew tap ygsgdbd/tap
+
+# Install application
+brew install --cask typeswitch
+```
+
+### Option 2: Manual Installation
+
+1. Download the latest version from [Releases](https://github.com/ygsgdbd/TypeSwitch/releases)
+2. Drag the application to Applications folder
+3. Grant necessary system permissions on first launch
+
+## Usage
+
+1. After launching, the app icon appears in the menu bar
+2. Click the menu bar icon to open the main interface
+3. Find the application you want to configure in the list
+4. Select the default input method for the application
+5. The input method will automatically switch when you switch to that application
+
+## Security
+
+TypeSwitch takes user privacy and security seriously:
+
+- All data is stored locally, nothing is uploaded to the network
+- No user information or usage data is collected
+- Source code is fully open source and welcome for review
+- Uses Swift's built-in security features
+- Permission usage:
+  - Accessibility: Only used for detecting application switches
+  - Input method switching: Only used for switching input methods
+  - Auto-start: Only used for launching at startup
+
+## Dependencies
+
+This project uses the following open source libraries:
+
+- [Defaults](https://github.com/sindresorhus/Defaults) (9.0.0) - For persistent settings storage
+- [SwiftUIX](https://github.com/SwiftUIX/SwiftUIX) (0.2.3) - Provides additional SwiftUI components
+- [Swift Syntax](https://github.com/swiftlang/swift-syntax) (600.0.1) - For project generation
+
+Build tools:
+- [Tuist](https://github.com/tuist/tuist) - For project generation and management
+
+## Development
+
+### Requirements
+
+- Xcode 15.0+
+- Swift 5.9+
+- macOS 13.0+
+- [Tuist](https://github.com/tuist/tuist)
+
+### Build Steps
+
+1. Install [Tuist](https://github.com/tuist/tuist#install-▶️)
+
+2. Clone repository
+```bash
+git clone https://github.com/ygsgdbd/TypeSwitch.git
+cd TypeSwitch
+```
+
+3. Generate Xcode project
+```bash
+tuist generate
+```
+
+4. Open and build
+```bash
+open TypeSwitch.xcworkspace
+```
+
+### Automated Build and Release
+
+This project uses GitHub Actions for automated building and releasing:
+
+1. Push a new version tag to trigger automatic build:
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+2. GitHub Actions will automatically:
+   - Build the application
+   - Create DMG package
+   - Release new version
+   - Generate changelog
+
+3. Build artifacts can be downloaded from [Releases](https://github.com/ygsgdbd/TypeSwitch/releases)
+
+### Project Structure
+
+```
+TypeSwitch/
+├── Project.swift       # Tuist project configuration
+├── Tuist/             # Tuist configuration files
+├── Sources/           # Source code
+│   ├── Models/        # Data models
+│   ├── Views/         # SwiftUI views
+│   ├── ViewModels/    # View models
+│   └── Utils/         # Utility classes
+└── Tests/            # Test files
+```
+
+## Contributing
+
+Pull requests and issues are welcome. Before submitting a PR, please ensure:
+
+1. Code follows project style
+2. Necessary tests are added
+3. Documentation is updated
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) file for details.
+
+## FAQ
+
+- Q: Why can't I switch input methods in some applications?
+  - A: Some applications may require additional permissions. Please ensure TypeSwitch has accessibility access.
+
+- Q: Does TypeSwitch work with all input methods?
+  - A: Yes, TypeSwitch works with all input methods available in macOS System Settings.
+
+- Q: Will TypeSwitch affect system performance?
+  - A: No, TypeSwitch is designed to be lightweight and efficient, using minimal system resources.
+
+- Q: Does it work with virtual machines or remote desktop applications?
+  - A: Yes, TypeSwitch works with any application that appears in macOS, including virtual machines and remote desktop clients.
+
+## Changelog
+
+### v0.1.0
+- Initial release
+- Basic input method switching functionality
+- Menu bar interface
+- Application list with search
+- Automatic startup option
+- Homebrew support
+
+## Acknowledgments
+
+This project was inspired by and learned from:
+- [SwitchKey](https://github.com/itsuhane/SwitchKey) - An excellent input method switcher that provided valuable insights
+- The Swift and SwiftUI communities
+- All contributors and users who provided feedback
+
+---
+
+# 中文说明
 
 TypeSwitch 是一个 macOS 应用程序，用于自动切换不同应用的输入法。它可以记住每个应用程序的输入法偏好，并在应用程序切换时自动切换到对应的输入法。
 
@@ -38,7 +227,19 @@ TypeSwitch 是一个 macOS 应用程序，用于自动切换不同应用的输�
 
 ## 安装方法
 
-1. 从 [Releases](https://github.com/yourusername/TypeSwitch/releases) 页面下载最新版本
+### 方式一：Homebrew
+
+```bash
+# 添加 tap
+brew tap ygsgdbd/tap
+
+# 安装应用
+brew install --cask typeswitch
+```
+
+### 方式二：手动安装
+
+1. 从 [Releases](https://github.com/ygsgdbd/TypeSwitch/releases) 页面下载最新版本
 2. 将应用拖入 Applications 文件夹
 3. 首次运行时授予必要的系统权限
 
@@ -47,7 +248,7 @@ TypeSwitch 是一个 macOS 应用程序，用于自动切换不同应用的输�
 1. 启动应用后，会在菜单栏显示图标
 2. 点击菜单栏图标打开主界面
 3. 在列表中找到需要设置的应用
-4. 为应用选择默认输入法
+4. 为应用择默认输入法
 5. 设置完成后，切换到该应用时会自动切换到设定的输入法
 
 ## 安全说明
@@ -89,7 +290,7 @@ TypeSwitch 高度重视用户隐私和安全：
 
 2. 克隆仓库
 ```bash
-git clone https://github.com/yourusername/TypeSwitch.git
+git clone https://github.com/ygsgdbd/TypeSwitch.git
 cd TypeSwitch
 ```
 
@@ -119,7 +320,7 @@ git push origin v1.0.0
    - 发布新版本
    - 生成更新日志
 
-3. 构建产物可在 [Releases](https://github.com/yourusername/TypeSwitch/releases) 页面下载
+3. 构建产物可在 [Releases](https://github.com/ygsgdbd/TypeSwitch/releases) 页面下载
 
 ### 项目结构
 
@@ -146,3 +347,34 @@ TypeSwitch/
 ## 许可证
 
 本项目采用 MIT 许可证。详见 [LICENSE](LICENSE) 文件。
+
+## 常见问题
+
+- Q: 为什么在某些应用中无法切换输入法？
+  - A: 某些应用可能需要额外的权限。请确保 TypeSwitch 有辅助功能访问权限。
+
+- Q: TypeSwitch 是否支持所有输入法？
+  - A: 是的，TypeSwitch 支持所有在 macOS 系统设置中可用的输入法。
+
+- Q: TypeSwitch 会影响系统性能吗？
+  - A: 不会，TypeSwitch 设计轻量高效，占用极少的系统资源。
+
+- Q: 是否支持虚拟机或远程桌面应用？
+  - A: 是的，TypeSwitch 支持所有在 macOS 中显示的应用程序，包括虚拟机和远程桌面客户端。
+
+## 更新日志
+
+### v0.1.0
+- 首次发布
+- 基本的输入法切换功能
+- 菜单栏界面
+- 应用程序列表搜索
+- 开机自启动选项
+- Homebrew 支持
+
+## 致谢
+
+本项目受到以下项目的启发和帮助：
+- [SwitchKey](https://github.com/itsuhane/SwitchKey) - 一个优秀的输入法切换工具，为本项目提供了宝贵的参考
+- Swift 和 SwiftUI 社区
+- 所有提供反馈的贡献者和用户
