@@ -21,31 +21,11 @@ jobs:
         with:
           xcode-version: '16.1'
       
-      - name: Setup mise
-        uses: jdx/mise-action@v2
-      
-      - name: Install Tuist
-        run: |
-          mise install tuist@latest
-          mise use -g tuist@latest
-      
-      - name: Clean Tuist Cache
-        run: |
-          rm -rf ~/Library/Developer/Xcode/DerivedData || true
-          rm -rf ~/.tuist || true
-          rm -rf .tuist-bin || true
-          rm -rf Derived || true
-          rm -rf *.xcodeproj || true
-          rm -rf *.xcworkspace || true
-      
       - name: Setup Tuist
-        run: |
-          tuist install
-          tuist dependencies fetch
-      
-      - name: Generate Xcode Project
-        run: |
-          tuist generate --no-open
+        uses: tuist/tuist-action@0.13.0
+        with:
+          command: 'generate'
+          arguments: '--no-open'
       
       - name: Build App
         run: |
