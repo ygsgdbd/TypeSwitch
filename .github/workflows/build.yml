@@ -36,7 +36,7 @@ jobs:
             -scheme TypeSwitch \
             -configuration Release \
             -derivedDataPath ./DerivedData \
-            -arch arm64 \
+            -arch arm64 -arch x86_64 \
             clean build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
       
       - name: Create DMG
@@ -44,12 +44,8 @@ jobs:
           brew install create-dmg
           create-dmg \
             --volname "TypeSwitch" \
-            --window-pos 200 120 \
-            --window-size 800 400 \
-            --icon-size 100 \
-            --icon "DerivedData/Build/Products/Release/TypeSwitch.app" 200 190 \
-            --hide-extension "TypeSwitch.app" \
-            --app-drop-link 600 185 \
+            --window-size 500 300 \
+            --app-drop-link 350 150 \
             "TypeSwitch.dmg" \
             "DerivedData/Build/Products/Release/TypeSwitch.app"
       
