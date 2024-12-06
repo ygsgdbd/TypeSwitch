@@ -21,11 +21,13 @@ jobs:
         with:
           xcode-version: '16.1'
       
-      - name: Setup Tuist
-        uses: tuist/tuist-action@0.13.0
-        with:
-          command: 'generate'
-          arguments: '--no-open'
+      - name: Install Tuist
+        run: |
+          brew install tuist
+      
+      - name: Generate Xcode Project
+        run: |
+          tuist generate --no-open
       
       - name: Build App
         run: |
