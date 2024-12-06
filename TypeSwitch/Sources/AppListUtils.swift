@@ -21,11 +21,9 @@ enum AppListUtils {
                 apps.append(contentsOf: dirApps)
             }
             
-            let uniqueApps = Dictionary(grouping: apps, by: \.bundleId)
-                .values
-                .compactMap { $0.first }
-            
-            return uniqueApps.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+            var uniqueApps: Set<AppInfo> = []
+            return apps.filter { uniqueApps.insert($0).inserted }
+                .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
         }
     }
     
@@ -37,29 +35,36 @@ enum AppListUtils {
             return []
         }
         
+        let dirURL = URL(fileURLWithPath: dir)
         guard let enumerator = fileManager.enumerator(
-            at: URL(fileURLWithPath: dir),
+            at: dirURL,
             includingPropertiesForKeys: [.isApplicationKey],
             options: [.skipsHiddenFiles, .skipsPackageDescendants]
         ) else { return [] }
         
         var dirApps: [AppInfo] = []
+        
         for case let fileURL as URL in enumerator {
             guard fileManager.isReadableFile(atPath: fileURL.path) else { continue }
             
             do {
                 let resourceValues = try fileURL.resourceValues(forKeys: [.isApplicationKey])
-                guard resourceValues.isApplication == true,
-                      let bundle = Bundle(url: fileURL),
-                      let bundleId = bundle.bundleIdentifier,
-                      let name = bundle.infoDictionary?["CFBundleName"] as? String
-                else { continue }
+                guard resourceValues.isApplication == true else { continue }
                 
-                dirApps.append(AppInfo(bundleId: bundleId, name: name, iconPath: fileURL.path))
+                guard let bundle = Bundle(url: fileURL),
+                      let bundleId = bundle.bundleIdentifier,
+                      let name = bundle.infoDictionary?["CFBundleDisplayName"] as? String ??
+                                bundle.infoDictionary?["CFBundleName"] as? String else {
+                    continue
+                }
+                
+                let app = AppInfo(bundleId: bundleId, name: name, iconPath: fileURL.path)
+                dirApps.append(app)
             } catch {
                 continue
             }
         }
+        
         return dirApps
     }
 } 
