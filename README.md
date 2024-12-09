@@ -10,7 +10,7 @@
 [![Release](https://img.shields.io/github/v/release/ygsgdbd/TypeSwitch?include_prereleases)](https://github.com/ygsgdbd/TypeSwitch/releases)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/ygsgdbd/TypeSwitch/pulls)
 
-[🇨🇳 中文说明](#中文说明) | [📦 Installation](#installation) | [📖 Usage](#usage)
+[🇨🇳 中文说明](#中文说明) | [📦 Installation](#-installation) | [📖 Usage](#-usage)
 
 </div>
 
@@ -149,7 +149,7 @@ git push origin v1.0.0
 ```
 TypeSwitch/
 ├── Project.swift       # Tuist project configuration
-├── Tuist/             # Tuist configuration files
+├─�� Tuist/             # Tuist configuration files
 ├── Sources/           # Source code
 │   ├── Models/        # Data models
 │   ├── Views/         # SwiftUI views
@@ -279,7 +279,7 @@ TypeSwitch 非常重视用户隐私和安全：
 
 1. 安装 [Tuist](https://github.com/tuist/tuist#install-▶️)
 
-2. 克隆仓库
+2. 克���仓库
 ```bash
 git clone https://github.com/ygsgdbd/TypeSwitch.git
 cd TypeSwitch
@@ -295,7 +295,7 @@ tuist generate
 open TypeSwitch.xcworkspace
 ```
 
-### 自动构建���发布
+### 自动构建和发布
 
 本项目使用 GitHub Actions 进行自动构建和发布：
 
@@ -341,7 +341,7 @@ TypeSwitch/
 
 ## 致谢 🙏
 
-本项目受到以下项目和社区的启发和帮助：
+��项目受到以下项目和社区的启发和帮助：
 - [SwitchKey](https://github.com/itsuhane/SwitchKey) - 一个优秀的输入法切换工具，为本项目提供了宝贵的参考
 - Swift 和 SwiftUI 社区
-- 所有提供反馈���贡献者和用户
+- 所有提供反馈和贡献者和用户
