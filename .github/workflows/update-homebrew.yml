@@ -2,7 +2,10 @@ name: Update Homebrew Tap
 
 on:
   release:
-    types: [published]
+    types: [published, edited, released]
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   update-tap:
