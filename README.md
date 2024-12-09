@@ -186,6 +186,14 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) file for 
 
 ## Changelog
 
+### v0.3.0 🌍
+- 🎨 Updated app icon
+- 🌍 Added multi-language support:
+  - Simplified Chinese (Default)
+  - Traditional Chinese
+  - English
+- 📝 Updated documentation
+
 ### v0.2.0 🚀
 - 🎨 优化界面设计和交互体验
 - ⚡️ 提升应用切换响应速度
@@ -219,7 +227,7 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) file for 
 
 </div>
 
-TypeSwitch 是一个 macOS 应用程序，用于自动切换不同应用的输入法。它可以记住每个应用程序的输入法偏好，并在应用程序切换时自动切换到对应的输入法。
+TypeSwitch 是一个 macOS 应用程序，用于自动切换不同应用的输入法。它可以记住每个应用程序的输入法偏好，并在应用程序切换时自动切换到��应的输入法。
 
 ## 截图预览
 
@@ -267,7 +275,7 @@ brew install --cask typeswitch
 
 1. 从 [Releases](https://github.com/ygsgdbd/TypeSwitch/releases) 下载最新版本
 2. 将应用拖入应用程序文件夹
-3. 首次启动时授予必要的系统权限
+3. 首次启动时授予必要系统权限
 
 ## 使用说明
 
@@ -390,6 +398,14 @@ TypeSwitch/
   - A: 是的，TypeSwitch 支持所有在 macOS 中显示的应用程序，包括虚拟机和远程桌面客户端。
 
 ## 更新日志 📝
+
+### v0.3.0 🌍
+- 🎨 更新应用图标
+- 🌍 新增多语言支持：
+  - 简体中文（默认）
+  - 繁体中文
+  - 英语
+- 📝 更新文档
 
 ### v0.2.0 🚀
 - 🎨 优化界面设计和交互体验
