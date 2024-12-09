@@ -279,7 +279,7 @@ TypeSwitch 非常重视用户隐私和安全：
 
 1. 安装 [Tuist](https://github.com/tuist/tuist#install-▶️)
 
-2. 克���仓库
+2. 克隆仓库
 ```bash
 git clone https://github.com/ygsgdbd/TypeSwitch.git
 cd TypeSwitch
@@ -341,7 +341,7 @@ TypeSwitch/
 
 ## 致谢 🙏
 
-��项目受到以下项目和社区的启发和帮助：
+本项目受到以下项目和社区的启发和帮助：
 - [SwitchKey](https://github.com/itsuhane/SwitchKey) - 一个优秀的输入法切换工具，为本项目提供了宝贵的参考
 - Swift 和 SwiftUI 社区
 - 所有提供反馈和贡献者和用户
