@@ -10,11 +10,11 @@
 [![Release](https://img.shields.io/github/v/release/ygsgdbd/TypeSwitch?include_prereleases)](https://github.com/ygsgdbd/TypeSwitch/releases)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/ygsgdbd/TypeSwitch/pulls)
 
-[🇨🇳 中文说明](#中文说明) | [📦 安装方法](#安装方法) | [📖 使用说明](#使用说明) | [❓ 常见问题](#常见问题)
+[🇨🇳 中文说明](#中文说明) | [📦 Installation](#installation) | [📖 Usage](#usage)
 
 </div>
 
-TypeSwitch is a macOS application that automatically switches input methods for different applications. It remembers input method preferences for each application and automatically switches to the corresponding input method when switching applications.
+TypeSwitch is a modern macOS application built with SwiftUI for automatically switching input methods across different applications. Leveraging the latest Swift features and native macOS capabilities, it provides a seamless and efficient experience for managing input method preferences.
 
 ## ✨ Screenshots
 
@@ -24,8 +24,8 @@ TypeSwitch is a macOS application that automatically switches input methods for 
 </div>
 
 <div align="center">
-  <img src="Screenshots/search.png" width="600" alt="搜索功能">
-  <p><em>搜索功能 - 快速查找应用并设置输入法</em></p>
+  <img src="Screenshots/search.png" width="600" alt="Search Function">
+  <p><em>Search Function - Quickly find and configure applications</em></p>
 </div>
 
 ## 🎯 Features
@@ -170,64 +170,20 @@ Pull requests and issues are welcome. Before submitting a PR, please ensure:
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) file for details.
 
-## FAQ
+## Acknowledgments 🙏
 
-- Q: Why can't I switch input methods in some applications?
-  - A: Some applications may require additional permissions. Please ensure TypeSwitch has accessibility access.
-
-- Q: Does TypeSwitch work with all input methods?
-  - A: Yes, TypeSwitch works with all input methods available in macOS System Settings.
-
-- Q: Will TypeSwitch affect system performance?
-  - A: No, TypeSwitch is designed to be lightweight and efficient, using minimal system resources.
-
-- Q: Does it work with virtual machines or remote desktop applications?
-  - A: Yes, TypeSwitch works with any application that appears in macOS, including virtual machines and remote desktop clients.
-
-## Changelog
-
-### v0.3.0 🌍
-- 🎨 Updated app icon
-- 🌍 Added multi-language support:
-  - Simplified Chinese (Default)
-  - Traditional Chinese
-  - English
-- 📝 Updated documentation
-
-### v0.2.0 🚀
-- 🎨 优化界面设计和交互体验
-- ⚡️ 提升应用切换响应速度
-- 🔍 改进应用搜索功能
-- ⌨️ 新增一键切换当前应用默认输入法功能
-- 🐛 修复已知问题和崩溃
-- 📦 更新第三方依赖版本
-
-### v0.1.0 🎉
-- 🚀 首次发布
-- ⌨️ 基本的输入法切换功能
-- 🔄 菜单栏界面
-- 🔍 应用程序列表搜索
-- ⚡️ 开机自启动选项
-- 🍺 Homebrew 支持
-
-## 致谢 🙏
-
-本项目受到以下项目的启发和帮助：
-- [SwitchKey](https://github.com/itsuhane/SwitchKey) - 一个优秀的输入法切换工具，为本项目提供了宝贵的参考
-- Swift 和 SwiftUI 社区
-- 所有提供反馈的贡献者和用户
+This project was inspired by and received help from:
+- [SwitchKey](https://github.com/itsuhane/SwitchKey) - An excellent input method switcher that provided valuable reference
+- Swift and SwiftUI community
+- All contributors and users who provided feedback
 
 ---
 
 # 中文说明 <a name="中文说明"></a>
 
-<div align="center">
+[🇺🇸 English](#typeswitch-) | [📦 安装方法](#安装方法) | [📖 使用说明](#使用说明)
 
-[🇺🇸 English](#typeswitch-) | [📦 安装方法](#安装方法) | [📖 使用说明](#使用说明) | [❓ 常见问题](#常见问题)
-
-</div>
-
-TypeSwitch 是一个 macOS 应用程序，用于自动切换不同应用的输入法。它可以记住每个应用程序的输入法偏好，并在应用程序切换时自动切换到��应的输入法。
+TypeSwitch 是一个基于 SwiftUI 开发的现代 macOS 应用，用于自动切换不同应用的输入法。采用新的 Swift 特性和原生 macOS 功能，为用户提供流畅高效的输入法管理体验。
 
 ## 截图预览
 
@@ -256,7 +212,7 @@ TypeSwitch 是一个 macOS 应用程序，用于自动切换不同应用的输�
 ## 系统要求
 
 - 🖥 macOS 13.0 或更高版本
-- 🔐 需要辅助功能权限用于监控应用程序切换
+- 🔐 需要辅助功能权限用于监控应用切换
 - ⌨️ 需要输入法切换权限
 
 ## 安装方法
@@ -285,16 +241,16 @@ brew install --cask typeswitch
 4. 选择该应用的默认输入法
 5. 切换到该应用时会自动切换到设定的输入法
 
-## 安全性
+## 🔒 安全
 
-TypeSwitch 高度重视用户隐私和安全：
+TypeSwitch 非常重视用户隐私和安全：
 
 - 🏠 所有数据本地存储，不会上传网络
 - 🚫 不收集任何用户信息或使用数据
-- 📖 源代码完全开源，欢迎审查
+- 📖 源代码完全开放，欢迎审查
 - 🛡️ 使用 Swift 内置的安全特性
 - 🔐 权限使用说明：
-  - 辅助功能：仅用于检测应用程序切换
+  - 辅助功能：仅用于检测应用切换
   - 输入法切换：仅用于切换输入法
   - 自动启动：仅用于开机启动
 
@@ -339,7 +295,7 @@ tuist generate
 open TypeSwitch.xcworkspace
 ```
 
-### 自动构建和发布
+### 自动构建���发布
 
 本项目使用 GitHub Actions 进行自动构建和发布：
 
@@ -371,61 +327,21 @@ TypeSwitch/
 └── Tests/            # 测试文件
 ```
 
-## 贡献指南 ✨
+## 贡献指南
 
-欢迎提交 Pull Request 或创建 Issue，在提交 PR 之前，请确保：
+欢迎提交 Pull Request 和创建 Issue，在提交 PR 之前，请确保：
 
 1. 代码符合项目的代码风格
 2. 添加了必要的测试
 3. 更新了相关文档
 
-## 许可证 📄
+## 许可证
 
-本项目采用 MIT 许可证。详见 [LICENSE](LICENSE) 文件。
-
-## 常见问题 ❓
-
-- Q: 为什么在某些应用中无法切换输入法？
-  - A: 某些应用可能需要额外的权限。请确保 TypeSwitch 有辅助功能访问权限。
-
-- Q: TypeSwitch 是否支持所有输入法？
-  - A: 是的，TypeSwitch 支持所有在 macOS 系统设置中可用的输入法。
-
-- Q: TypeSwitch 会影响系统性能吗？
-  - A: 不会，TypeSwitch 设计轻量高效，占用极少的系统资源。
-
-- Q: 是否支持虚拟机或远程桌面应用？
-  - A: 是的，TypeSwitch 支持所有在 macOS 中显示的应用程序，包括虚拟机和远程桌面客户端。
-
-## 更新日志 📝
-
-### v0.3.0 🌍
-- 🎨 更新应用图标
-- 🌍 新增多语言支持：
-  - 简体中文（默认）
-  - 繁体中文
-  - 英语
-- 📝 更新文档
-
-### v0.2.0 🚀
-- 🎨 优化界面设计和交互体验
-- ⚡️ 提升应用切换响应速度
-- 🔍 改进应用搜索功能
-- ⌨️ 新增一键切换当前应用默认输入法功能
-- 🐛 修复已知问题和崩溃
-- 📦 更新第三方依赖版本
-
-### v0.1.0 🎉
-- 🚀 首次发布
-- ⌨️ 基本的输入法切换功能
-- 🔄 菜单栏界面
-- 🔍 应用程序列表搜索
-- ⚡️ 开机自启动选项
-- 🍺 Homebrew 支持
+本项目基于 MIT 许可证开源。详见 [LICENSE](LICENSE) 文件。
 
 ## 致谢 🙏
 
-本项目受到以下项目的启发和帮助：
+本项目受到以下项目和社区的启发和帮助：
 - [SwitchKey](https://github.com/itsuhane/SwitchKey) - 一个优秀的输入法切换工具，为本项目提供了宝贵的参考
 - Swift 和 SwiftUI 社区
-- 所有提供反馈的贡献者和用户
+- 所有提供反馈���贡献者和用户
