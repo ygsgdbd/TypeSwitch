@@ -8,14 +8,14 @@ struct QuickSwitchSettingsWindow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // 标题
-            Text("全局快速切换")
+            Text("settings.shortcuts.global_switch".localized)
                 .font(.system(size: 13, weight: .medium))
             
             // 设置内容
             VStack(alignment: .leading, spacing: 12) {
                 // 开关
                 HStack {
-                    Text("启用全局快速切换")
+                    Text("settings.shortcuts.global_switch.enable".localized)
                         .font(.system(size: 13))
                     Spacer()
                     Toggle("", isOn: $viewModel.isQuickSwitchEnabled)
@@ -25,7 +25,7 @@ struct QuickSwitchSettingsWindow: View {
                 
                 // 快捷键
                 HStack {
-                    Text("快捷键")
+                    Text("settings.shortcuts.shortcut".localized)
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
                     Spacer()
@@ -33,7 +33,7 @@ struct QuickSwitchSettingsWindow: View {
                 }
                 
                 // 说明文本
-                Text("启用后，快捷键将在所有输入法间循环切换，不考虑应用的默认设置")
+                Text("settings.shortcuts.global_switch.hint".localized)
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -47,7 +47,7 @@ struct QuickSwitchSettingsWindow: View {
             // 底部按钮
             HStack {
                 Spacer()
-                Button("完成") {
+                Button("button.done".localized) {
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)

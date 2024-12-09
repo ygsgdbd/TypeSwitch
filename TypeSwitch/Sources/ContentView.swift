@@ -41,8 +41,8 @@ struct ContentView: View {
             .keyboardShortcut("f", modifiers: .command)
             .opacity(0)
         }
-        .alert("错误", isPresented: $showError) {
-            Button("确定") {
+        .alert("error.title".localized, isPresented: $showError) {
+            Button("button.ok".localized) {
                 showError = false
             }
         } message: {
@@ -57,7 +57,7 @@ struct ContentView: View {
     }
     
     private var searchField: some View {
-        TextField("搜索应用... (⌘F)", text: $viewModel.searchText)
+        TextField("apps.search".localized, text: $viewModel.searchText)
             .textFieldStyle(.roundedBorder)
             .padding(.horizontal)
             .padding(.vertical, 12)

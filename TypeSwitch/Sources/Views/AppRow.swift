@@ -54,7 +54,7 @@ private struct InputMethodPicker: View {
     
     var body: some View {
         Picker("", selection: makeBinding()) {
-            Text("默认").tag("")
+            Text("input_method.default".localized).tag("")
             ForEach(viewModel.inputMethods) { inputMethod in
                 Text(inputMethod.name)
                     .font(.system(size: 11))

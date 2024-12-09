@@ -15,7 +15,7 @@ private struct ToastView: View {
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(.secondary)
                 .font(.system(size: 14))
-            Text("已切换到：\(displayName)")
+            Text("notification.switched".localized(with: displayName))
                 .font(.system(size: 12))
                 .foregroundColor(.primary)
         }
@@ -111,7 +111,7 @@ final class NotificationManager: ObservableObject {
         self.window = window
         updateWindowPosition()
         
-        // 显示窗口（带渐���动画）
+        // 显示窗口（带渐变动画）
         window.alphaValue = 0
         window.orderFront(nil)
         NSAnimationContext.runAnimationGroup { context in

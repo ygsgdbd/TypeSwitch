@@ -1,0 +1,52 @@
+// 主界面
+"app.name" = "TypeSwitch";
+"app.description" = "輸入法自動切換工具";
+
+// 選單
+"menu.preferences" = "偏好設定...";
+"menu.check_for_updates" = "檢查更新...";
+"menu.quit" = "結束";
+
+// 設定
+"settings.general" = "一般";
+"settings.shortcuts" = "快速鍵";
+"settings.about" = "關於";
+
+// 輸入法設定
+"input_method.default" = "預設";
+"input_method.current" = "目前輸入法";
+"input_method.switch" = "切換輸入法";
+
+// 應用程式列表
+"apps.search" = "搜尋應用程式... (⌘F)";
+"apps.no_results" = "找不到應用程式";
+"apps.refresh" = "重新整理列表";
+"apps.section.running" = "正在執行";
+"apps.section.others" = "其他應用程式";
+
+// 快速鍵設定
+"settings.shortcuts.global_switch" = "全域快速切換";
+"settings.shortcuts.global_switch.enable" = "啟用全域快速切換";
+"settings.shortcuts.global_switch.description" = "使用快速鍵在所有輸入法間快速切換";
+"settings.shortcuts.global_switch.hint" = "啟用後，快速鍵將在所有輸入法間循環切換，不考慮應用程式的預設設定";
+"settings.shortcuts.shortcut" = "快速鍵";
+
+// 一般設定
+"settings.general.auto_launch" = "開機啟動";
+"settings.general.auto_launch.description" = "登入系統時自動啟動 TypeSwitch";
+
+// 通知
+"notification.switched" = "已切換至：%@";
+"notification.error" = "切換輸入法失敗";
+
+// 錯誤提示
+"error.title" = "錯誤";
+"error.auto_launch_failed" = "設定開機自啟動失敗：%@";
+
+// 通用按鈕
+"button.ok" = "確定";
+"button.cancel" = "取消";
+"button.apply" = "套用";
+"button.done" = "完成";
+"button.refresh" = "重新整理 (⌘R)";
+"button.quit" = "結束 (⌘Q)";

@@ -1,0 +1,52 @@
+// Main Interface
+"app.name" = "TypeSwitch";
+"app.description" = "Input Method Auto Switcher";
+
+// Menu
+"menu.preferences" = "Preferences...";
+"menu.check_for_updates" = "Check for Updates...";
+"menu.quit" = "Quit";
+
+// Settings
+"settings.general" = "General";
+"settings.shortcuts" = "Shortcuts";
+"settings.about" = "About";
+
+// Input Method Settings
+"input_method.default" = "Default";
+"input_method.current" = "Current Input Method";
+"input_method.switch" = "Switch Input Method";
+
+// App List
+"apps.search" = "Search Apps... (⌘F)";
+"apps.no_results" = "No Apps Found";
+"apps.refresh" = "Refresh List";
+"apps.section.running" = "Running";
+"apps.section.others" = "Other Apps";
+
+// Shortcuts Settings
+"settings.shortcuts.global_switch" = "Global Quick Switch";
+"settings.shortcuts.global_switch.enable" = "Enable Global Quick Switch";
+"settings.shortcuts.global_switch.description" = "Use shortcut to quickly switch between input methods";
+"settings.shortcuts.global_switch.hint" = "When enabled, the shortcut will cycle through all input methods, regardless of app defaults";
+"settings.shortcuts.shortcut" = "Shortcut";
+
+// General Settings
+"settings.general.auto_launch" = "Launch at Login";
+"settings.general.auto_launch.description" = "Automatically start TypeSwitch when you log in";
+
+// Notifications
+"notification.switched" = "Switched to: %@";
+"notification.error" = "Failed to Switch Input Method";
+
+// Error Messages
+"error.title" = "Error";
+"error.auto_launch_failed" = "Failed to set auto launch: %@";
+
+// Common Buttons
+"button.ok" = "OK";
+"button.cancel" = "Cancel";
+"button.apply" = "Apply";
+"button.done" = "Done";
+"button.refresh" = "Refresh (⌘R)";
+"button.quit" = "Quit (⌘Q)";

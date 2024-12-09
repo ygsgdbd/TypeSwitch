@@ -14,9 +14,9 @@ struct ControlPanel: View {
                 // 全局快速切换
                 GridRow {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("全局快速切换")
+                        Text("settings.shortcuts.global_switch".localized)
                             .font(.system(size: 12))
-                        Text("使用快捷键在所有输入法间快速切换")
+                        Text("settings.shortcuts.global_switch.description".localized)
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)
                             .lineLimit(1)
@@ -45,9 +45,9 @@ struct ControlPanel: View {
                 // 开机启动
                 GridRow {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("开机启动")
+                        Text("settings.general.auto_launch".localized)
                             .font(.system(size: 12))
-                        Text("登录系统时自动启动 TypeSwitch")
+                        Text("settings.general.auto_launch.description".localized)
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)
                             .lineLimit(1)
@@ -71,7 +71,7 @@ struct ControlPanel: View {
                                 } catch {
                                     await MainActor.run {
                                         viewModel.isAutoLaunchEnabled = !newValue
-                                        errorMessage = "设置开机自启动失败：\(error.localizedDescription)"
+                                        errorMessage = "error.auto_launch_failed".localized(with: error.localizedDescription)
                                         showError = true
                                     }
                                 }
@@ -98,7 +98,7 @@ struct ControlPanel: View {
                                 .controlSize(.small)
                                 .scaleEffect(0.7)
                         } else {
-                            Text("刷新 (⌘R)")
+                            Text("button.refresh".localized)
                                 .font(.system(size: 11))
                         }
                     }
@@ -107,7 +107,7 @@ struct ControlPanel: View {
                 .keyboardShortcut("r", modifiers: .command)
                 .disabled(viewModel.isRefreshing)
                 
-                Button("退出 (⌘Q)") {
+                Button("button.quit".localized) {
                     NSApplication.shared.terminate(nil)
                 }
                 .buttonStyle(.borderless)

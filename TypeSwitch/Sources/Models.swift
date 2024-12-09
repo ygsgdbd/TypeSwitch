@@ -15,8 +15,12 @@ struct InputSourceProperties {
 }
 
 enum AppSection: String, CaseIterable {
-    case running = "正在运行"
-    case others = "其他应用"
+    case running = "apps.section.running"
+    case others = "apps.section.others"
+    
+    var localizedName: String {
+        rawValue.localized
+    }
 }
 
 struct AppInfo: Identifiable, Sendable, Hashable {
