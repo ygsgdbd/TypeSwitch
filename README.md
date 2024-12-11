@@ -149,7 +149,7 @@ git push origin v1.0.0
 ```
 TypeSwitch/
 ├── Project.swift       # Tuist project configuration
-├─�� Tuist/             # Tuist configuration files
+├── Tuist/             # Tuist configuration files
 ├── Sources/           # Source code
 │   ├── Models/        # Data models
 │   ├── Views/         # SwiftUI views
