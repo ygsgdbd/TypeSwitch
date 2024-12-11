@@ -2,10 +2,7 @@ name: Update Homebrew Tap
 
 on:
   release:
-    types: [published, edited, released]
-  push:
-    tags:
-      - 'v*'
+    types: [published]
 
 jobs:
   update-tap:
@@ -43,7 +40,7 @@ jobs:
           fi
           echo "sha256=$SHA256" >> $GITHUB_OUTPUT
           
-          # 输出信息用于调试
+          # ���出信息用于调试
           echo "Version: $VERSION"
           echo "SHA256: $SHA256"
 
