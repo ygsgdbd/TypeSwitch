@@ -14,6 +14,8 @@ struct ContentView: View {
         VStack(spacing: 0) {
             searchField
             
+            Divider()
+            
             ScrollViewReader { proxy in
                 appList
                     .onAppear { scrollProxy = proxy }
@@ -75,15 +77,22 @@ struct ContentView: View {
     }
     
     private var appList: some View {
-        List {
-            ForEach(viewModel.filteredApps) { app in
-                AppRow(app: app)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(8)
-                    .id(app.id)
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(viewModel.filteredApps) { app in
+                    VStack(spacing: 0) {
+                        AppRow(app: app)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(12)
+                            .id(app.id)
+                        
+                        Divider()
+                            .opacity(0.4)
+                    }
+                }
             }
         }
-        .listStyle(.plain)
+        .scrollIndicators(.visible)
     }
 }
 

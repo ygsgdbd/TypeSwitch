@@ -53,16 +53,11 @@ jobs:
             "TypeSwitch.dmg" \
             "DerivedData/Build/Products/Release/TypeSwitch.app"
       
-      - name: Create Source Archives
-        run: |
-          zip -r "TypeSwitch-${{ github.ref_name }}-src.zip" . \
-            -x "*.git*" -x "build/*" -x "*.xcodeproj/*" -x "*.xcworkspace/*" -x "*.dmg" -x "DerivedData/*"
-      
       - name: Generate Checksums
         run: |
           echo "### Checksums" > checksums.txt
           echo "\`\`\`" >> checksums.txt
-          shasum -a 256 TypeSwitch.dmg "TypeSwitch-${{ github.ref_name }}-src.zip" >> checksums.txt
+          shasum -a 256 TypeSwitch.dmg >> checksums.txt
           echo "\`\`\`" >> checksums.txt
       
       - name: Release
@@ -71,11 +66,10 @@ jobs:
         with:
           files: |
             TypeSwitch.dmg
-            TypeSwitch-${{ github.ref_name }}-src.zip
             checksums.txt
           body_path: checksums.txt
           draft: false
           prerelease: ${{ contains(github.ref, '-beta') || contains(github.ref, '-alpha') }}
           generate_release_notes: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
