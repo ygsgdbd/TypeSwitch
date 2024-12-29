@@ -1,5 +1,9 @@
 import ProjectDescription
 
+// MARK: - Version
+let appVersion = "0.3.4"  // 应用版本号
+let buildVersion = "@BUILD_NUMBER@"  // 构建版本号占位符，会被 GitHub Actions 替换
+
 let project = Project(
     name: "TypeSwitch",
     options: .options(
@@ -14,9 +18,11 @@ let project = Project(
     ],
     settings: .settings(
         base: [
-            "SWIFT_VERSION": "5.9",
-            "DEVELOPMENT_LANGUAGE": "zh-Hans",
-            "SWIFT_EMIT_LOC_STRINGS": "YES"
+            "SWIFT_VERSION": SettingValue(stringLiteral: "5.9"),
+            "DEVELOPMENT_LANGUAGE": SettingValue(stringLiteral: "zh-Hans"),
+            "SWIFT_EMIT_LOC_STRINGS": SettingValue(stringLiteral: "YES"),
+            "MARKETING_VERSION": SettingValue(stringLiteral: appVersion),
+            "CURRENT_PROJECT_VERSION": SettingValue(stringLiteral: buildVersion)
         ],
         configurations: [
             .debug(name: "Debug"),
@@ -35,14 +41,15 @@ let project = Project(
                 "CFBundleDevelopmentRegion": "zh-Hans",  // 设置默认开发区域为简体中文
                 "CFBundleLocalizations": ["zh-Hans", "zh-Hant", "en"],  // 支持的语言列表
                 "AppleLanguages": ["zh-Hans"],  // 设置默认语言为简体中文
-                "NSHumanReadableCopyright": "Copyright © 2024 ygsgdbd. All rights reserved."
+                "NSHumanReadableCopyright": "Copyright © 2024 ygsgdbd. All rights reserved.",
+                "LSApplicationCategoryType": "public.app-category.utilities",
+                "LSMinimumSystemVersion": "13.0",
+                "CFBundleShortVersionString": .string(appVersion),  // 市场版本号
+                "CFBundleVersion": .string(buildVersion)  // 构建版本号
             ]),
             sources: ["TypeSwitch/Sources/**"],
             resources: [
-                "TypeSwitch/Resources/**",
-                .folderReference(path: "TypeSwitch/Resources/zh-Hans.lproj"),
-                .folderReference(path: "TypeSwitch/Resources/zh-Hant.lproj"),
-                .folderReference(path: "TypeSwitch/Resources/en.lproj")
+                "TypeSwitch/Resources/**"
             ],
             dependencies: [
                 .package(product: "Defaults"),
