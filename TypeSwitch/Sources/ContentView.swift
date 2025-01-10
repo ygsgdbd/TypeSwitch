@@ -87,12 +87,11 @@ struct ContentView: View {
                             .id(app.id)
                         
                         Divider()
-                            .opacity(0.4)
+                            .opacity(0.6)
                     }
                 }
             }
         }
-        .scrollIndicators(.visible)
     }
 }
 

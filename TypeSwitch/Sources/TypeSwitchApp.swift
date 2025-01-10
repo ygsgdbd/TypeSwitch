@@ -26,16 +26,14 @@ struct TypeSwitchApp: App {
     var body: some Scene {
         MenuBarExtra {
             ContentView()
+                .task {
+                    await inputMethodManager.checkAutoLaunchStatus()
+                }
                 .environmentObject(inputMethodManager)
         } label: {
             Image(systemName: inputMethodManager.isHighlighted ? "keyboard.fill" : "keyboard")
                 .scaleEffect(inputMethodManager.isHighlighted ? 1.2 : 1.0)
         }
         .menuBarExtraStyle(.window)
-        
-        Settings {
-            ContentView()
-                .environmentObject(inputMethodManager)
-        }
     }
 }

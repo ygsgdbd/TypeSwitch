@@ -5,10 +5,14 @@ import Combine
 import Defaults
 import Carbon
 import SwiftUI
+import Logging
 
 @MainActor
 final class InputMethodManager: ObservableObject {
     static let shared = InputMethodManager()
+    
+    private let logger = LoggerUtils.autoLaunch
+    private let securityLogger = LoggerUtils.security
     
     @Published var inputMethods: [InputMethod] = []
     @Published var installedApps: [AppInfo] = []
@@ -20,7 +24,6 @@ final class InputMethodManager: ObservableObject {
     }
     
     // UI 状态
-    @Published var isAutoLaunchEnabled = false
     @Published var searchText = ""
     @Published private(set) var isRefreshing: Bool = false
     @Published var isHighlighted = false
@@ -31,6 +34,10 @@ final class InputMethodManager: ObservableObject {
     }
     
     // 计算属性
+    var isAutoLaunchEnabled: Bool {
+        SMAppService.mainApp.status == .enabled
+    }
+    
     var filteredApps: [AppInfo] {
         if searchText.isEmpty {
             return installedApps.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
@@ -40,16 +47,12 @@ final class InputMethodManager: ObservableObject {
     
     // 存储订阅
     private var cancellables: Set<AnyCancellable> = []
-    private var isUpdatingAutoLaunch = false
     
     private init() {
         // 从 Defaults 加载设置
         appSettings = Defaults[.appInputMethodSettings]
         isQuickSwitchEnabled = Defaults[.quickSwitchEnabled]
         setupSubscriptions()
-        
-        // 初始化自启动状态
-        updateAutoLaunchState()
     }
     
     deinit {
@@ -80,12 +83,25 @@ final class InputMethodManager: ObservableObject {
             .store(in: &cancellables)
     }
     
-    private func updateAutoLaunchState() {
-        guard !isUpdatingAutoLaunch else { return }
-        isUpdatingAutoLaunch = true
-        defer { isUpdatingAutoLaunch = false }
+    // MARK: - Auto Launch
+    
+    /// 检查自启动状态并同步 UI
+    func checkAutoLaunchStatus() async {
+        let currentStatus = SMAppService.mainApp.status == .enabled
+        logger.info("Checking auto launch status: \(currentStatus ? "enabled" : "disabled")")
+        objectWillChange.send()
+    }
+    
+    func setAutoLaunch(enabled: Bool) async throws {
+        logger.info("Setting auto launch to: \(enabled)")
         
-        isAutoLaunchEnabled = SMAppService.mainApp.status == .enabled
+        if enabled {
+            try SMAppService.mainApp.register()
+        } else {
+            try await SMAppService.mainApp.unregister()
+        }
+        
+        objectWillChange.send()
     }
     
     // MARK: - Application Handling
@@ -100,7 +116,7 @@ final class InputMethodManager: ObservableObject {
         do {
             try InputMethodUtils.switchToInputMethod(actualInputMethodId)
         } catch {
-            print("Failed to switch input method for \(bundleId): \(error.localizedDescription)")
+            logger.error("Failed to switch input method for \(bundleId): \(error.localizedDescription)")
         }
     }
     
@@ -116,7 +132,7 @@ final class InputMethodManager: ObservableObject {
             
             inputMethods = newInputMethods
         } catch {
-            print("Failed to refresh input methods: \(error.localizedDescription)")
+            logger.error("Failed to refresh input methods: \(error.localizedDescription)")
         }
     }
     
@@ -148,8 +164,6 @@ final class InputMethodManager: ObservableObject {
             group.addTask { await self.refreshInstalledApps() }
             await group.waitForAll()
         }
-        
-        isAutoLaunchEnabled = SMAppService.mainApp.status == .enabled
     }
     
     // MARK: - Input Method Switching

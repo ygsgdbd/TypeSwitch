@@ -14,7 +14,8 @@ let project = Project(
         .remote(url: "https://github.com/sindresorhus/Defaults", requirement: .upToNextMajor(from: "9.0.0")),
         .remote(url: "https://github.com/SwiftUIX/SwiftUIX", requirement: .upToNextMajor(from: "0.1.9")),
         .remote(url: "https://github.com/SwifterSwift/SwifterSwift", requirement: .upToNextMajor(from: "7.0.0")),
-        .remote(url: "https://github.com/sindresorhus/KeyboardShortcuts", requirement: .upToNextMajor(from: "2.2.2"))
+        .remote(url: "https://github.com/sindresorhus/KeyboardShortcuts", requirement: .upToNextMajor(from: "2.2.2")),
+        .remote(url: "https://github.com/apple/swift-log.git", requirement: .upToNextMajor(from: "1.5.3"))
     ],
     settings: .settings(
         base: [
@@ -51,11 +52,14 @@ let project = Project(
             resources: [
                 "TypeSwitch/Resources/**"
             ],
+            entitlements: .file(path: "Tuist/Signing/TypeSwitch.entitlements"),
             dependencies: [
                 .package(product: "Defaults"),
                 .package(product: "SwiftUIX"),
                 .package(product: "SwifterSwift"),
-                .package(product: "KeyboardShortcuts")
+                .package(product: "KeyboardShortcuts"),
+                .package(product: "Logging"),
+                .sdk(name: "ServiceManagement", type: .framework)
             ],
             settings: .settings(
                 base: [

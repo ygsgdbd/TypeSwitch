@@ -54,29 +54,24 @@ struct ControlPanel: View {
                     }
                     .gridCellColumns(1)
                     
-                    Toggle("", isOn: $viewModel.isAutoLaunchEnabled)
+                    Toggle("", isOn: Binding(
+                        get: { viewModel.isAutoLaunchEnabled },
+                        set: { newValue in
+                            Task {
+                                do {
+                                    try await viewModel.setAutoLaunch(enabled: newValue)
+                                } catch {
+                                    errorMessage = String(format: "error.auto_launch_failed".localized, error.localizedDescription)
+                                    showError = true
+                                }
+                            }
+                        }
+                    ))
                         .toggleStyle(.switch)
                         .labelsHidden()
                         .controlSize(.mini)
                         .gridCellColumns(1)
                         .frame(maxWidth: .infinity, alignment: .trailing)
-                        .onChange(of: viewModel.isAutoLaunchEnabled) { newValue in
-                            Task {
-                                do {
-                                    if newValue {
-                                        try SMAppService.mainApp.register()
-                                    } else {
-                                        try await SMAppService.mainApp.unregister()
-                                    }
-                                } catch {
-                                    await MainActor.run {
-                                        viewModel.isAutoLaunchEnabled = !newValue
-                                        errorMessage = "error.auto_launch_failed".localized(with: error.localizedDescription)
-                                        showError = true
-                                    }
-                                }
-                            }
-                        }
                 }
             }
             .padding(12)

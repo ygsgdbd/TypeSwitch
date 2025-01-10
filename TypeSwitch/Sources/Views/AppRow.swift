@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftUIX
 
 struct AppRow: View {
     let app: AppInfo
@@ -28,7 +29,7 @@ private struct AppIcon: View, Equatable {
         app.icon
             .resizable()
             .aspectRatio(contentMode: .fit)
-            .frame(width: 24, height: 24)
+            .squareFrame(sideLength: 26)
     }
 }
 
