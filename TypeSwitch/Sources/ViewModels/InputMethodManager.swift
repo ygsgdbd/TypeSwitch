@@ -87,18 +87,60 @@ final class InputMethodManager: ObservableObject {
     
     /// 检查自启动状态并同步 UI
     func checkAutoLaunchStatus() async {
-        let currentStatus = SMAppService.mainApp.status == .enabled
-        logger.info("Checking auto launch status: \(currentStatus ? "enabled" : "disabled")")
+        let currentStatus = SMAppService.mainApp.status
+        logger.info("Current auto launch status: \(currentStatus.rawValue)")
         objectWillChange.send()
     }
     
     func setAutoLaunch(enabled: Bool) async throws {
-        logger.info("Setting auto launch to: \(enabled)")
+        logger.info("Setting auto launch to: \(enabled), current status: \(SMAppService.mainApp.status.rawValue)")
         
+        // 检查当前状态
+        let currentStatus = SMAppService.mainApp.status
+        
+        // 如果当前状态已经是目标状态，直接返回
+        if (enabled && currentStatus == .enabled) || (!enabled && currentStatus == .notRegistered) {
+            logger.info("Auto launch is already in desired state")
+            return
+        }
+        
+        // 执行注册或注销操作
         if enabled {
             try SMAppService.mainApp.register()
+            
+            // 检查注册结果
+            let newStatus = SMAppService.mainApp.status
+            switch newStatus {
+            case .enabled:
+                logger.info("Auto launch enabled successfully")
+            case .requiresApproval:
+                logger.info("Auto launch requires system approval")
+                throw NSError(domain: "TypeSwitch", code: 1, 
+                    userInfo: [NSLocalizedDescriptionKey: "需要在系统设置的登录项中批准 TypeSwitch"])
+            case .notRegistered:
+                logger.error("Failed to enable auto launch: status is notRegistered")
+                throw NSError(domain: "TypeSwitch", code: 2,
+                    userInfo: [NSLocalizedDescriptionKey: "无法启用自动启动，请稍后重试"])
+            case .notFound:
+                logger.error("Failed to enable auto launch: status is notFound")
+                throw NSError(domain: "TypeSwitch", code: 2,
+                    userInfo: [NSLocalizedDescriptionKey: "无法启用自动启动，请稍后重试"])
+            @unknown default:
+                logger.error("Failed to enable auto launch: unknown status \(newStatus.rawValue)")
+                throw NSError(domain: "TypeSwitch", code: 2,
+                    userInfo: [NSLocalizedDescriptionKey: "无法启用自动启动，请稍后重试"])
+            }
         } else {
             try await SMAppService.mainApp.unregister()
+            
+            // 验证注销结果
+            let finalStatus = SMAppService.mainApp.status
+            if finalStatus != .notRegistered {
+                logger.error("Failed to disable auto launch: status is \(finalStatus.rawValue)")
+                throw NSError(domain: "TypeSwitch", code: 3,
+                    userInfo: [NSLocalizedDescriptionKey: "请在系统设置的登录项中手动移除 TypeSwitch"])
+            }
+            logger.info("Auto launch disabled successfully")
         }
         
         objectWillChange.send()
