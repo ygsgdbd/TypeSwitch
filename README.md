@@ -51,11 +51,7 @@ TypeSwitch is a modern macOS application built with SwiftUI for automatically sw
 ### 🍺 Option 1: Homebrew
 
 ```bash
-# Add tap
-brew tap ygsgdbd/tap
-
-# Install application
-brew install --cask typeswitch
+brew install ygsgdbd/tap/typeswitch --cask
 ```
 
 ### 💾 Option 2: Manual Installation
