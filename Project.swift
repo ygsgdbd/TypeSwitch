@@ -14,7 +14,6 @@ let project = Project(
         .remote(url: "https://github.com/sindresorhus/Defaults", requirement: .upToNextMajor(from: "9.0.0")),
         .remote(url: "https://github.com/SwiftUIX/SwiftUIX", requirement: .upToNextMajor(from: "0.1.9")),
         .remote(url: "https://github.com/SwifterSwift/SwifterSwift", requirement: .upToNextMajor(from: "7.0.0")),
-        .remote(url: "https://github.com/apple/swift-log.git", requirement: .upToNextMajor(from: "1.5.3"))
     ],
     settings: .settings(
         base: [
@@ -56,7 +55,6 @@ let project = Project(
                 .package(product: "Defaults"),
                 .package(product: "SwiftUIX"),
                 .package(product: "SwifterSwift"),
-                .package(product: "Logging")
             ],
             settings: .settings(
                 base: [

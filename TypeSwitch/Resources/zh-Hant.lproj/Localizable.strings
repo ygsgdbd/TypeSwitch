@@ -39,10 +39,6 @@
 "settings.general.auto_launch" = "開機啟動";
 "settings.general.auto_launch.description" = "登入系統時自動啟動 TypeSwitch";
 
-// 通知
-"notification.switched" = "已切換至：%@";
-"notification.error" = "切換輸入法失敗";
-
 // 錯誤提示
 "error.title" = "錯誤";
 "error.auto_launch_failed" = "設定開機自啟動失敗：%@";

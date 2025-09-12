@@ -39,10 +39,6 @@
 "settings.general.auto_launch" = "开机启动";
 "settings.general.auto_launch.description" = "登录系统时自动启动 TypeSwitch";
 
-// 通知
-"notification.switched" = "已切换到：%@";
-"notification.error" = "切换输入法失败";
-
 // 错误提示
 "error.title" = "错误";
 "error.auto_launch_failed" = "设置开机自启动失败：%@";

@@ -4,14 +4,11 @@ import Combine
 import Defaults
 import Carbon
 import SwiftUI
-import Logging
 
 @MainActor
 final class InputMethodManager: ObservableObject {
     static let shared = InputMethodManager()
     
-    private let logger = LoggerUtils.autoLaunch
-    private let securityLogger = LoggerUtils.security
     
     @Published var inputMethods: [InputMethod] = []
     @Published var installedApps: [AppInfo] = []
@@ -85,7 +82,7 @@ final class InputMethodManager: ObservableObject {
         do {
             try InputMethodUtils.switchToInputMethod(actualInputMethodId)
         } catch {
-            logger.error("Failed to switch input method for \(bundleId): \(error.localizedDescription)")
+            // 输入法切换失败，静默处理
         }
     }
     
@@ -101,7 +98,7 @@ final class InputMethodManager: ObservableObject {
             
             inputMethods = newInputMethods
         } catch {
-            logger.error("Failed to refresh input methods: \(error.localizedDescription)")
+            // 刷新输入法列表失败，静默处理
         }
     }
     
@@ -160,7 +157,7 @@ final class InputMethodManager: ObservableObject {
                 do {
                     try InputMethodUtils.switchToInputMethod(inputMethodId)
                 } catch {
-                    logger.error("Failed to switch input method: \(error.localizedDescription)")
+                    // 输入法切换失败，静默处理
                 }
             }
         }
@@ -194,7 +191,7 @@ final class InputMethodManager: ObservableObject {
                 do {
                     try InputMethodUtils.switchToInputMethod(nextInputMethodId)
                 } catch {
-                    logger.error("Failed to switch input method: \(error.localizedDescription)")
+                    // 输入法切换失败，静默处理
                 }
             }
         }

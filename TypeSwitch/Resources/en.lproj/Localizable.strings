@@ -38,10 +38,6 @@
 "settings.general.auto_launch" = "Launch at Login";
 "settings.general.auto_launch.description" = "Automatically start TypeSwitch when you log in";
 
-// Notifications
-"notification.switched" = "Switched to: %@";
-"notification.error" = "Failed to Switch Input Method";
-
 // Error Messages
 "error.title" = "Error";
 "error.auto_launch_failed" = "Failed to set auto launch: %@";
