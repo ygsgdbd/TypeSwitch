@@ -7,10 +7,4 @@ extension Defaults.Keys {
         default: [:],
         suite: .init(suiteName: "group.top.ygsgdbd.TypeSwitch")!
     )
-    
-    static let quickSwitchEnabled = Key<Bool>(
-        "quickSwitchEnabled",
-        default: false,
-        suite: .init(suiteName: "group.top.ygsgdbd.TypeSwitch")!
-    )
 }

@@ -6,6 +6,9 @@
 "menu.preferences" = "偏好設定...";
 "menu.check_for_updates" = "檢查更新...";
 "menu.quit" = "結束";
+"menu.settings" = "設定...";
+"menu.select_input_method" = "選擇輸入法";
+"menu.default_input_method" = "預設";
 
 // 設定
 "settings.general" = "一般";
@@ -16,6 +19,7 @@
 "input_method.default" = "預設";
 "input_method.current" = "目前輸入法";
 "input_method.switch" = "切換輸入法";
+"input_method.unknown" = "未知";
 
 // 應用程式列表
 "apps.search" = "搜尋應用程式... (⌘F)";

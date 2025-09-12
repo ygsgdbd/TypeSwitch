@@ -22,25 +22,25 @@
 "input_method.unknown" = "未知";
 
 // 应用程序列表
-"apps.search" = "搜索应用... (⌘F)";
-"apps.no_results" = "没有找到应用";
+"apps.search" = "搜索应用程序... (⌘F)";
+"apps.no_results" = "找不到应用程序";
 "apps.refresh" = "刷新列表";
 "apps.section.running" = "正在运行";
-"apps.section.others" = "其他应用";
+"apps.section.others" = "其他应用程序";
 
 // 快捷键设置
 "settings.shortcuts.global_switch" = "全局快速切换";
 "settings.shortcuts.global_switch.enable" = "启用全局快速切换";
 "settings.shortcuts.global_switch.description" = "使用快捷键在所有输入法间快速切换";
-"settings.shortcuts.global_switch.hint" = "启用后，快捷键将在所有输入法间循环切换，不考虑应用的默认设置";
+"settings.shortcuts.global_switch.hint" = "启用后，快捷键将在所有输入法间循环切换，不考虑应用程序的默认设置";
 "settings.shortcuts.shortcut" = "快捷键";
 
-// 通用设置
+// 一般设置
 "settings.general.auto_launch" = "开机启动";
 "settings.general.auto_launch.description" = "登录系统时自动启动 TypeSwitch";
 
 // 通知
-"notification.switched" = "已切换到：%@";
+"notification.switched" = "已切换至：%@";
 "notification.error" = "切换输入法失败";
 
 // 错误提示
@@ -53,4 +53,4 @@
 "button.apply" = "应用";
 "button.done" = "完成";
 "button.refresh" = "刷新 (⌘R)";
-"button.quit" = "退出 (⌘Q)"; 
+"button.quit" = "退出 (⌘Q)";

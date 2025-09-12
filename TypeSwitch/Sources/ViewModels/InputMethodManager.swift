@@ -1,5 +1,4 @@
 import Foundation
-import ServiceManagement
 import AppKit
 import Combine
 import Defaults
@@ -27,16 +26,7 @@ final class InputMethodManager: ObservableObject {
     @Published var searchText = ""
     @Published private(set) var isRefreshing: Bool = false
     @Published var isHighlighted = false
-    @Published var isQuickSwitchEnabled: Bool {
-        didSet {
-            Defaults[.quickSwitchEnabled] = isQuickSwitchEnabled
-        }
-    }
     
-    // 计算属性
-    var isAutoLaunchEnabled: Bool {
-        SMAppService.mainApp.status == .enabled
-    }
     
     var filteredApps: [AppInfo] {
         if searchText.isEmpty {
@@ -51,7 +41,6 @@ final class InputMethodManager: ObservableObject {
     private init() {
         // 从 Defaults 加载设置
         appSettings = Defaults[.appInputMethodSettings]
-        isQuickSwitchEnabled = Defaults[.quickSwitchEnabled]
         setupSubscriptions()
     }
     
@@ -83,68 +72,6 @@ final class InputMethodManager: ObservableObject {
             .store(in: &cancellables)
     }
     
-    // MARK: - Auto Launch
-    
-    /// 检查自启动状态并同步 UI
-    func checkAutoLaunchStatus() async {
-        let currentStatus = SMAppService.mainApp.status
-        logger.info("Current auto launch status: \(currentStatus.rawValue)")
-        objectWillChange.send()
-    }
-    
-    func setAutoLaunch(enabled: Bool) async throws {
-        logger.info("Setting auto launch to: \(enabled), current status: \(SMAppService.mainApp.status.rawValue)")
-        
-        // 检查当前状态
-        let currentStatus = SMAppService.mainApp.status
-        
-        // 如果当前状态已经是目标状态，直接返回
-        if (enabled && currentStatus == .enabled) || (!enabled && currentStatus == .notRegistered) {
-            logger.info("Auto launch is already in desired state")
-            return
-        }
-        
-        // 执行注册或注销操作
-        if enabled {
-            try SMAppService.mainApp.register()
-            
-            // 检查注册结果
-            let newStatus = SMAppService.mainApp.status
-            switch newStatus {
-            case .enabled:
-                logger.info("Auto launch enabled successfully")
-            case .requiresApproval:
-                logger.info("Auto launch requires system approval")
-                throw NSError(domain: "TypeSwitch", code: 1, 
-                    userInfo: [NSLocalizedDescriptionKey: "需要在系统设置的登录项中批准 TypeSwitch"])
-            case .notRegistered:
-                logger.error("Failed to enable auto launch: status is notRegistered")
-                throw NSError(domain: "TypeSwitch", code: 2,
-                    userInfo: [NSLocalizedDescriptionKey: "无法启用自动启动，请稍后重试"])
-            case .notFound:
-                logger.error("Failed to enable auto launch: status is notFound")
-                throw NSError(domain: "TypeSwitch", code: 2,
-                    userInfo: [NSLocalizedDescriptionKey: "无法启用自动启动，请稍后重试"])
-            @unknown default:
-                logger.error("Failed to enable auto launch: unknown status \(newStatus.rawValue)")
-                throw NSError(domain: "TypeSwitch", code: 2,
-                    userInfo: [NSLocalizedDescriptionKey: "无法启用自动启动，请稍后重试"])
-            }
-        } else {
-            try await SMAppService.mainApp.unregister()
-            
-            // 验证注销结果
-            let finalStatus = SMAppService.mainApp.status
-            if finalStatus != .notRegistered {
-                logger.error("Failed to disable auto launch: status is \(finalStatus.rawValue)")
-                throw NSError(domain: "TypeSwitch", code: 3,
-                    userInfo: [NSLocalizedDescriptionKey: "请在系统设置的登录项中手动移除 TypeSwitch"])
-            }
-            logger.info("Auto launch disabled successfully")
-        }
-        
-        objectWillChange.send()
-    }
     
     // MARK: - Application Handling
     
@@ -208,21 +135,47 @@ final class InputMethodManager: ObservableObject {
         }
     }
     
-    // MARK: - Input Method Switching
     
-    func switchInputMethodForCurrentApp() async -> (success: Bool, inputMethodName: String?) {
-        guard let app = NSWorkspace.shared.frontmostApplication,
-              let bundleId = app.bundleIdentifier else { return (false, nil) }
+    // MARK: - Menu Bar Support
+    
+    /// 获取可用的输入法列表（用于菜单显示）
+    var availableInputMethods: [String] {
+        return inputMethods.map(\.name)
+    }
+    
+    /// 为指定应用设置输入法
+    func setInputMethod(for app: AppInfo, to inputMethodName: String) async {
+        let bundleId = app.bundleId
         
-        print("当前应用: \(app.localizedName ?? "unknown") (\(bundleId))")
+        // 根据输入法名称找到对应的 ID
+        let inputMethodId = inputMethods.first { $0.name == inputMethodName }?.id
         
-        // 构建可选择的输入法列表：[默认, ...已安装的输入法]
+        // 更新设置
+        appSettings[bundleId] = inputMethodId
+        
+        // 如果当前应用是目标应用，立即切换输入法
+        if let currentApp = NSWorkspace.shared.frontmostApplication,
+           currentApp.bundleIdentifier == bundleId {
+            if let inputMethodId = inputMethodId {
+                do {
+                    try InputMethodUtils.switchToInputMethod(inputMethodId)
+                } catch {
+                    logger.error("Failed to switch input method: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+    
+    /// 为指定应用快速切换输入法
+    func quickSwitchForApp(_ app: AppInfo) async {
+        let bundleId = app.bundleId
+        
+        // 构建可选择的输入法列表
         var availableInputMethods = [""] // 空字符串代表默认输入法
         availableInputMethods.append(contentsOf: inputMethods.map(\.id))
         
         // 获取当前应用保存的输入法设置
         let currentSetting = appSettings[bundleId]?.flatMap { $0 } ?? ""
-        print("当前设置的输入法: \(currentSetting.isEmpty ? "默认" : currentSetting)")
         
         // 找到当前设置在列表中的位置
         let currentIndex = availableInputMethods.firstIndex(where: { $0 == currentSetting }) ?? -1
@@ -230,72 +183,20 @@ final class InputMethodManager: ObservableObject {
         // 计算下一个输入法的索引
         let nextIndex = (currentIndex + 1) % availableInputMethods.count
         let nextInputMethodId = availableInputMethods[nextIndex]
-        print("切换到输入法: \(nextInputMethodId.isEmpty ? "默认" : nextInputMethodId)")
         
-        do {
-            var switchedInputMethodName: String = "默认"
-            
-            if nextInputMethodId.isEmpty {
-                // 切换到默认输入法
-                appSettings[bundleId] = nil
-                // 如果有全局默认输入法，切换到它
-                if let defaultInputMethod = inputMethods.first {
-                    try InputMethodUtils.switchToInputMethod(defaultInputMethod.id)
-                    switchedInputMethodName = defaultInputMethod.name
-                    print("已切换到默认输入法: \(defaultInputMethod.id)")
+        // 更新设置
+        appSettings[bundleId] = nextInputMethodId.isEmpty ? nil : nextInputMethodId
+        
+        // 如果当前应用是目标应用，立即切换输入法
+        if let currentApp = NSWorkspace.shared.frontmostApplication,
+           currentApp.bundleIdentifier == bundleId {
+            if !nextInputMethodId.isEmpty {
+                do {
+                    try InputMethodUtils.switchToInputMethod(nextInputMethodId)
+                } catch {
+                    logger.error("Failed to switch input method: \(error.localizedDescription)")
                 }
-                
-                // 使用动画更新状态
-                withAnimation(.interpolatingSpring(stiffness: 170, damping: 5)) {
-                    isHighlighted = true
-                }
-                
-                // 0.2秒后恢复
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    withAnimation(.interpolatingSpring(stiffness: 170, damping: 5)) {
-                        self.isHighlighted = false
-                    }
-                }
-                
-                return (true, "默认")
-            } else {
-                // 切换到选定的输入法
-                appSettings[bundleId] = nextInputMethodId
-                try InputMethodUtils.switchToInputMethod(nextInputMethodId)
-                if let inputMethod = inputMethods.first(where: { $0.id == nextInputMethodId }) {
-                    switchedInputMethodName = inputMethod.name
-                }
-                print("已切换到输入法: \(nextInputMethodId)")
-                
-                // 使用动画更新状态
-                withAnimation(.interpolatingSpring(stiffness: 170, damping: 5)) {
-                    isHighlighted = true
-                }
-                
-                // 0.2秒后恢复
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    withAnimation(.interpolatingSpring(stiffness: 170, damping: 5)) {
-                        self.isHighlighted = false
-                    }
-                }
-                
-                return (true, switchedInputMethodName)
             }
-            
-            
-        } catch {
-            print("切换输入法失败: \(error.localizedDescription)")
-            return (false, nil)
-        }
-    }
-    
-    // MARK: - Quick Switch
-    
-    func quickSwitch() async -> (success: Bool, inputMethodName: String?) {
-        if isQuickSwitchEnabled {
-            return await switchInputMethodForCurrentApp()
-        } else {
-            return (false, nil)
         }
     }
 } 

@@ -6,6 +6,9 @@
 "menu.preferences" = "Preferences...";
 "menu.check_for_updates" = "Check for Updates...";
 "menu.quit" = "Quit";
+"menu.settings" = "Settings...";
+"menu.select_input_method" = "Select Input Method";
+"menu.default_input_method" = "Default";
 
 // Settings
 "settings.general" = "General";
