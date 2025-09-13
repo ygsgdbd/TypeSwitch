@@ -13,8 +13,8 @@ let project = Project(
     packages: [
         .remote(url: "https://github.com/SwiftUIX/SwiftUIX", requirement: .upToNextMajor(from: "0.2.3")),
         .remote(url: "https://github.com/SwifterSwift/SwifterSwift", requirement: .upToNextMajor(from: "8.0.0")),
-        .remote(url: "https://github.com/sindresorhus/Defaults", requirement: .upToNextMajor(from: "9.0.3")),
-        .remote(url: "https://github.com/pointfreeco/swift-perception", requirement: .upToNextMajor(from: "2.0.7"))
+        .remote(url: "https://github.com/pointfreeco/swift-perception", requirement: .upToNextMajor(from: "2.0.7")),
+        .remote(url: "https://github.com/sindresorhus/Defaults", requirement: .upToNextMajor(from: "7.3.1"))
     ],
     settings: .settings(
         base: [
@@ -57,8 +57,8 @@ let project = Project(
             dependencies: [
                 .package(product: "SwiftUIX"),
                 .package(product: "SwifterSwift"),
-                .package(product: "Defaults"),
-                .package(product: "Perception")
+                .package(product: "Perception"),
+                .package(product: "Defaults")
             ],
             settings: .settings(
                 base: [
