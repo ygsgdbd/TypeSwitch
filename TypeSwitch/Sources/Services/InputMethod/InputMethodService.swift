@@ -2,10 +2,10 @@ import Carbon
 import Foundation
 import OSLog
 
-/// 输入法工具类
+/// 输入法服务类
 /// 负责获取、切换和管理系统输入法
 @MainActor
-enum InputMethodUtils {
+enum InputMethodService {
     
     /// 输入法相关错误
     enum InputMethodError: Error, LocalizedError {
@@ -18,15 +18,15 @@ enum InputMethodUtils {
         var errorDescription: String? {
             switch self {
             case .failedToFetchInputMethods:
-                return "获取输入法列表失败"
+                return TypeSwitchStrings.Error.getInputMethodsFailed
             case .inputMethodNotFound(let id):
-                return "找不到指定的输入法: \(id)"
+                return TypeSwitchStrings.Error.inputMethodNotFound(id)
             case .inputMethodNotEnabled(let id):
-                return "输入法未启用: \(id)"
+                return TypeSwitchStrings.Error.inputMethodNotEnabled(id)
             case .failedToSwitchInputMethod(let id):
-                return "切换输入法失败: \(id)"
+                return TypeSwitchStrings.Error.switchInputMethodFailed(id)
             case .failedToGetCurrentInputMethod:
-                return "获取当前输入法失败"
+                return TypeSwitchStrings.Error.getCurrentInputMethodFailed
             }
         }
     }
@@ -159,4 +159,3 @@ enum InputMethodUtils {
         sourceType == (kTISTypeKeyboardLayout as String) || sourceType == (kTISTypeKeyboardInputMode as String)
     }
 }
-

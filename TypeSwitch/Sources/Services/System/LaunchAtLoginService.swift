@@ -1,8 +1,8 @@
 import Foundation
 import ServiceManagement
 
-/// 开机启动管理工具
-enum LaunchAtLoginManager {
+/// 开机启动服务类
+enum LaunchAtLoginService {
     /// 获取当前开机启动状态
     static var isEnabled: Bool {
         SMAppService.mainApp.status == .enabled
@@ -21,7 +21,7 @@ enum LaunchAtLoginManager {
             }
             return true
         } catch {
-            print("设置开机启动失败: \(error)")
+            print("❌ 设置自动启动失败: \(error.localizedDescription)")
             return false
         }
     }

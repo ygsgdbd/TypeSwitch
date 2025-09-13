@@ -2,9 +2,9 @@ import Foundation
 import SwiftUI
 import SwifterSwift
 
-/// 应用列表工具类
+/// 应用列表服务类
 /// 负责获取系统中已安装和正在运行的应用信息
-enum AppListUtils {
+enum AppListService {
     /// 应用搜索目录列表
     /// 按优先级排序：用户应用目录 > 系统应用目录
     static let applicationDirs = [

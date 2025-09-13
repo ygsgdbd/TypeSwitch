@@ -2,8 +2,8 @@ import Foundation
 import AppKit
 import SwifterSwift
 
-/// 应用信息管理工具，负责管理应用版本信息和相关链接
-enum AppInfoManager {
+/// 应用信息服务类，负责管理应用版本信息和相关链接
+enum AppInfoService {
     /// GitHub 仓库信息
     private static let githubRepository = "ygsgdbd/TypeSwitch"
     private static let githubBaseURL = "https://github.com"

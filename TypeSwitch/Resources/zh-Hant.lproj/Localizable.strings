@@ -50,3 +50,29 @@
 "button.done" = "完成";
 "button.refresh" = "重新整理 (⌘R)";
 "button.quit" = "結束 (⌘Q)";
+
+// 應用程式資訊
+"app.about" = "關於 APP %@";
+"app.github_repository" = "開啟 GitHub 倉庫";
+"app.latest_release" = "最新 Release";
+
+// 應用程式列表
+"apps.section.running_count" = "正在執行 (%d)";
+"apps.section.configured_count" = "已設定 (%d)";
+"apps.section.configured" = "已設定";
+
+// 輸入法相關
+"input_method.default_option" = "--";
+"input_method.english" = "English";
+"input_method.chinese_simplified" = "Chinese Simplified";
+"input_method.chinese_traditional" = "Chinese Traditional";
+"input_method.unknown" = "Unknown";
+
+// 錯誤訊息
+"error.get_input_methods_failed" = "取得輸入法列表失敗";
+"error.input_method_not_found" = "找不到指定的輸入法: %@";
+"error.input_method_not_enabled" = "輸入法未啟用: %@";
+"error.switch_input_method_failed" = "切換輸入法失敗: %@";
+"error.get_current_input_method_failed" = "取得目前輸入法失敗";
+
+// 除錯資訊

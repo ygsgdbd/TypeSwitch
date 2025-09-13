@@ -16,7 +16,7 @@ final class InputMethodManager: ObservableObject {
     @Published var runningApps: [AppInfo] = []
     
     // UI 状态
-    @Published private(set) var settingsVersion: Int = 0  // 跟踪设置变化以触发 UI 更新
+    @Published private(set) var settingsVersion: UUID = UUID()  // 跟踪设置变化以触发 UI 更新
     
     
     // 存储订阅
@@ -95,7 +95,7 @@ final class InputMethodManager: ObservableObject {
     
     func refreshInputMethods() async {
         do {
-            let methods = try InputMethodUtils.fetchInputMethods()
+            let methods = try InputMethodService.fetchInputMethods()
             self.inputMethods = methods
         } catch {
             print("Failed to fetch input methods: \(error)")
@@ -104,12 +104,12 @@ final class InputMethodManager: ObservableObject {
     
     /// 刷新已安装的应用
     func refreshInstalledApps() async {
-        installedApps = await AppListUtils.fetchInstalledApps()
+        installedApps = await AppListService.fetchInstalledApps()
     }
     
     /// 刷新运行中的应用
     func refreshRunningApps() async {
-        runningApps = await AppListUtils.fetchRunningApps()
+        runningApps = await AppListService.fetchRunningApps()
     }
     
     // MARK: - Private Methods
@@ -135,21 +135,21 @@ final class InputMethodManager: ObservableObject {
         
         // 检查当前输入法是否已经是目标输入法
         do {
-            let currentInputMethodId = try InputMethodUtils.getCurrentInputMethodId()
+            let currentInputMethodId = try InputMethodService.getCurrentInputMethodId()
             if currentInputMethodId == targetInputMethodId {
                 return // 已经是目标输入法，无需切换
             }
         } catch {
-            print("获取当前输入法失败: \(error)")
+            print("⚠️ 获取当前输入法失败: \(error.localizedDescription)")
             return
         }
         
         // 执行输入法切换
         do {
-            try InputMethodUtils.switchToInputMethod(targetInputMethodId)
-            print("已为应用 \(appInfo.name) 切换到输入法: \(targetInputMethodId)")
+            try InputMethodService.switchToInputMethod(targetInputMethodId)
+            print("✅ 为应用 \(appInfo.name) 切换到输入法: \(targetInputMethodId)")
         } catch {
-            print("切换输入法失败: \(error)")
+            print("❌ 切换到输入法失败: \(error.localizedDescription)")
         }
     }
     
@@ -166,7 +166,7 @@ final class InputMethodManager: ObservableObject {
         }
         
         Defaults[.appInputMethodSettings] = settings
-        settingsVersion += 1
+        settingsVersion = UUID()
     }
     
     /// 获取应用的输入法ID
