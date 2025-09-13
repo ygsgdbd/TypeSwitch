@@ -1,6 +1,5 @@
 import SwiftUI
 import AppKit
-import KeyboardShortcuts
 
 struct ContentView: View {
     @EnvironmentObject private var viewModel: InputMethodManager

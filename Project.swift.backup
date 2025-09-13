@@ -13,7 +13,6 @@ let project = Project(
     packages: [
         .remote(url: "https://github.com/SwiftUIX/SwiftUIX", requirement: .upToNextMajor(from: "0.2.3")),
         .remote(url: "https://github.com/SwifterSwift/SwifterSwift", requirement: .upToNextMajor(from: "8.0.0")),
-        .remote(url: "https://github.com/pointfreeco/swift-sharing", requirement: .upToNextMajor(from: "2.0.0")),
     ],
     settings: .settings(
         base: [
@@ -54,7 +53,6 @@ let project = Project(
             dependencies: [
                 .package(product: "SwiftUIX"),
                 .package(product: "SwifterSwift"),
-                .package(product: "Sharing"),
             ],
             settings: .settings(
                 base: [

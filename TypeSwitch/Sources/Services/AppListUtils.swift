@@ -44,7 +44,10 @@ enum AppListUtils {
         
         var dirApps: [AppInfo] = []
         
-        for case let fileURL as URL in enumerator {
+        // 将枚举器转换为数组以避免异步上下文问题
+        let urls = Array(enumerator.compactMap { $0 as? URL })
+        
+        for fileURL in urls {
             guard fileManager.isReadableFile(atPath: fileURL.path) else { continue }
             
             do {
@@ -67,4 +70,4 @@ enum AppListUtils {
         
         return dirApps
     }
-} 
+}

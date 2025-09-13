@@ -21,7 +21,7 @@ struct AppRow: View {
             Menu {
                 // 默认输入法选项
                 Button(action: {
-                    selectInputMethod("")
+                    Task { await selectInputMethod("") }
                 }) {
                     HStack {
                         Image(systemName: "globe")
@@ -40,7 +40,7 @@ struct AppRow: View {
                 // 已安装的输入法
                 ForEach(viewModel.inputMethods, id: \.id) { inputMethod in
                     Button(action: {
-                        selectInputMethod(inputMethod.id)
+                        Task { await selectInputMethod(inputMethod.id) }
                     }) {
                         HStack {
                             Image(systemName: "keyboard")
@@ -89,12 +89,20 @@ struct AppRow: View {
         }
     }
     
-    private func selectInputMethod(_ inputMethodId: String) {
-        withAnimation(.easeInOut(duration: 0.15)) {
-            if inputMethodId.isEmpty {
-                viewModel.appSettings[app.bundleId] = nil
-            } else {
-                viewModel.appSettings[app.bundleId] = inputMethodId
+    private func selectInputMethod(_ inputMethodId: String) async {
+        if inputMethodId.isEmpty {
+            Task {
+                await viewModel.setInputMethod(for: app, to: nil)
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    // UI updates here
+                }
+            }
+        } else {
+            Task {
+                await viewModel.setInputMethod(for: app, to: inputMethodId)
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    // UI updates here
+                }
             }
         }
     }
@@ -103,7 +111,7 @@ struct AppRow: View {
 private struct AppIcon: View, Equatable {
     let app: AppInfo
     
-    static func == (lhs: AppIcon, rhs: AppIcon) -> Bool {
+    nonisolated static func == (lhs: AppIcon, rhs: AppIcon) -> Bool {
         lhs.app.bundleId == rhs.app.bundleId
     }
     
@@ -118,7 +126,7 @@ private struct AppIcon: View, Equatable {
 private struct AppName: View, Equatable {
     let app: AppInfo
     
-    static func == (lhs: AppName, rhs: AppName) -> Bool {
+    nonisolated static func == (lhs: AppName, rhs: AppName) -> Bool {
         lhs.app.bundleId == rhs.app.bundleId
     }
     

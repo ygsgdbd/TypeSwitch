@@ -63,7 +63,7 @@ struct MenuBarAppRow: View {
             Divider()
             
             // 已安装的输入法选项
-            ForEach(viewModel.availableInputMethods, id: \.self) { inputMethod in
+            ForEach(viewModel.inputMethods.map { $0.name }, id: \.self) { inputMethod in
                 Button(inputMethod) {
                     Task {
                         await viewModel.setInputMethod(for: app, to: inputMethod)

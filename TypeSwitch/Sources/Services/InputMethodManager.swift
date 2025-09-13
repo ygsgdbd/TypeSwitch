@@ -1,7 +1,9 @@
 import Foundation
+import Sharing
 import AppKit
 import Combine
-import Defaults
+@preconcurrency import Combine
+
 import Carbon
 import SwiftUI
 
@@ -9,21 +11,14 @@ import SwiftUI
 final class InputMethodManager: ObservableObject {
     static let shared = InputMethodManager()
     
-    
     @Published var inputMethods: [InputMethod] = []
     @Published var installedApps: [AppInfo] = []
-    @Published var appSettings: [String: String?] = [:] {
-        didSet {
-            // 当设置更新时，同步到 Defaults
-            Defaults[.appInputMethodSettings] = appSettings
-        }
-    }
+    @Shared(.appStorage("appInputMethodSettings")) var appSettings: [String: String?] = [:]
     
     // UI 状态
     @Published var searchText = ""
     @Published private(set) var isRefreshing: Bool = false
     @Published var isHighlighted = false
-    
     
     var filteredApps: [AppInfo] {
         if searchText.isEmpty {
@@ -36,13 +31,12 @@ final class InputMethodManager: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
     
     private init() {
-        // 从 Defaults 加载设置
-        appSettings = Defaults[.appInputMethodSettings]
+        // appSettings 现在通过 @Shared 自动管理
         setupSubscriptions()
     }
     
     deinit {
-        cancellables.removeAll()
+        // cancellables 会在对象销毁时自动清理
     }
     
     // MARK: - Setup
@@ -53,147 +47,96 @@ final class InputMethodManager: ObservableObject {
             .publisher(for: NSNotification.Name(kTISNotifyEnabledKeyboardInputSourcesChanged as String))
             .receive(on: DispatchQueue.main)
             .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
-            .sink { [self] _ in
-                Task { await refreshInputMethods() }
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    await self?.refreshInputMethods()
+                }
             }
             .store(in: &cancellables)
         
-        // 监听应用切换
+        // 监听应用激活
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.didActivateApplicationNotification)
             .receive(on: DispatchQueue.main)
-            .debounce(for: .milliseconds(100), scheduler: DispatchQueue.main)
-            .sink { [self] notification in
-                Task { await handleApplicationSwitch(notification) }
+            .sink { [weak self] notification in
+                self?.handleApplicationActivation(notification)
             }
             .store(in: &cancellables)
     }
     
-    
-    // MARK: - Application Handling
-    
-    private func handleApplicationSwitch(_ notification: Notification) async {
-        guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
-              let bundleId = app.bundleIdentifier,
-              let inputMethodId = appSettings[bundleId],
-              let actualInputMethodId = inputMethodId
-        else { return }
-        
-        do {
-            try InputMethodUtils.switchToInputMethod(actualInputMethodId)
-        } catch {
-            // 输入法切换失败，静默处理
-        }
-    }
-    
-    // MARK: - Input Method Management
-    
-    func refreshInputMethods() async {
-        do {
-            let newInputMethods = try InputMethodUtils.fetchInputMethods()
-            let validInputMethodIds = Set(newInputMethods.map(\.id))
-            
-            // 清理无效的输入法设置
-            cleanInvalidSettings(validInputMethodIds: validInputMethodIds)
-            
-            inputMethods = newInputMethods
-        } catch {
-            // 刷新输入法列表失败，静默处理
-        }
-    }
-    
-    private func cleanInvalidSettings(validInputMethodIds: Set<String>) {
-        // 清理不存在的输入法设置
-        appSettings = appSettings.filter { pair in
-            if let inputMethodId = pair.value {
-                return validInputMethodIds.contains(inputMethodId)
-            }
-            return true // 保留值为 nil 的设置，因为这表示使用默认输入法
-        }
-    }
-    
-    // MARK: - App Management
-    
-    func refreshInstalledApps() async {
-        installedApps = await AppListUtils.fetchInstalledApps()
-    }
-    
-    // MARK: - Data Refresh
+    // MARK: - Public Methods
     
     func refreshAllData() async {
-        guard !isRefreshing else { return }
-        isRefreshing = true
-        defer { isRefreshing = false }
-        
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.refreshInputMethods() }
             group.addTask { await self.refreshInstalledApps() }
-            await group.waitForAll()
         }
     }
     
-    
-    // MARK: - Menu Bar Support
-    
-    /// 获取可用的输入法列表（用于菜单显示）
-    var availableInputMethods: [String] {
-        return inputMethods.map(\.name)
+    func refreshInputMethods() async {
+        do {
+            let methods = try InputMethodUtils.fetchInputMethods()
+            await MainActor.run {
+                self.inputMethods = methods
+            }
+        } catch {
+            print("Failed to fetch input methods: \(error)")
+        }
     }
     
-    /// 为指定应用设置输入法
-    func setInputMethod(for app: AppInfo, to inputMethodName: String) async {
-        let bundleId = app.bundleId
-        
-        // 根据输入法名称找到对应的 ID
-        let inputMethodId = inputMethods.first { $0.name == inputMethodName }?.id
-        
-        // 更新设置
-        appSettings[bundleId] = inputMethodId
+    func refreshInstalledApps() async {
+        let apps = await AppListUtils.fetchInstalledApps()
+        await MainActor.run {
+            self.installedApps = apps
+        }
+    }
+    
+    func setInputMethod(for app: AppInfo, to inputMethodId: String?) async {
+        await $appSettings.withLock { settings in
+            settings[app.bundleId] = inputMethodId
+        }
         
         // 如果当前应用是目标应用，立即切换输入法
         if let currentApp = NSWorkspace.shared.frontmostApplication,
-           currentApp.bundleIdentifier == bundleId {
+           currentApp.bundleIdentifier == app.bundleId {
             if let inputMethodId = inputMethodId {
                 do {
                     try InputMethodUtils.switchToInputMethod(inputMethodId)
                 } catch {
-                    // 输入法切换失败，静默处理
+                    print("Failed to switch input method: \(error)")
                 }
             }
         }
     }
     
-    /// 为指定应用快速切换输入法
-    func quickSwitchForApp(_ app: AppInfo) async {
-        let bundleId = app.bundleId
+    func getInputMethod(for app: AppInfo) -> String? {
+        return appSettings[app.bundleId] ?? nil
+    }
+    
+    // MARK: - Private Methods
+    
+    private func handleApplicationActivation(_ notification: Notification) {
+        guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+              let bundleId = app.bundleIdentifier else { return }
         
-        // 构建可选择的输入法列表
-        var availableInputMethods = [""] // 空字符串代表默认输入法
-        availableInputMethods.append(contentsOf: inputMethods.map(\.id))
+        // 查找对应的应用信息
+        guard let appInfo = installedApps.first(where: { $0.bundleId == bundleId }) else { return }
         
-        // 获取当前应用保存的输入法设置
-        let currentSetting = appSettings[bundleId]?.flatMap { $0 } ?? ""
-        
-        // 找到当前设置在列表中的位置
-        let currentIndex = availableInputMethods.firstIndex(where: { $0 == currentSetting }) ?? -1
-        
-        // 计算下一个输入法的索引
-        let nextIndex = (currentIndex + 1) % availableInputMethods.count
-        let nextInputMethodId = availableInputMethods[nextIndex]
-        
-        // 更新设置
-        appSettings[bundleId] = nextInputMethodId.isEmpty ? nil : nextInputMethodId
-        
-        // 如果当前应用是目标应用，立即切换输入法
-        if let currentApp = NSWorkspace.shared.frontmostApplication,
-           currentApp.bundleIdentifier == bundleId {
-            if !nextInputMethodId.isEmpty {
+        // 获取为该应用设置的输入法
+        if let inputMethodId = appSettings[appInfo.bundleId], let idToSwitch = inputMethodId {
+            Task {
                 do {
-                    try InputMethodUtils.switchToInputMethod(nextInputMethodId)
+                    try InputMethodUtils.switchToInputMethod(idToSwitch)
                 } catch {
-                    // 输入法切换失败，静默处理
+                    print("Failed to switch input method: \(error)")
                 }
             }
         }
     }
-} 
+    
+    // MARK: - Computed Properties
+    
+    var availableInputMethods: [InputMethod] {
+        return inputMethods
+    }
+}

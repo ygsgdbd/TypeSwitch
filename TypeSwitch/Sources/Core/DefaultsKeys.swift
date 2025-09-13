@@ -1,10 +1,4 @@
 import Foundation
-import Defaults
+import Sharing
 
-extension Defaults.Keys {
-    static let appInputMethodSettings = Key<[String: String?]>(
-        "appInputMethodSettings",
-        default: [:],
-        suite: .init(suiteName: "group.top.ygsgdbd.TypeSwitch")!
-    )
-}
+// 不再需要单独的 Shared 扩展，直接在 InputMethodManager 中使用 @Shared
