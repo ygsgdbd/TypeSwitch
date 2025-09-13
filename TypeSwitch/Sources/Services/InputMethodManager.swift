@@ -156,7 +156,15 @@ final class InputMethodManager: ObservableObject {
     /// 设置应用的输入法
     func setInputMethod(for app: AppInfo, to inputMethodId: String?) {
         var settings = Defaults[.appInputMethodSettings]
-        settings[app.bundleId] = inputMethodId
+        
+        if let inputMethodId = inputMethodId {
+            // 设置输入法
+            settings[app.bundleId] = inputMethodId
+        } else {
+            // 移除输入法设置
+            settings.removeValue(forKey: app.bundleId)
+        }
+        
         Defaults[.appInputMethodSettings] = settings
         settingsVersion += 1
     }
