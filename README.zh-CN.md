@@ -13,7 +13,7 @@
 
 </div>
 
-TypeSwitch 是一个基于 SwiftUI 开发的现代 macOS 应用，用于自动切换不同应用的输入法。采用新的 Swift 特性和原生 macOS 功能，为用户提供流畅高效的输入法管理体验。
+TypeSwitch 是一个基于 SwiftUI 开发的现代 macOS 菜单栏应用，用于自动切换不同应用的输入法。应用在后台静默运行，通过优雅的菜单栏界面为每个应用管理输入法偏好设置。
 
 ✨ **支持 macOS 26 液态玻璃设计** - 体验美观的半透明界面，采用先进的 macOS 26 液态玻璃效果，创造优雅现代的用户体验，与系统完美融合。
 
@@ -21,21 +21,21 @@ TypeSwitch 是一个基于 SwiftUI 开发的现代 macOS 应用，用于自动�
 
 <div align="center">
   <img src="Screenshots/main-20250913-220809.png" width="400" alt="主界面">
-  <p><em>主界面 - 为不同应用设置默认输入法</em></p>
+  <p><em>菜单栏界面 - 为不同应用设置默认输入法</em></p>
 </div>
 
 
 ## 功能特点
 
 - 🔄 自动切换：在切换应用时自动切换到预设的输入法
-- 🔍 快速搜索：支持模糊搜索应用程序
-- 🎯 精确匹配：为每个应用设置独立的输入法偏好
+- 📱 菜单栏界面：简洁直观的菜单栏界面，方便快速访问
+- 🎯 按应用设置：为每个应用设置独立的输入法偏好
 - 🚀 开机启动：支持开机自动启动
+- 📋 运行中应用：查看和配置当前运行的应用
+- ⚙️ 已安装应用：管理所有已安装应用的输入法设置
 - ⌨️ 快捷键支持：
-  - `⌘ + F` - 快速搜索应用
-  - `⌘ + R` - 刷新应用列表
   - `⌘ + Q` - 退出应用
-- 🎯 快速切换：支持自定义快捷键切换当前应用的默认输入法
+- 🔗 快速链接：直接访问 GitHub 仓库和最新发布版本
 
 ## 系统要求
 
@@ -63,11 +63,16 @@ brew install --cask typeswitch
 
 ## 使用���明
 
-1. 启动后，应用图标会出现在菜单栏
-2. 点击菜单栏图标打开主界面
-3. 在列表中找到要配置的应用
-4. 选择该应用的默认输入法
-5. 切换到该应用时会自动切换到设定的输入法
+1. 启动后，应用图标（⌨️）会出现在菜单栏中
+2. 点击菜单栏图标打开下拉菜单
+3. 菜单显示两个部分：
+   - **运行中应用**：当前正在运行的应用
+   - **已配置应用**：已设置输入法的应用
+4. 点击任意应用来设置其输入法：
+   - 选择"默认"使用系统默认输入法
+   - 选择任意已安装的输入法作为该应用的默认输入法
+5. 当切换到该应用时，输入法会自动切换
+6. 使用设置部分可以启用开机自动启动
 
 ## 🔒 安全
 
@@ -86,10 +91,9 @@ TypeSwitch 非常重视用户隐私和安全：
 
 本项目使用以下开源库：
 
-- [Defaults](https://github.com/sindresorhus/Defaults) (9.0.0) - 用于持久化存储设置
-- [SwiftUIX](https://github.com/SwiftUIX/SwiftUIX) (0.1.9) - 提供额外的 SwiftUI 组件
-- [SwifterSwift](https://github.com/SwifterSwift/SwifterSwift) (7.0.0) - Swift 原生扩展
-- [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) (2.2.2) - 添加用户自定义全局快捷键
+- [Defaults](https://github.com/sindresorhus/Defaults) (7.3.1) - 用于持久化存储设置
+- [SwiftUIX](https://github.com/SwiftUIX/SwiftUIX) (0.2.3) - 提供额外的 SwiftUI 组件
+- [SwifterSwift](https://github.com/SwifterSwift/SwifterSwift) (8.0.0) - Swift 原生扩展
 
 构建工具：
 - [Tuist](https://github.com/tuist/tuist) - 用于项目生成和管理

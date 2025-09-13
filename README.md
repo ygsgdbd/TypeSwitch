@@ -13,7 +13,7 @@
 
 </div>
 
-TypeSwitch is a modern macOS application built with SwiftUI for automatically switching input methods across different applications. Leveraging the latest Swift features and native macOS capabilities, it provides a seamless and efficient experience for managing input method preferences.
+TypeSwitch is a modern macOS menu bar application built with SwiftUI for automatically switching input methods across different applications. It runs quietly in the background and provides an elegant menu bar interface for managing input method preferences per application.
 
 ✨ **Featuring macOS 26 Liquid Glass Design** - Experience the beautiful translucent interface with cutting-edge macOS 26 liquid glass effects, creating an elegant and modern user experience that seamlessly integrates with your system.
 
@@ -21,21 +21,21 @@ TypeSwitch is a modern macOS application built with SwiftUI for automatically sw
 
 <div align="center">
   <img src="Screenshots/main-20250913-220809.png" width="400" alt="Main Interface">
-  <p><em>Main Interface - Set default input method for different applications</em></p>
+  <p><em>Menu Bar Interface - Set default input method for different applications</em></p>
 </div>
 
 
 ## 🎯 Features
 
 - 🔄 **Auto Switch**: Automatically switch to preset input methods when changing applications
-- 🔍 **Quick Search**: Support fuzzy search for applications
-- 🎯 **Precise Match**: Set independent input method preferences for each application
-- 🚀 **Auto Start**: Support automatic startup
+- 📱 **Menu Bar Interface**: Clean and intuitive menu bar interface for easy access
+- 🎯 **Per-App Settings**: Set independent input method preferences for each application
+- 🚀 **Auto Start**: Support automatic startup at login
+- 📋 **Running Apps**: View and configure currently running applications
+- ⚙️ **Installed Apps**: Manage input method settings for all installed applications
 - ⌨️ **Keyboard Shortcuts**:
-  - `⌘ + F` - Quick search applications
-  - `⌘ + R` - Refresh application list
   - `⌘ + Q` - Quit application
-- 🎯 **Quick Switch**: Support customizable shortcut for switching current application's default input method
+- 🔗 **Quick Links**: Direct access to GitHub repository and latest releases
 
 ## 🔧 System Requirements
 
@@ -59,11 +59,16 @@ brew install ygsgdbd/tap/typeswitch --cask
 
 ## 📖 Usage
 
-1. After launching, the app icon appears in the menu bar
-2. Click the menu bar icon to open the main interface
-3. Find the application you want to configure in the list
-4. Select the default input method for the application
+1. After launching, the app icon (⌨️) appears in the menu bar
+2. Click the menu bar icon to open the dropdown menu
+3. The menu shows two sections:
+   - **Running Apps**: Currently running applications
+   - **Configured Apps**: Applications with input method settings
+4. Click on any application to set its input method:
+   - Select "Default" to use system default input method
+   - Select any installed input method to set as default for that app
 5. The input method will automatically switch when you switch to that application
+6. Use the settings section to enable auto-launch at login
 
 ## 🔒 Security
 
@@ -82,10 +87,9 @@ TypeSwitch takes user privacy and security seriously:
 
 This project uses the following open source libraries:
 
-- [Defaults](https://github.com/sindresorhus/Defaults) (9.0.0) - For persistent settings storage
-- [SwiftUIX](https://github.com/SwiftUIX/SwiftUIX) (0.1.9) - Provides additional SwiftUI components
-- [SwifterSwift](https://github.com/SwifterSwift/SwifterSwift) (7.0.0) - Swift native extensions
-- [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) (2.2.2) - Add user-customizable global keyboard shortcuts
+- [Defaults](https://github.com/sindresorhus/Defaults) (7.3.1) - For persistent settings storage
+- [SwiftUIX](https://github.com/SwiftUIX/SwiftUIX) (0.2.3) - Provides additional SwiftUI components
+- [SwifterSwift](https://github.com/SwifterSwift/SwifterSwift) (8.0.0) - Swift native extensions
 
 Build tools:
 - [Tuist](https://github.com/tuist/tuist) - For project generation and management
