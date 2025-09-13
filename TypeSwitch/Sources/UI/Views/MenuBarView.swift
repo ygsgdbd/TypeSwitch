@@ -5,8 +5,6 @@ import SwiftUIX
 /// 菜单栏视图，显示应用列表和输入法选择
 struct MenuBarView: View {
     @EnvironmentObject private var viewModel: InputMethodManager
-    @State private var showError = false
-    @State private var errorMessage = ""
     
     var body: some View {
         Group {
@@ -16,9 +14,11 @@ struct MenuBarView: View {
                 }
             }
             
-            Menu("已配置") {
-                ForEach(viewModel.filteredApps) { app in
-                    MenuBarAppRow(app: app)
+            Section {
+                Menu("已配置") {
+                    ForEach(viewModel.filteredApps) { app in
+                        MenuBarAppRow(app: app)
+                    }
                 }
             }
            
@@ -80,14 +80,9 @@ struct MenuBarAppRow: View {
             // 默认输入法选项
             Section {
                 Button(action: {
-                    Task {
-                        await viewModel.setInputMethod(for: app, to: nil)
-                    }
+                    viewModel.setInputMethod(for: app, to: nil)
                 }) {
-                    if case .fixed = currentStrategy, currentInputMethodId.isEmpty {
-                        Image(systemName: .checkmark)
-                    }
-                    Text("menu.default_input_method".localized)
+                    Text("--")
                 }
             }
             
@@ -97,9 +92,7 @@ struct MenuBarAppRow: View {
             Section {
                 ForEach(viewModel.inputMethods, id: \.id) { inputMethod in
                     Button(action: {
-                        Task {
-                            await viewModel.setInputMethod(for: app, to: inputMethod.id)
-                        }
+                        viewModel.setInputMethod(for: app, to: inputMethod.id)
                     }) {
                         if case .fixed = currentStrategy, currentInputMethodId == inputMethod.id {
                             Image(systemName: .checkmark)
@@ -108,45 +101,10 @@ struct MenuBarAppRow: View {
                     }
                 }
             }
-            
-            Divider()
-            
-            // 上次使用的输入法选项
-            Section {
-                Button(action: {
-                    Task {
-                        await viewModel.setLastUsedInputMethodStrategy(for: app)
-                    }
-                }) {
-                    if case .lastUsed = currentStrategy {
-                        Image(systemName: .checkmark)
-                    }
-                    if case .lastUsed = currentStrategy,
-                       let settings = viewModel.getAppInputMethodSettings(for: app),
-                       let lastUsedId = settings.lastUsedInputMethodId,
-                       let inputMethod = viewModel.inputMethods.first(where: { $0.id == lastUsedId })
-                    {
-                        Text("上次使用（\(inputMethod.name)）")
-                    } else {
-                        Text("上次使用")
-                    }
-                }
-            }
         } label: {
-            // APP 图标
             app.icon
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 16, height: 16)
-            
-            
             Text(app.name)
-            
-            // 选择的输入法
-            if let selectedInputMethodName {
-                Text(selectedInputMethodName)
-                    .foregroundColor(.secondary)
-            }
+            selectedInputMethodName.ifSome { Text($0) }
         }
     }
 }

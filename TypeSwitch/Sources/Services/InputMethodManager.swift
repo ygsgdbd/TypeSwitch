@@ -1,21 +1,20 @@
-import Foundation
 import AppKit
 import Combine
-@preconcurrency import Combine
-
+import Foundation
 import Carbon
 import SwiftUI
+import Defaults
 
 /// 输入法策略枚举
 enum InputMethodStrategy: Codable {
-    case fixed(String)  // 固定选择某个输入法ID
-    case lastUsed       // 使用上次切换的输入法
+    case fixed(String) // 固定选择某个输入法ID
+    case lastUsed // 使用上次切换的输入法
 }
 
 /// 应用输入法设置结构体
 struct AppInputMethodSettings: Codable {
     let strategy: InputMethodStrategy
-    let lastUsedInputMethodId: String?  // 当strategy是lastUsed时使用
+    let lastUsedInputMethodId: String? // 当strategy是lastUsed时使用
     
     init(strategy: InputMethodStrategy, lastUsedInputMethodId: String? = nil) {
         self.strategy = strategy
@@ -47,6 +46,7 @@ final class InputMethodManager: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
     
     private init() {
+        Task { await refreshAllData() }
         migrateLegacySettings()
         setupSubscriptions()
     }
@@ -138,7 +138,7 @@ final class InputMethodManager: ObservableObject {
     }
     
     /// 设置应用的输入法（使用固定策略）
-    func setInputMethod(for app: AppInfo, to inputMethodId: String?) async {
+    func setInputMethod(for app: AppInfo, to inputMethodId: String?) {
         if let inputMethodId = inputMethodId {
             let settings = AppInputMethodSettings(strategy: .fixed(inputMethodId))
             saveAppSettings(for: app.bundleId, settings: settings)
@@ -149,7 +149,8 @@ final class InputMethodManager: ObservableObject {
         
         // 如果当前应用是目标应用，立即切换输入法
         if let currentApp = NSWorkspace.shared.frontmostApplication,
-           currentApp.bundleIdentifier == app.bundleId {
+           currentApp.bundleIdentifier == app.bundleId
+        {
             if let inputMethodId = inputMethodId {
                 do {
                     try InputMethodUtils.switchToInputMethod(inputMethodId)
@@ -192,11 +193,11 @@ final class InputMethodManager: ObservableObject {
         return getAppSettings(for: app.bundleId)?.strategy
     }
     
-    
     /// 获取应用的完整输入法设置
     func getAppInputMethodSettings(for app: AppInfo) -> AppInputMethodSettings? {
         return getAppSettings(for: app.bundleId)
     }
+
     // MARK: - Private Methods
     
     /// 迁移旧版本设置
@@ -226,7 +227,8 @@ final class InputMethodManager: ObservableObject {
     private func getAppSettings(for bundleId: String) -> AppInputMethodSettings? {
         guard let settingsData = userDefaults.object(forKey: appSettingsKey) as? [String: Data],
               let data = settingsData[bundleId],
-              let settings = try? JSONDecoder().decode(AppInputMethodSettings.self, from: data) else {
+              let settings = try? JSONDecoder().decode(AppInputMethodSettings.self, from: data)
+        else {
             return nil
         }
         return settings

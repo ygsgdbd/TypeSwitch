@@ -1,6 +1,24 @@
 {
-  "originHash" : "81e088133ca3b1d8fe266793f93e3fa12a0b3c27ed7f9db3c677359aef044777",
+  "originHash" : "a67c807fa33f88d371e742a7da5a6b449ad93bf80f40f66525488d8a70210b33",
   "pins" : [
+    {
+      "identity" : "defaults",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sindresorhus/Defaults",
+      "state" : {
+        "revision" : "b14cc56dcf9efe09f9e41cf7e088bc2d963a661d",
+        "version" : "9.0.4"
+      }
+    },
+    {
+      "identity" : "swift-syntax",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-syntax",
+      "state" : {
+        "revision" : "f99ae8aa18f0cf0d53481901f88a0991dc3bd4a2",
+        "version" : "601.0.1"
+      }
+    },
     {
       "identity" : "swifterswift",
       "kind" : "remoteSourceControl",
