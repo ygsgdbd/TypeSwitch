@@ -18,7 +18,7 @@ TypeSwitch 是一个基于 SwiftUI 开发的现代 macOS 应用，用于自动�
 ## 截图预览
 
 <div align="center">
-  <img src="Screenshots/main.png" width="600" alt="主界面">
+  <img src="Screenshots/main-20250913-220809.png" width="400" alt="主界面">
   <p><em>主界面 - 为不同应用设置默认输入法</em></p>
 </div>
 

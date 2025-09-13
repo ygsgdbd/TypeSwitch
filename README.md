@@ -18,7 +18,7 @@ TypeSwitch is a modern macOS application built with SwiftUI for automatically sw
 ## ✨ Screenshots
 
 <div align="center">
-  <img src="Screenshots/main.png" width="600" alt="Main Interface">
+  <img src="Screenshots/main-20250913-220809.png" width="400" alt="Main Interface">
   <p><em>Main Interface - Set default input method for different applications</em></p>
 </div>
 
