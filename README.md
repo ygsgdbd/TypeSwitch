@@ -5,7 +5,6 @@
 [![Swift](https://img.shields.io/badge/Swift-5.9-orange.svg)](https://swift.org)
 [![Platform](https://img.shields.io/badge/Platform-macOS%2013.0+-blue.svg)](https://www.apple.com/macos/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Build Status](https://github.com/ygsgdbd/TypeSwitch/actions/workflows/build.yml/badge.svg)](https://github.com/ygsgdbd/TypeSwitch/actions)
 [![Homebrew](https://img.shields.io/badge/homebrew-available-brightgreen.svg)](https://github.com/ygsgdbd/homebrew-tap)
 [![Release](https://img.shields.io/github/v/release/ygsgdbd/TypeSwitch?include_prereleases)](https://github.com/ygsgdbd/TypeSwitch/releases)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/ygsgdbd/TypeSwitch/pulls)
@@ -23,10 +22,6 @@ TypeSwitch is a modern macOS application built with SwiftUI for automatically sw
   <p><em>Main Interface - Set default input method for different applications</em></p>
 </div>
 
-<div align="center">
-  <img src="Screenshots/search.png" width="600" alt="Search Function">
-  <p><em>Search Function - Quickly find and configure applications</em></p>
-</div>
 
 ## 🎯 Features
 
@@ -42,7 +37,7 @@ TypeSwitch is a modern macOS application built with SwiftUI for automatically sw
 
 ## 🔧 System Requirements
 
-- 🖥 macOS 13.0 or later
+- 🖥 macOS 13.0 or later (compatible up to macOS 26)
 - 🔐 Accessibility permission for monitoring application switches
 - ⌨️ Input method switching permission
 
@@ -99,7 +94,7 @@ Build tools:
 
 - Xcode 15.0+
 - Swift 5.9+
-- macOS 13.0+
+- macOS 13.0+ (compatible up to macOS 26)
 - [Tuist](https://github.com/tuist/tuist)
 
 ### Build Steps

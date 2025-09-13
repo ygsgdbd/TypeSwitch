@@ -5,7 +5,6 @@
 [![Swift](https://img.shields.io/badge/Swift-5.9-orange.svg)](https://swift.org)
 [![Platform](https://img.shields.io/badge/Platform-macOS%2013.0+-blue.svg)](https://www.apple.com/macos/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Build Status](https://github.com/ygsgdbd/TypeSwitch/actions/workflows/build.yml/badge.svg)](https://github.com/ygsgdbd/TypeSwitch/actions)
 [![Homebrew](https://img.shields.io/badge/homebrew-available-brightgreen.svg)](https://github.com/ygsgdbd/homebrew-tap)
 [![Release](https://img.shields.io/github/v/release/ygsgdbd/TypeSwitch?include_prereleases)](https://github.com/ygsgdbd/TypeSwitch/releases)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/ygsgdbd/TypeSwitch/pulls)
@@ -23,10 +22,6 @@ TypeSwitch 是一个基于 SwiftUI 开发的现代 macOS 应用，用于自动�
   <p><em>主界面 - 为不同应用设置默认输入法</em></p>
 </div>
 
-<div align="center">
-  <img src="Screenshots/search.png" width="600" alt="搜索功能">
-  <p><em>搜索功能 - 快速查找应用并设置输入法</em></p>
-</div>
 
 ## 功能特点
 
@@ -42,7 +37,7 @@ TypeSwitch 是一个基于 SwiftUI 开发的现代 macOS 应用，用于自动�
 
 ## 系统要求
 
-- 🖥 macOS 13.0 或更高版本
+- 🖥 macOS 13.0 或更高版本（兼容至 macOS 26）
 - 🔐 需要辅助功能权限用于监控应用切换
 - ⌨️ 需要输入法切换权限
 
@@ -103,7 +98,7 @@ TypeSwitch 非常重视用户隐私和安全：
 
 - Xcode 15.0+
 - Swift 5.9+
-- macOS 13.0+
+- macOS 13.0+（兼容至 macOS 26）
 - [Tuist](https://github.com/tuist/tuist)
 
 ### 构建步骤
