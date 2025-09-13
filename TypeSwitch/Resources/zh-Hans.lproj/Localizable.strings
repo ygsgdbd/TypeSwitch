@@ -1,72 +1,20 @@
-// 主界面
-"app.name" = "TypeSwitch";
-"app.description" = "输入法自动切换工具";
-
-// 菜单
-"menu.preferences" = "偏好设置...";
-"menu.check_for_updates" = "检查更新...";
-"menu.quit" = "退出";
-"menu.settings" = "设置...";
-"menu.select_input_method" = "选择输入法";
-"menu.default_input_method" = "默认";
-
-// 设置
-"settings.general" = "通用";
-"settings.shortcuts" = "快捷键";
-"settings.about" = "关于";
-
-// 输入法设置
-"input_method.default" = "默认";
-"input_method.current" = "当前输入法";
-"input_method.switch" = "切换输入法";
-"input_method.unknown" = "未知";
-
-// 应用程序列表
-"apps.search" = "搜索应用程序... (⌘F)";
-"apps.no_results" = "找不到应用程序";
-"apps.refresh" = "刷新列表";
-"apps.section.running" = "正在运行";
-"apps.section.others" = "其他应用程序";
-
-// 快捷键设置
-"settings.shortcuts.global_switch" = "全局快速切换";
-"settings.shortcuts.global_switch.enable" = "启用全局快速切换";
-"settings.shortcuts.global_switch.description" = "使用快捷键在所有输入法间快速切换";
-"settings.shortcuts.global_switch.hint" = "启用后，快捷键将在所有输入法间循环切换，不考虑应用程序的默认设置";
-"settings.shortcuts.shortcut" = "快捷键";
-
-// 一般设置
-"settings.general.auto_launch" = "开机启动";
-"settings.general.auto_launch.description" = "登录系统时自动启动 TypeSwitch";
-
-// 错误提示
-"error.title" = "错误";
-"error.auto_launch_failed" = "设置开机自启动失败：%@";
-
-// 通用按钮
-"button.ok" = "确定";
-"button.cancel" = "取消";
-"button.apply" = "应用";
-"button.done" = "完成";
-"button.refresh" = "刷新 (⌘R)";
-"button.quit" = "退出 (⌘Q)";
-
 // 应用信息
 "app.about" = "关于 APP %@";
 "app.github_repository" = "打开 GitHub 仓库";
 "app.latest_release" = "最新 Release";
 
+// 菜单
+"menu.quit" = "退出";
+
+// 设置
+"settings.general.auto_launch" = "开机启动";
+
 // 应用列表
 "apps.section.running_count" = "运行中 (%d)";
 "apps.section.configured_count" = "已配置 (%d)";
-"apps.section.configured" = "已配置";
 
 // 输入法相关
 "input_method.default_option" = "--";
-"input_method.english" = "English";
-"input_method.chinese_simplified" = "Chinese Simplified";
-"input_method.chinese_traditional" = "Chinese Traditional";
-"input_method.unknown" = "Unknown";
 
 // 错误信息
 "error.get_input_methods_failed" = "获取输入法列表失败";
@@ -74,5 +22,3 @@
 "error.input_method_not_enabled" = "输入法未启用: %@";
 "error.switch_input_method_failed" = "切换输入法失败: %@";
 "error.get_current_input_method_failed" = "获取当前输入法失败";
-
-// 调试信息

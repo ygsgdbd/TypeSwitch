@@ -1,71 +1,20 @@
-// Main Interface
-"app.name" = "TypeSwitch";
-"app.description" = "Input Method Auto Switcher";
-
-// Menu
-"menu.preferences" = "Preferences...";
-"menu.check_for_updates" = "Check for Updates...";
-"menu.quit" = "Quit";
-"menu.settings" = "Settings...";
-"menu.select_input_method" = "Select Input Method";
-"menu.default_input_method" = "Default";
-
-// Settings
-"settings.general" = "General";
-"settings.shortcuts" = "Shortcuts";
-"settings.about" = "About";
-
-// Input Method Settings
-"input_method.default" = "Default";
-"input_method.current" = "Current Input Method";
-"input_method.switch" = "Switch Input Method";
-
-// App List
-"apps.search" = "Search Apps... (⌘F)";
-"apps.no_results" = "No Apps Found";
-"apps.refresh" = "Refresh List";
-"apps.section.running" = "Running";
-"apps.section.others" = "Other Apps";
-
-// Shortcuts Settings
-"settings.shortcuts.global_switch" = "Global Quick Switch";
-"settings.shortcuts.global_switch.enable" = "Enable Global Quick Switch";
-"settings.shortcuts.global_switch.description" = "Use shortcut to quickly switch between input methods";
-"settings.shortcuts.global_switch.hint" = "When enabled, the shortcut will cycle through all input methods, regardless of app defaults";
-"settings.shortcuts.shortcut" = "Shortcut";
-
-// General Settings
-"settings.general.auto_launch" = "Launch at Login";
-"settings.general.auto_launch.description" = "Automatically start TypeSwitch when you log in";
-
-// Error Messages
-"error.title" = "Error";
-"error.auto_launch_failed" = "Failed to set auto launch: %@";
-
-// Common Buttons
-"button.ok" = "OK";
-"button.cancel" = "Cancel";
-"button.apply" = "Apply";
-"button.done" = "Done";
-"button.refresh" = "Refresh (⌘R)";
-"button.quit" = "Quit (⌘Q)";
-
 // App Information
 "app.about" = "About APP %@";
 "app.github_repository" = "Open GitHub Repository";
 "app.latest_release" = "Latest Release";
 
+// Menu
+"menu.quit" = "Quit";
+
+// Settings
+"settings.general.auto_launch" = "Launch at Login";
+
 // App List
 "apps.section.running_count" = "Running (%d)";
 "apps.section.configured_count" = "Configured (%d)";
-"apps.section.configured" = "Configured";
 
 // Input Method Related
 "input_method.default_option" = "--";
-"input_method.english" = "English";
-"input_method.chinese_simplified" = "Chinese Simplified";
-"input_method.chinese_traditional" = "Chinese Traditional";
-"input_method.unknown" = "Unknown";
 
 // Error Messages
 "error.get_input_methods_failed" = "Failed to get input methods list";
@@ -73,5 +22,3 @@
 "error.input_method_not_enabled" = "Input method not enabled: %@";
 "error.switch_input_method_failed" = "Failed to switch input method: %@";
 "error.get_current_input_method_failed" = "Failed to get current input method";
-
-// Debug Information
