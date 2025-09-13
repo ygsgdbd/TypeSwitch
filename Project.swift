@@ -13,7 +13,8 @@ let project = Project(
     packages: [
         .remote(url: "https://github.com/SwiftUIX/SwiftUIX", requirement: .upToNextMajor(from: "0.2.3")),
         .remote(url: "https://github.com/SwifterSwift/SwifterSwift", requirement: .upToNextMajor(from: "8.0.0")),
-        .remote(url: "https://github.com/sindresorhus/Defaults", requirement: .upToNextMajor(from: "9.0.3"))
+        .remote(url: "https://github.com/sindresorhus/Defaults", requirement: .upToNextMajor(from: "9.0.3")),
+        .remote(url: "https://github.com/pointfreeco/swift-perception", requirement: .upToNextMajor(from: "2.0.7"))
     ],
     settings: .settings(
         base: [
@@ -21,7 +22,11 @@ let project = Project(
             "DEVELOPMENT_LANGUAGE": SettingValue(stringLiteral: "zh-Hans"),
             "SWIFT_EMIT_LOC_STRINGS": SettingValue(stringLiteral: "YES"),
             "MARKETING_VERSION": SettingValue(stringLiteral: appVersion),
-            "CURRENT_PROJECT_VERSION": SettingValue(stringLiteral: buildVersion)
+            "CURRENT_PROJECT_VERSION": SettingValue(stringLiteral: buildVersion),
+            // 宏定义支持
+            "SWIFT_STRICT_CONCURRENCY": SettingValue(stringLiteral: "complete"),
+            "ENABLE_MACROS": SettingValue(stringLiteral: "YES"),
+            "SWIFT_MACRO_DEBUGGING": SettingValue(stringLiteral: "YES")
         ],
         configurations: [
             .debug(name: "Debug"),
@@ -53,12 +58,15 @@ let project = Project(
                 .package(product: "SwiftUIX"),
                 .package(product: "SwifterSwift"),
                 .package(product: "Defaults"),
+                .package(product: "Perception")
             ],
             settings: .settings(
                 base: [
-                    "DEVELOPMENT_LANGUAGE": "zh-Hans",
-                    "SWIFT_VERSION": "5.9",
-                    "SWIFT_EMIT_LOC_STRINGS": "YES"
+                    // 宏定义支持
+                    "SWIFT_STRICT_CONCURRENCY": "complete",
+                    "ENABLE_MACROS": "YES",
+                    "SWIFT_MACRO_DEBUGGING": "YES",
+                    "SWIFT_MACRO_EXPANSION": "YES"
                 ],
                 configurations: [
                     .debug(name: "Debug"),
