@@ -62,6 +62,30 @@ final class InputMethodManager: ObservableObject {
                 self?.handleApplicationActivation(notification)
             }
             .store(in: &cancellables)
+        
+        // 监听应用启动
+        NSWorkspace.shared.notificationCenter
+            .publisher(for: NSWorkspace.didLaunchApplicationNotification)
+            .receive(on: DispatchQueue.main)
+            .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    await self?.refreshRunningApps()
+                }
+            }
+            .store(in: &cancellables)
+        
+        // 监听应用退出
+        NSWorkspace.shared.notificationCenter
+            .publisher(for: NSWorkspace.didTerminateApplicationNotification)
+            .receive(on: DispatchQueue.main)
+            .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    await self?.refreshRunningApps()
+                }
+            }
+            .store(in: &cancellables)
     }
     
     // MARK: - Public Methods
@@ -69,7 +93,7 @@ final class InputMethodManager: ObservableObject {
     func refreshAllData() async {
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.refreshInputMethods() }
-            group.addTask { await self.refreshInstalledApps() }
+            group.addTask { await self.refreshRunningApps() }
         }
     }
     
@@ -84,15 +108,21 @@ final class InputMethodManager: ObservableObject {
         }
     }
     
-    func refreshInstalledApps() async {
-        let apps = await AppListUtils.fetchInstalledApps()
+    /// 刷新运行中的应用（替代原来的扫描所有应用目录的方式）
+    func refreshRunningApps() async {
+        let apps = await AppListUtils.fetchRunningApps()
         await MainActor.run {
             self.installedApps = apps
         }
     }
     
+    /// 保留原方法以兼容性，但内部调用新的运行中应用获取方法
+    func refreshInstalledApps() async {
+        await refreshRunningApps()
+    }
+    
     func setInputMethod(for app: AppInfo, to inputMethodId: String?) async {
-        await $appSettings.withLock { settings in
+        $appSettings.withLock { settings in
             settings[app.bundleId] = inputMethodId
         }
         

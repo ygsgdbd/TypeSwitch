@@ -8,6 +8,34 @@ enum AppListUtils {
         "/System/Applications"
     ].map { NSString(string: $0).expandingTildeInPath }
     
+    /// 获取当前运行中的应用（仅返回在已安装应用列表中的应用）
+    static func fetchRunningApps() async -> [AppInfo] {
+        // 先获取已安装应用列表
+        let installedApps = await fetchInstalledApps()
+        let installedBundleIds = Set(installedApps.map { $0.bundleId })
+        
+        // 获取运行中的应用
+        let runningApps = NSWorkspace.shared.runningApplications
+        
+        return runningApps.compactMap { runningApp in
+            guard let bundleId = runningApp.bundleIdentifier,
+                  let bundleURL = runningApp.bundleURL,
+                  let bundle = Bundle(url: bundleURL),
+                  let name = bundle.infoDictionary?["CFBundleDisplayName"] as? String ??
+                            bundle.infoDictionary?["CFBundleName"] as? String else {
+                return nil
+            }
+            
+            // 只保留在已安装应用列表中的应用
+            guard installedBundleIds.contains(bundleId) else {
+                return nil
+            }
+            
+            return AppInfo(bundleId: bundleId, name: name, iconPath: bundleURL.path)
+        }
+        .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+    
     static func fetchInstalledApps() async -> [AppInfo] {
         await withTaskGroup(of: [AppInfo].self) { group in
             for dir in applicationDirs {
