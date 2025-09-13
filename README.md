@@ -15,6 +15,8 @@
 
 TypeSwitch is a modern macOS application built with SwiftUI for automatically switching input methods across different applications. Leveraging the latest Swift features and native macOS capabilities, it provides a seamless and efficient experience for managing input method preferences.
 
+✨ **Featuring macOS 26 Liquid Glass Design** - Experience the beautiful translucent interface with cutting-edge macOS 26 liquid glass effects, creating an elegant and modern user experience that seamlessly integrates with your system.
+
 ## ✨ Screenshots
 
 <div align="center">
