@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import SwifterSwift
 
 enum AppListUtils {
     static let applicationDirs = [
