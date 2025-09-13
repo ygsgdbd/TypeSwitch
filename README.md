@@ -145,14 +145,43 @@ git push origin v1.0.0
 
 ```
 TypeSwitch/
-├── Project.swift       # Tuist project configuration
-├── Tuist/             # Tuist configuration files
-├── Sources/           # Source code
-│   ├── Models/        # Data models
-│   ├── Views/         # SwiftUI views
-│   ├── ViewModels/    # View models
-│   └── Utils/         # Utility classes
-└── Tests/            # Test files
+├── Project.swift                    # Tuist project configuration
+├── Tuist/                          # Tuist configuration files
+│   └── Signing/
+│       └── TypeSwitch.entitlements
+├── TypeSwitch/                     # Main source code
+│   ├── Sources/
+│   │   ├── App/                    # App entry point
+│   │   │   └── TypeSwitchApp.swift
+│   │   ├── Core/                   # Core models and extensions
+│   │   │   ├── Models/
+│   │   │   │   ├── AppInfo.swift
+│   │   │   │   ├── InputMethod.swift
+│   │   │   │   └── InputSourceProperties.swift
+│   │   │   └── Extensions/
+│   │   │       └── Defaults+Extensions.swift
+│   │   ├── Services/               # Business logic services
+│   │   │   ├── AppManagement/
+│   │   │   │   ├── AppInfoService.swift
+│   │   │   │   └── AppListService.swift
+│   │   │   ├── InputMethod/
+│   │   │   │   ├── InputMethodManager.swift
+│   │   │   │   └── InputMethodService.swift
+│   │   │   └── System/
+│   │   │       └── LaunchAtLoginService.swift
+│   │   └── UI/                     # User interface
+│   │       └── Views/
+│   │           └── MenuBar/        # Menu bar interface
+│   │               ├── MenuBarView.swift
+│   │               ├── RunningAppsView.swift
+│   │               ├── ConfiguredAppsView.swift
+│   │               ├── AppRowView.swift
+│   │               ├── SettingsView.swift
+│   │               └── AppInfoView.swift
+│   └── Resources/                  # App resources
+│       ├── Assets.xcassets/        # App icons and images
+│       └── *.lproj/               # Localization files
+└── Screenshots/                   # App screenshots
 ```
 
 ## Contributing

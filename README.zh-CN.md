@@ -149,14 +149,43 @@ git push origin v1.0.0
 
 ```
 TypeSwitch/
-├── Project.swift       # Tuist 项目配置
-├── Tuist/             # Tuist 配置文件
-├── Sources/           # 源代码
-│   ├── Models/        # 数据模型
-│   ├── Views/         # SwiftUI 视图
-│   ├── ViewModels/    # 视图模型
-│   └── Utils/         # 工具类
-└── Tests/            # 测试文件
+├── Project.swift                    # Tuist 项目配置
+├── Tuist/                          # Tuist 配置文件
+│   └── Signing/
+│       └── TypeSwitch.entitlements
+├── TypeSwitch/                     # 主要源代码
+│   ├── Sources/
+│   │   ├── App/                    # 应用入口
+│   │   │   └── TypeSwitchApp.swift
+│   │   ├── Core/                   # 核心模型和扩展
+│   │   │   ├── Models/
+│   │   │   │   ├── AppInfo.swift
+│   │   │   │   ├── InputMethod.swift
+│   │   │   │   └── InputSourceProperties.swift
+│   │   │   └── Extensions/
+│   │   │       └── Defaults+Extensions.swift
+│   │   ├── Services/               # 业务逻辑服务
+│   │   │   ├── AppManagement/
+│   │   │   │   ├── AppInfoService.swift
+│   │   │   │   └── AppListService.swift
+│   │   │   ├── InputMethod/
+│   │   │   │   ├── InputMethodManager.swift
+│   │   │   │   └── InputMethodService.swift
+│   │   │   └── System/
+│   │   │       └── LaunchAtLoginService.swift
+│   │   └── UI/                     # 用户界面
+│   │       └── Views/
+│   │           └── MenuBar/        # 菜单栏界面
+│   │               ├── MenuBarView.swift
+│   │               ├── RunningAppsView.swift
+│   │               ├── ConfiguredAppsView.swift
+│   │               ├── AppRowView.swift
+│   │               ├── SettingsView.swift
+│   │               └── AppInfoView.swift
+│   └── Resources/                  # 应用资源
+│       ├── Assets.xcassets/        # 应用图标和图片
+│       └── *.lproj/               # 本地化文件
+└── Screenshots/                   # 应用截图
 ```
 
 ## 贡献指南
