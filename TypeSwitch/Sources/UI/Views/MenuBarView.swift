@@ -109,28 +109,23 @@ struct AppInfoView: View {
     var body: some View {
         Section {
             // 版本信息
-            Menu {
-                Button("复制版本信息") {
-                    AppInfoManager.copyVersionInfo()
-                }
-                
-                Divider()
-                
-                Button("打开 GitHub 仓库") {
-                    AppInfoManager.openGitHubRepository()
-                }
-                
-                Button("查看 Releases") {
-                    AppInfoManager.openGitHubReleases()
-                }
-                
-                Button("最新 Release") {
-                    AppInfoManager.openLatestRelease()
-                }
-            } label: {
-                Text("关于 APP \(AppInfoManager.fullVersionInfo)")
+            Text("关于 APP \(AppInfoManager.fullVersionInfo)")
+                .foregroundColor(.secondary)
+            
+            Divider()
+            
+            // 相关链接
+            Button("打开 GitHub 仓库") {
+                AppInfoManager.openGitHubRepository()
             }
             
+            Button("最新 Release") {
+                AppInfoManager.openLatestRelease()
+            }
+            
+            Divider()
+            
+            // 退出应用
             Button("menu.quit".localized, role: .destructive) {
                 NSApplication.shared.terminate(nil)
             }
