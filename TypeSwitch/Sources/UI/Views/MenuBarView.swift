@@ -31,34 +31,60 @@ struct MenuBarAppRow: View {
     let app: AppInfo
     @EnvironmentObject private var viewModel: InputMethodManager
     
+    /// 获取当前应用选中的输入法ID
+    private var currentInputMethodId: String {
+        viewModel.appSettings[app.bundleId]?.flatMap { $0 } ?? ""
+    }
+    
     /// 获取当前应用选中的输入法名称
     private var selectedInputMethodName: String {
-        let bundleId = app.bundleId
-        guard let inputMethodId = viewModel.appSettings[bundleId],
-              let actualInputMethodId = inputMethodId,
-              let inputMethod = viewModel.inputMethods.first(where: { $0.id == actualInputMethodId })
-        else {
+        if currentInputMethodId.isEmpty {
+            return "menu.default_input_method".localized
+        } else if let inputMethod = viewModel.inputMethods.first(where: { $0.id == currentInputMethodId }) {
+            return inputMethod.name
+        } else {
             return "menu.default_input_method".localized
         }
-        return inputMethod.name
     }
     
     var body: some View {
         Menu {
             // 默认输入法选项
-            Button("menu.default_input_method".localized) {
+            Button(action: {
                 Task {
-                    await viewModel.setInputMethod(for: app, to: "")
+                    await viewModel.setInputMethod(for: app, to: nil)
+                }
+            }) {
+                HStack {
+                    Image(systemName: "globe")
+                        .foregroundColor(.blue)
+                    Text("menu.default_input_method".localized)
+                    Spacer()
+                    if currentInputMethodId.isEmpty {
+                        Image(systemName: "checkmark")
+                            .foregroundColor(.blue)
+                    }
                 }
             }
             
             Divider()
             
             // 已安装的输入法选项
-            ForEach(viewModel.inputMethods.map { $0.name }, id: \.self) { inputMethod in
-                Button(inputMethod) {
+            ForEach(viewModel.inputMethods, id: \.id) { inputMethod in
+                Button(action: {
                     Task {
-                        await viewModel.setInputMethod(for: app, to: inputMethod)
+                        await viewModel.setInputMethod(for: app, to: inputMethod.id)
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: "keyboard")
+                            .foregroundColor(.blue)
+                        Text(inputMethod.name)
+                        Spacer()
+                        if currentInputMethodId == inputMethod.id {
+                            Image(systemName: "checkmark")
+                                .foregroundColor(.blue)
+                        }
                     }
                 }
             }
