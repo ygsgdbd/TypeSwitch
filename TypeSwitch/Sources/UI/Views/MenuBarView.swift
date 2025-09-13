@@ -23,14 +23,6 @@ struct MenuBarView: View {
             .buttonStyle(.borderless)
             .keyboardShortcut("q", modifiers: .command)
         }
-        .frame(minWidth: 300, maxWidth: 400)
-        .alert("error.title".localized, isPresented: $showError) {
-            Button("button.ok".localized) {
-                showError = false
-            }
-        } message: {
-            Text(errorMessage)
-        }
     }
 }
 
@@ -93,10 +85,7 @@ struct MenuBarAppRow: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
         }
-        .menuStyle(.borderlessButton)
     }
 }
 
