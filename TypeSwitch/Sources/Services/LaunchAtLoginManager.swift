@@ -2,13 +2,9 @@ import Foundation
 import ServiceManagement
 
 /// 开机启动管理工具
-final class LaunchAtLoginManager {
-    static let shared = LaunchAtLoginManager()
-    
-    private init() {}
-    
+enum LaunchAtLoginManager {
     /// 获取当前开机启动状态
-    var isEnabled: Bool {
+    static var isEnabled: Bool {
         SMAppService.mainApp.status == .enabled
     }
     
@@ -16,7 +12,7 @@ final class LaunchAtLoginManager {
     /// - Parameter enabled: 是否启用开机启动
     /// - Returns: 设置是否成功
     @discardableResult
-    func setLaunchAtLogin(_ enabled: Bool) -> Bool {
+    static func setLaunchAtLogin(_ enabled: Bool) -> Bool {
         do {
             if enabled {
                 try SMAppService.mainApp.register()

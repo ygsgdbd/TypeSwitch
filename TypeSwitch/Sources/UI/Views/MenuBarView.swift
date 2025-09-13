@@ -5,7 +5,6 @@ import SwiftUIX
 /// 菜单栏主视图
 struct MenuBarView: View {
     @EnvironmentObject private var viewModel: InputMethodManager
-    @StateObject private var appInfoManager = AppInfoManager.shared
     
     var body: some View {
         Group {
@@ -92,14 +91,14 @@ struct AppRowView: View {
 
 /// 设置视图，包含各种应用设置选项
 struct SettingsView: View {
-    @State private var isLaunchAtLoginEnabled = LaunchAtLoginManager.shared.isEnabled
+    @State private var isLaunchAtLoginEnabled = LaunchAtLoginManager.isEnabled
     
     var body: some View {
         Section {
             Toggle("settings.general.auto_launch".localized, isOn: $isLaunchAtLoginEnabled)
                 .toggleStyle(.checkbox)
                 .onChange(of: isLaunchAtLoginEnabled) { newValue in
-                    _ = LaunchAtLoginManager.shared.setLaunchAtLogin(newValue)
+                    _ = LaunchAtLoginManager.setLaunchAtLogin(newValue)
                 }
         }
     }
@@ -107,31 +106,29 @@ struct SettingsView: View {
 
 /// 应用信息视图，显示版本信息和相关链接
 struct AppInfoView: View {
-    @StateObject private var appInfoManager = AppInfoManager.shared
-    
     var body: some View {
         Section {
             // 版本信息
             Menu {
                 Button("复制版本信息") {
-                    appInfoManager.copyVersionInfo()
+                    AppInfoManager.copyVersionInfo()
                 }
                 
                 Divider()
                 
                 Button("打开 GitHub 仓库") {
-                    appInfoManager.openGitHubRepository()
+                    AppInfoManager.openGitHubRepository()
                 }
                 
                 Button("查看 Releases") {
-                    appInfoManager.openGitHubReleases()
+                    AppInfoManager.openGitHubReleases()
                 }
                 
                 Button("最新 Release") {
-                    appInfoManager.openLatestRelease()
+                    AppInfoManager.openLatestRelease()
                 }
             } label: {
-                Text("关于 APP \(appInfoManager.fullVersionInfo)")
+                Text("关于 APP \(AppInfoManager.fullVersionInfo)")
             }
             
             Button("menu.quit".localized, role: .destructive) {
