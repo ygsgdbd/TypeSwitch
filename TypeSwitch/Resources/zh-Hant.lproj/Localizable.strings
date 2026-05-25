@@ -8,13 +8,28 @@
 
 // 設定
 "settings.general.auto_launch" = "開機啟動";
+"settings.general.auto_launch_requires_approval" = "已要求開啟開機啟動，請前往系統設定 > 一般 > 登入項目中批准 TypeSwitch。";
+"settings.general.open_login_items" = "開啟登入項目設定";
+"settings.fallback.default_input_method" = "預設輸入法";
+"settings.fallback.default_input_method_description" = "僅用於未單獨設定的 APP，不會覆蓋已設定 APP。";
 
 // 應用程式列表
 "apps.section.running_count" = "正在執行 (%d)";
 "apps.section.configured_count" = "已設定 (%d)";
+"apps.section.unavailable_count" = "不可用 (%d)";
+"apps.clear_unavailable" = "清理不可用項";
 
 // 輸入法相關
-"input_method.default_option" = "--";
+"input_method.default_section" = "預設";
+"input_method.default_option" = "忽略";
+"input_method.follow_last_section" = "跟隨上次輸入法";
+"input_method.follow_last_option" = "跟隨上次切換";
+"input_method.follow_last_empty_option" = "啟用跟隨";
+"input_method.follow_last_with_input_method" = "%@";
+"input_method.fixed_section" = "指定輸入法";
+"input_method.deleted_option" = "已刪除的輸入法";
+"input_method.follow_last_missing_option" = "已失效";
+"input_method.clear_missing_configuration" = "清理失效輸入法設定";
 
 // 錯誤訊息
 "error.get_input_methods_failed" = "取得輸入法列表失敗";

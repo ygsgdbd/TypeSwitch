@@ -1,17 +1,21 @@
-import SwiftUIX
 import AppKit
+import ComposableArchitecture
+import SwiftUIX
 
 @main
 struct TypeSwitchApp: App {
-    @StateObject private var inputMethodManager = InputMethodManager.shared
+    let store: StoreOf<AppFeature>
+
+    init() {
+        self.store = Store(initialState: AppFeature.State()) {
+            AppFeature()
+        }
+        self.store.send(.task)
+    }
     
     var body: some Scene {
         MenuBarExtra {
-            MenuBarView()
-                .environmentObject(inputMethodManager)
-                .task {
-                    await inputMethodManager.refreshAllData()
-                }
+            MenuBarView(store: store)
         } label: {
             Image(systemName: .keyboard)
         }

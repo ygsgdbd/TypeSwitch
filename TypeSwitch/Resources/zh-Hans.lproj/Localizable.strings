@@ -8,13 +8,28 @@
 
 // 设置
 "settings.general.auto_launch" = "开机启动";
+"settings.general.auto_launch_requires_approval" = "已请求开启开机启动，请前往系统设置 > 通用 > 登录项中批准 TypeSwitch。";
+"settings.general.open_login_items" = "打开登录项设置";
+"settings.fallback.default_input_method" = "默认输入法";
+"settings.fallback.default_input_method_description" = "仅用于未单独配置的 APP，不会覆盖已配置 APP。";
 
 // 应用列表
 "apps.section.running_count" = "运行中 (%d)";
 "apps.section.configured_count" = "已配置 (%d)";
+"apps.section.unavailable_count" = "不可用 (%d)";
+"apps.clear_unavailable" = "清理不可用项";
 
 // 输入法相关
-"input_method.default_option" = "--";
+"input_method.default_section" = "默认";
+"input_method.default_option" = "忽略";
+"input_method.follow_last_section" = "跟随上次输入法";
+"input_method.follow_last_option" = "跟随上次切换";
+"input_method.follow_last_empty_option" = "启用跟随";
+"input_method.follow_last_with_input_method" = "%@";
+"input_method.fixed_section" = "指定输入法";
+"input_method.deleted_option" = "已删除的输入法";
+"input_method.follow_last_missing_option" = "已失效";
+"input_method.clear_missing_configuration" = "清理失效输入法配置";
 
 // 错误信息
 "error.get_input_methods_failed" = "获取输入法列表失败";

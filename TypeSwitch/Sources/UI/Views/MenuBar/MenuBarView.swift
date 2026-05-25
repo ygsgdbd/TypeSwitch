@@ -1,28 +1,33 @@
 import AppKit
+import ComposableArchitecture
 import SwiftUI
 import SwiftUIX
 
 /// 菜单栏主视图
 struct MenuBarView: View {
-    @EnvironmentObject private var viewModel: InputMethodManager
+    let store: StoreOf<AppFeature>
     
     var body: some View {
         Group {
-            RunningAppsView()
-            ConfiguredAppsView()
-            
+            RunningAppsView(store: store)
+            ConfiguredAppsView(store: store)
+            UnavailableAppsView(store: store)
+
             Divider()
-            
-            SettingsView()
-            
+
+            SettingsView(store: store)
+
             Divider()
-            
+
             AppInfoView()
         }
     }
 }
 
 #Preview {
-    MenuBarView()
-        .environmentObject(InputMethodManager.shared)
+    MenuBarView(
+        store: Store(initialState: AppFeature.State()) {
+            AppFeature()
+        }
+    )
 }

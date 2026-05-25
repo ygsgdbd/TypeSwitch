@@ -8,13 +8,28 @@
 
 // Settings
 "settings.general.auto_launch" = "Launch at Login";
+"settings.general.auto_launch_requires_approval" = "Launch at login was requested. Approve TypeSwitch in System Settings > General > Login Items.";
+"settings.general.open_login_items" = "Open Login Items";
+"settings.fallback.default_input_method" = "Default Input Method";
+"settings.fallback.default_input_method_description" = "Only applies to apps without their own setting. Existing app settings are not changed.";
 
 // App List
 "apps.section.running_count" = "Running (%d)";
 "apps.section.configured_count" = "Configured (%d)";
+"apps.section.unavailable_count" = "Unavailable (%d)";
+"apps.clear_unavailable" = "Clear unavailable";
 
 // Input Method Related
-"input_method.default_option" = "--";
+"input_method.default_section" = "Default";
+"input_method.default_option" = "Ignore";
+"input_method.follow_last_section" = "Follow Last Input Method";
+"input_method.follow_last_option" = "Follow last selection";
+"input_method.follow_last_empty_option" = "Enable follow";
+"input_method.follow_last_with_input_method" = "%@";
+"input_method.fixed_section" = "Specific Input Method";
+"input_method.deleted_option" = "Deleted input method";
+"input_method.follow_last_missing_option" = "Unavailable";
+"input_method.clear_missing_configuration" = "Clear unavailable input method settings";
 
 // Error Messages
 "error.get_input_methods_failed" = "Failed to get input methods list";

@@ -11,9 +11,13 @@ let project = Project(
         developmentRegion: "zh-Hans"
     ),
     packages: [
+        .remote(url: "https://github.com/pointfreeco/swift-case-paths", requirement: .upToNextMajor(from: "1.7.3")),
+        .remote(url: "https://github.com/pointfreeco/swift-composable-architecture", requirement: .upToNextMajor(from: "1.25.5")),
+        .remote(url: "https://github.com/pointfreeco/swift-dependencies", requirement: .upToNextMajor(from: "1.12.0")),
+        .remote(url: "https://github.com/pointfreeco/swift-perception", requirement: .upToNextMajor(from: "2.0.10")),
+        .remote(url: "https://github.com/pointfreeco/swift-sharing", requirement: .upToNextMajor(from: "2.0.0")),
         .remote(url: "https://github.com/SwiftUIX/SwiftUIX", requirement: .upToNextMajor(from: "0.2.3")),
-        .remote(url: "https://github.com/SwifterSwift/SwifterSwift", requirement: .upToNextMajor(from: "8.0.0")),
-        .remote(url: "https://github.com/sindresorhus/Defaults", requirement: .upToNextMajor(from: "7.3.1"))
+        .remote(url: "https://github.com/SwifterSwift/SwifterSwift", requirement: .upToNextMajor(from: "8.0.0"))
     ],
     settings: .settings(
         base: [
@@ -38,7 +42,7 @@ let project = Project(
             destinations: .macOS,
             product: .app,
             bundleId: "top.ygsgdbd.TypeSwitch",
-            deploymentTargets: .macOS("13.0"),
+            deploymentTargets: .macOS("14.0"),
             infoPlist: .extendingDefault(with: [
                 "LSUIElement": true,  // 设置为纯菜单栏应用
                 "CFBundleDevelopmentRegion": "zh-Hans",  // 设置默认开发区域为简体中文
@@ -46,7 +50,7 @@ let project = Project(
                 "AppleLanguages": ["zh-Hans"],  // 设置默认语言为简体中文
                 "NSHumanReadableCopyright": "Copyright © 2024 ygsgdbd. All rights reserved.",
                 "LSApplicationCategoryType": "public.app-category.utilities",
-                "LSMinimumSystemVersion": "13.0",
+                "LSMinimumSystemVersion": "14.0",
                 "CFBundleShortVersionString": .string(appVersion),  // 市场版本号
                 "CFBundleVersion": .string(buildVersion)  // 构建版本号
             ]),
@@ -54,17 +58,50 @@ let project = Project(
             resources: ["TypeSwitch/Resources/**"],
             entitlements: .file(path: "Tuist/Signing/TypeSwitch.entitlements"),
             dependencies: [
+                .package(product: "CasePaths"),
+                .package(product: "ComposableArchitecture"),
+                .package(product: "Dependencies"),
+                .package(product: "PerceptionCore"),
+                .package(product: "Sharing"),
                 .package(product: "SwiftUIX"),
-                .package(product: "SwifterSwift"),
-                .package(product: "Defaults")
+                .package(product: "SwifterSwift")
             ],
             settings: .settings(
                 base: [
                     // 宏定义支持
+                    "OTHER_CODE_SIGN_FLAGS": "--deep",
                     "SWIFT_STRICT_CONCURRENCY": "complete",
                     "ENABLE_MACROS": "YES",
                     "SWIFT_MACRO_DEBUGGING": "YES",
                     "SWIFT_MACRO_EXPANSION": "YES"
+                ],
+                configurations: [
+                    .debug(name: "Debug"),
+                    .release(name: "Release")
+                ]
+            )
+        ),
+        .target(
+            name: "TypeSwitchTests",
+            destinations: .macOS,
+            product: .unitTests,
+            bundleId: "top.ygsgdbd.TypeSwitchTests",
+            deploymentTargets: .macOS("14.0"),
+            infoPlist: .default,
+            sources: ["TypeSwitchTests/**"],
+            dependencies: [
+                .package(product: "CasePaths"),
+                .target(name: "TypeSwitch"),
+                .package(product: "ComposableArchitecture"),
+                .package(product: "Dependencies"),
+                .package(product: "Sharing")
+            ],
+            settings: .settings(
+                base: [
+                    "BUNDLE_LOADER": "$(TEST_HOST)",
+                    "SWIFT_VERSION": "5.9",
+                    "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/TypeSwitch.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TypeSwitch",
+                    "TEST_TARGET_NAME": "TypeSwitch"
                 ],
                 configurations: [
                     .debug(name: "Debug"),
