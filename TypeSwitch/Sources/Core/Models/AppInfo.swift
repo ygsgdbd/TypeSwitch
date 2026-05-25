@@ -27,8 +27,7 @@ struct AppInfo: Identifiable, Sendable, Hashable {
     init?(bundleURL: URL) {
         guard let bundle = Bundle(url: bundleURL),
               let bundleId = bundle.bundleIdentifier,
-              let name = bundle.infoDictionary?["CFBundleDisplayName"] as? String ??
-                bundle.infoDictionary?["CFBundleName"] as? String else {
+              let name = Self.bundleName(from: bundle) else {
             return nil
         }
 
@@ -43,11 +42,26 @@ struct AppInfo: Identifiable, Sendable, Hashable {
 
         let path = runningApplication.bundleURL?.path
         let bundleName = runningApplication.bundleURL.flatMap {
-            Bundle(url: $0)?.infoDictionary?["CFBundleDisplayName"] as? String ??
-                Bundle(url: $0)?.infoDictionary?["CFBundleName"] as? String
+            Bundle(url: $0).flatMap(Self.bundleName)
         }
-        let name = bundleName ?? runningApplication.localizedName ?? bundleId
+        let name = Self.nonEmptyName(runningApplication.localizedName) ?? bundleName ?? bundleId
 
         self.init(bundleId: bundleId, name: name, path: path)
+    }
+
+    private static func bundleName(from bundle: Bundle) -> String? {
+        name(from: bundle.localizedInfoDictionary) ?? name(from: bundle.infoDictionary)
+    }
+
+    private static func name(from dictionary: [String: Any]?) -> String? {
+        nonEmptyName(dictionary?["CFBundleDisplayName"] as? String) ??
+            nonEmptyName(dictionary?["CFBundleName"] as? String)
+    }
+
+    private static func nonEmptyName(_ name: String?) -> String? {
+        guard let name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+        return name
     }
 }
