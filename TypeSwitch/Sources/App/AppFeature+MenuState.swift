@@ -14,7 +14,10 @@ extension AppFeature.State {
     }
 
     var fallbackStrategy: InputMethodStrategy {
-        fallbackRuleStore.strategy
+        if case .followLast = fallbackRuleStore.strategy {
+            return .none
+        }
+        return fallbackRuleStore.strategy
     }
 
     var fallbackSelectedLabel: String? {
@@ -22,10 +25,6 @@ extension AppFeature.State {
             return TypeSwitchStrings.InputMethod.fallbackDefaultOption
         }
         return selectedLabel(for: fallbackStrategy)
-    }
-
-    var fallbackFollowLastOptionLabel: String {
-        followLastOptionLabel(for: fallbackStrategy)
     }
 
     var fallbackHasMissingInputMethod: Bool {

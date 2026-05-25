@@ -91,6 +91,7 @@ struct AppFeature {
         Reduce { state, action in
             switch action {
             case .task:
+                normalizeFallbackRule(in: &state)
                 return .merge(
                     .concatenate(
                         prepareAppRulesStoreMigrationEffect(),
@@ -169,20 +170,6 @@ struct AppFeature {
                     return .none
                 }
 
-                guard state.strategy(for: bundleId) == .none else {
-                    return .none
-                }
-
-                state.$fallbackRuleStore.withLock { store in
-                    guard case .followLast(let previousInputMethodId) = store.strategy else {
-                        return
-                    }
-                    guard previousInputMethodId != inputMethodId else {
-                        return
-                    }
-
-                    store.strategy = .followLast(lastInputMethodId: inputMethodId)
-                }
                 return .none
 
             case .response(.inputMethods(let inputMethods)):
@@ -247,11 +234,12 @@ struct AppFeature {
 
             case .view(.setFallbackStrategy(let strategy)):
                 state.$fallbackRuleStore.withLock { store in
-                    guard store.strategy != strategy else {
+                    let supportedStrategy = fallbackSupportedStrategy(strategy)
+                    guard store.strategy != supportedStrategy else {
                         return
                     }
 
-                    store.strategy = strategy
+                    store.strategy = supportedStrategy
                 }
                 return .none
 
@@ -376,6 +364,23 @@ struct AppFeature {
             return nil
         }
         return state.inputMethods.contains(where: { $0.id == candidateId }) ? candidateId : nil
+    }
+
+    private func fallbackSupportedStrategy(_ strategy: InputMethodStrategy) -> InputMethodStrategy {
+        if case .followLast = strategy {
+            return .none
+        }
+        return strategy
+    }
+
+    private func normalizeFallbackRule(in state: inout State) {
+        state.$fallbackRuleStore.withLock { store in
+            let supportedStrategy = fallbackSupportedStrategy(store.strategy)
+            guard store.strategy != supportedStrategy else {
+                return
+            }
+            store.strategy = supportedStrategy
+        }
     }
 
     private func upsertRecord(for appInfo: AppInfo, in state: inout State) {

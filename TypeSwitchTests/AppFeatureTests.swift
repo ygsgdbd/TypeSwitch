@@ -138,6 +138,25 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertEqual(store.state.appRules, [bundleId: appRule])
     }
 
+    func testSetFallbackStrategyCoercesFollowLastToNone() async {
+        var initialState = AppFeature.State()
+        initialState.$fallbackRuleStore.withLock {
+            $0.strategy = .fixed(inputMethodId: "ime.en")
+        }
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+
+        await store.send(.view(.setFallbackStrategy(.followLast(lastInputMethodId: "ime.jp")))) {
+            $0.$fallbackRuleStore.withLock {
+                $0.strategy = .none
+            }
+        }
+
+        XCTAssertEqual(store.state.fallbackStrategy, .none)
+    }
+
     func testActivatedAppSwitchesFixedInputMethodWhenNeeded() async {
         let app = AppInfo(bundleId: "com.test.browser", name: "Browser", path: "/Applications/Browser.app")
         let targetInputMethod = "ime.en"
@@ -464,6 +483,47 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertTrue(switchedInputMethods.isEmpty)
     }
 
+    func testActivatedAppSkipsSwitchWhenFallbackRuleIsLegacyFollowLast() async {
+        let app = AppInfo(bundleId: "com.test.browser", name: "Browser", path: "/Applications/Browser.app")
+        let recorder = SwitchRecorder()
+
+        var initialState = AppFeature.State()
+        initialState.inputMethods = [InputMethod(id: "ime.jp", name: "Japanese")]
+        initialState.$fallbackRuleStore.withLock {
+            $0.strategy = .followLast(lastInputMethodId: "ime.jp")
+        }
+        initialState.$appRulesStore.withLock {
+            $0.rules[app.bundleId] = AppRuleRecord(
+                bundleId: app.bundleId,
+                lastKnownPath: app.path,
+                lastKnownName: app.name,
+                strategy: .none,
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+        }
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(Date(timeIntervalSince1970: 10))
+        store.dependencies.inputMethodClient.currentInputMethodId = {
+            XCTFail("Legacy fallback follow-last should not trigger current input method lookup")
+            return "ime.en"
+        }
+        store.dependencies.inputMethodClient.switchToInputMethod = { inputMethodId in
+            await recorder.record(inputMethodId)
+        }
+
+        await store.send(.system(.workspaceEvent(.activated(app)))) {
+            $0.currentFrontmostBundleId = app.bundleId
+        }
+
+        let switchedInputMethods = await recorder.values
+        XCTAssertTrue(switchedInputMethods.isEmpty)
+        XCTAssertEqual(store.state.fallbackStrategy, .none)
+    }
+
     func testActivatedAppSkipsMissingFallbackInputMethod() async {
         let app = AppInfo(bundleId: "com.test.browser", name: "Browser", path: "/Applications/Browser.app")
         let recorder = SwitchRecorder()
@@ -720,7 +780,7 @@ final class AppFeatureTests: XCTestCase {
         }
     }
 
-    func testManualSelectionUpdatesFallbackFollowLastWhenAppRuleIsNone() async {
+    func testManualSelectionDoesNotUpdateFallbackFollowLastWhenAppRuleIsNone() async {
         let bundleId = "com.test.chat"
 
         var initialState = AppFeature.State()
@@ -743,16 +803,17 @@ final class AppFeatureTests: XCTestCase {
             AppFeature()
         }
 
-        await store.send(.system(.inputMethodSelectedChanged("ime.jp"))) {
-            $0.$fallbackRuleStore.withLock {
-                $0.strategy = .followLast(lastInputMethodId: "ime.jp")
-            }
-        }
+        await store.send(.system(.inputMethodSelectedChanged("ime.jp")))
 
         XCTAssertEqual(store.state.appRules[bundleId]?.strategy, InputMethodStrategy.none)
+        XCTAssertEqual(
+            store.state.fallbackRuleStore.strategy,
+            .followLast(lastInputMethodId: nil)
+        )
+        XCTAssertEqual(store.state.fallbackStrategy, .none)
     }
 
-    func testManualSelectionUpdatesFallbackFollowLastWhenAppRuleIsMissing() async {
+    func testManualSelectionDoesNotUpdateFallbackFollowLastWhenAppRuleIsMissing() async {
         let bundleId = "com.test.chat"
 
         var initialState = AppFeature.State()
@@ -765,13 +826,14 @@ final class AppFeatureTests: XCTestCase {
             AppFeature()
         }
 
-        await store.send(.system(.inputMethodSelectedChanged("ime.jp"))) {
-            $0.$fallbackRuleStore.withLock {
-                $0.strategy = .followLast(lastInputMethodId: "ime.jp")
-            }
-        }
+        await store.send(.system(.inputMethodSelectedChanged("ime.jp")))
 
         XCTAssertTrue(store.state.appRules.isEmpty)
+        XCTAssertEqual(
+            store.state.fallbackRuleStore.strategy,
+            .followLast(lastInputMethodId: nil)
+        )
+        XCTAssertEqual(store.state.fallbackStrategy, .none)
     }
 
     func testProgrammaticSelectionDoesNotOverwriteFollowLastStrategy() async {
@@ -826,9 +888,10 @@ final class AppFeatureTests: XCTestCase {
         }
 
         XCTAssertEqual(
-            store.state.fallbackStrategy,
+            store.state.fallbackRuleStore.strategy,
             .followLast(lastInputMethodId: nil)
         )
+        XCTAssertEqual(store.state.fallbackStrategy, .none)
         XCTAssertTrue(store.state.appRules.isEmpty)
     }
 

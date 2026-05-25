@@ -49,14 +49,16 @@ struct InputMethodStrategyMenuContent: View {
             }
         }
 
-        Section(context.followLastSectionTitle) {
-            Button(action: {
-                onSelectStrategy(followLastStrategy)
-            }) {
-                if case .followLast = strategy {
-                    Image(systemName: .checkmark)
+        if context.supportsFollowLast {
+            Section(context.followLastSectionTitle) {
+                Button(action: {
+                    onSelectStrategy(followLastStrategy)
+                }) {
+                    if case .followLast = strategy {
+                        Image(systemName: .checkmark)
+                    }
+                    Text(followLastOptionLabel)
                 }
-                Text(followLastOptionLabel)
             }
         }
 
@@ -101,6 +103,15 @@ enum InputMethodStrategyMenuContext {
             return TypeSwitchStrings.InputMethod.followLastAppSection
         case .fallbackRule:
             return TypeSwitchStrings.InputMethod.followLastFallbackSection
+        }
+    }
+
+    var supportsFollowLast: Bool {
+        switch self {
+        case .appRule:
+            return true
+        case .fallbackRule:
+            return false
         }
     }
 }

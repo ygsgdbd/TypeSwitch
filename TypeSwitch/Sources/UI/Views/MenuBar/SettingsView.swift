@@ -12,7 +12,7 @@ struct SettingsView: View {
                     context: .fallbackRule,
                     strategy: store.fallbackStrategy,
                     inputMethods: store.inputMethods,
-                    followLastOptionLabel: store.fallbackFollowLastOptionLabel
+                    followLastOptionLabel: TypeSwitchStrings.InputMethod.followLastEmptyOption
                 ) { strategy in
                     store.send(.view(.setFallbackStrategy(strategy)))
                 }
