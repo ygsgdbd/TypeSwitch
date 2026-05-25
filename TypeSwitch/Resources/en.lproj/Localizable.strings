@@ -1,35 +1,49 @@
 // App Information
-"app.about" = "About APP %@";
+"app.about" = "About TypeSwitch %@";
 "app.github_repository" = "Open GitHub Repository";
-"app.latest_release" = "Latest Release";
+"app.latest_release" = "Latest Version";
 
 // Menu
 "menu.quit" = "Quit";
 
+// Common
+"common.cancel" = "Cancel";
+
 // Settings
+"settings.section" = "Settings";
 "settings.general.auto_launch" = "Launch at Login";
-"settings.general.auto_launch_requires_approval" = "Launch at login was requested. Approve TypeSwitch in System Settings > General > Login Items.";
+"settings.general.auto_launch_requires_approval" = "Approve TypeSwitch in System Settings > General > Login Items.";
 "settings.general.open_login_items" = "Open Login Items";
-"settings.fallback.default_input_method" = "Default Input Method";
-"settings.fallback.default_input_method_description" = "Only applies to apps without their own setting. Existing app settings are not changed.";
+"settings.fallback.default_input_method" = "Global Rule";
+"settings.fallback.default_input_method_description" = "Used by apps without their own setting.";
 
 // App List
 "apps.section.running_count" = "Running (%d)";
 "apps.section.configured_count" = "Configured (%d)";
 "apps.section.unavailable_count" = "Unavailable (%d)";
 "apps.clear_unavailable" = "Clear unavailable";
+"apps.clear_unavailable_confirmation.title" = "Clear unavailable apps?";
+"apps.clear_unavailable_confirmation.message" = "This removes settings for apps that no longer exist.";
+"apps.clear_unavailable_confirmation.confirm" = "Clear";
 
 // Input Method Related
 "input_method.default_section" = "Default";
-"input_method.default_option" = "Ignore";
-"input_method.follow_last_section" = "Follow Last Input Method";
-"input_method.follow_last_option" = "Follow last selection";
-"input_method.follow_last_empty_option" = "Enable follow";
-"input_method.follow_last_with_input_method" = "%@";
+"input_method.app_default_option" = "Follow global setting";
+"input_method.fallback_default_option" = "Do not switch automatically";
+"input_method.default_option" = "Do not switch automatically";
+"input_method.follow_last_section" = "Remember Last Input Method";
+"input_method.follow_last_app_section" = "Remember This App";
+"input_method.follow_last_fallback_section" = "Remember Last";
+"input_method.follow_last_option" = "Remember last input method";
+"input_method.follow_last_empty_option" = "Waiting";
+"input_method.follow_last_with_input_method" = "Last: %@";
 "input_method.fixed_section" = "Specific Input Method";
 "input_method.deleted_option" = "Deleted input method";
-"input_method.follow_last_missing_option" = "Unavailable";
-"input_method.clear_missing_configuration" = "Clear unavailable input method settings";
+"input_method.follow_last_missing_option" = "Last unavailable";
+"input_method.clear_missing_configuration" = "Clear unavailable settings";
+"input_method.clear_missing_confirmation.title" = "Clear unavailable settings?";
+"input_method.clear_missing_confirmation.message" = "Unavailable items will follow the global rule.";
+"input_method.clear_missing_confirmation.confirm" = "Clear";
 
 // Error Messages
 "error.get_input_methods_failed" = "Failed to get input methods list";

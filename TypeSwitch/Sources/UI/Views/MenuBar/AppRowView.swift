@@ -11,6 +11,7 @@ struct AppRowView: View {
     var body: some View {
         Menu {
             InputMethodStrategyMenuContent(
+                context: .appRule,
                 strategy: item.strategy,
                 inputMethods: inputMethods,
                 followLastOptionLabel: item.followLastOptionLabel,
@@ -30,6 +31,7 @@ struct AppRowView: View {
 }
 
 struct InputMethodStrategyMenuContent: View {
+    let context: InputMethodStrategyMenuContext
     let strategy: InputMethodStrategy
     let inputMethods: [InputMethod]
     let followLastOptionLabel: String
@@ -43,11 +45,11 @@ struct InputMethodStrategyMenuContent: View {
                 if strategy == .none {
                     Image(systemName: .checkmark)
                 }
-                Text(TypeSwitchStrings.InputMethod.defaultOption)
+                Text(context.defaultOptionLabel)
             }
         }
         
-        Section(TypeSwitchStrings.InputMethod.followLastSection) {
+        Section(context.followLastSectionTitle) {
             Button(action: {
                 onSelectStrategy(followLastStrategy)
             }) {
@@ -77,5 +79,28 @@ struct InputMethodStrategyMenuContent: View {
             return .followLast(lastInputMethodId: lastInputMethodId)
         }
         return .followLast(lastInputMethodId: nil)
+    }
+}
+
+enum InputMethodStrategyMenuContext {
+    case appRule
+    case fallbackRule
+
+    var defaultOptionLabel: String {
+        switch self {
+        case .appRule:
+            return TypeSwitchStrings.InputMethod.appDefaultOption
+        case .fallbackRule:
+            return TypeSwitchStrings.InputMethod.fallbackDefaultOption
+        }
+    }
+
+    var followLastSectionTitle: String {
+        switch self {
+        case .appRule:
+            return TypeSwitchStrings.InputMethod.followLastAppSection
+        case .fallbackRule:
+            return TypeSwitchStrings.InputMethod.followLastFallbackSection
+        }
     }
 }

@@ -55,7 +55,10 @@ struct AppFeature {
         }
 
         var fallbackSelectedLabel: String? {
-            selectedLabel(for: fallbackStrategy)
+            if fallbackStrategy == .none {
+                return TypeSwitchStrings.InputMethod.fallbackDefaultOption
+            }
+            return selectedLabel(for: fallbackStrategy)
         }
 
         var fallbackFollowLastOptionLabel: String {
@@ -155,10 +158,13 @@ struct AppFeature {
             case .fixed(let inputMethodId):
                 return inputMethodName(for: inputMethodId) ?? TypeSwitchStrings.InputMethod.deletedOption
             case .followLast(let lastInputMethodId):
-                if let lastInputMethodId, inputMethodName(for: lastInputMethodId) == nil {
+                guard let lastInputMethodId else {
+                    return TypeSwitchStrings.InputMethod.followLastEmptyOption
+                }
+                guard let inputMethodName = inputMethodName(for: lastInputMethodId) else {
                     return TypeSwitchStrings.InputMethod.followLastMissingOption
                 }
-                return TypeSwitchStrings.InputMethod.followLastOption
+                return TypeSwitchStrings.InputMethod.followLastWithInputMethod(inputMethodName)
             }
         }
 
@@ -175,7 +181,7 @@ struct AppFeature {
                 return TypeSwitchStrings.InputMethod.followLastMissingOption
             }
 
-            return inputMethodName
+            return TypeSwitchStrings.InputMethod.followLastWithInputMethod(inputMethodName)
         }
 
         private func inputMethodName(for inputMethodId: String) -> String? {

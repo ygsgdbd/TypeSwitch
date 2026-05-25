@@ -6,9 +6,10 @@ struct SettingsView: View {
     @Bindable var store: StoreOf<AppFeature>
     
     var body: some View {
-        Section {
+        Section(TypeSwitchStrings.Settings.section) {
             Menu {
                 InputMethodStrategyMenuContent(
+                    context: .fallbackRule,
                     strategy: store.fallbackStrategy,
                     inputMethods: store.inputMethods,
                     followLastOptionLabel: store.fallbackFollowLastOptionLabel
@@ -16,14 +17,14 @@ struct SettingsView: View {
                     store.send(.setFallbackStrategy(strategy))
                 }
             } label: {
-                Text(String(localized: "settings.fallback.default_input_method"))
+                Text(TypeSwitchStrings.Settings.Fallback.defaultInputMethod)
                 if let selectedLabel = store.fallbackSelectedLabel {
                     Text(selectedLabel)
                         .foregroundStyle(store.fallbackHasMissingInputMethod ? .secondary : .primary)
                 }
             }
             
-            Text(String(localized: "settings.fallback.default_input_method_description"))
+            Text(TypeSwitchStrings.Settings.Fallback.defaultInputMethodDescription)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
 
@@ -37,11 +38,11 @@ struct SettingsView: View {
             .toggleStyle(.checkbox)
 
             if store.launchAtLoginRequiresApproval {
-                Text(String(localized: "settings.general.auto_launch_requires_approval"))
+                Text(TypeSwitchStrings.Settings.General.autoLaunchRequiresApproval)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
-                Button(String(localized: "settings.general.open_login_items")) {
+                Button(TypeSwitchStrings.Settings.General.openLoginItems) {
                     LaunchAtLoginService.openSystemSettingsLoginItems()
                 }
             }

@@ -1,35 +1,49 @@
 // 应用信息
-"app.about" = "关于 APP %@";
+"app.about" = "关于 TypeSwitch %@";
 "app.github_repository" = "打开 GitHub 仓库";
-"app.latest_release" = "最新 Release";
+"app.latest_release" = "最新版本";
 
 // 菜单
 "menu.quit" = "退出";
 
+// 通用
+"common.cancel" = "取消";
+
 // 设置
+"settings.section" = "设置";
 "settings.general.auto_launch" = "开机启动";
-"settings.general.auto_launch_requires_approval" = "已请求开启开机启动，请前往系统设置 > 通用 > 登录项中批准 TypeSwitch。";
+"settings.general.auto_launch_requires_approval" = "请在系统设置 > 通用 > 登录项中批准 TypeSwitch。";
 "settings.general.open_login_items" = "打开登录项设置";
-"settings.fallback.default_input_method" = "默认输入法";
-"settings.fallback.default_input_method_description" = "仅用于未单独配置的 APP，不会覆盖已配置 APP。";
+"settings.fallback.default_input_method" = "全局规则";
+"settings.fallback.default_input_method_description" = "未单独设置的 App 会使用它。";
 
 // 应用列表
 "apps.section.running_count" = "运行中 (%d)";
 "apps.section.configured_count" = "已配置 (%d)";
 "apps.section.unavailable_count" = "不可用 (%d)";
 "apps.clear_unavailable" = "清理不可用项";
+"apps.clear_unavailable_confirmation.title" = "清理不可用 App？";
+"apps.clear_unavailable_confirmation.message" = "会移除不存在 App 的设置。";
+"apps.clear_unavailable_confirmation.confirm" = "清理";
 
 // 输入法相关
 "input_method.default_section" = "默认";
-"input_method.default_option" = "忽略";
-"input_method.follow_last_section" = "跟随上次输入法";
-"input_method.follow_last_option" = "跟随上次切换";
-"input_method.follow_last_empty_option" = "启用跟随";
-"input_method.follow_last_with_input_method" = "%@";
+"input_method.app_default_option" = "跟随全局设置";
+"input_method.fallback_default_option" = "不自动切换";
+"input_method.default_option" = "不自动切换";
+"input_method.follow_last_section" = "记住上次输入法";
+"input_method.follow_last_app_section" = "记住此 App";
+"input_method.follow_last_fallback_section" = "记住上次";
+"input_method.follow_last_option" = "记住上次输入法";
+"input_method.follow_last_empty_option" = "等待记录";
+"input_method.follow_last_with_input_method" = "上次：%@";
 "input_method.fixed_section" = "指定输入法";
 "input_method.deleted_option" = "已删除的输入法";
-"input_method.follow_last_missing_option" = "已失效";
-"input_method.clear_missing_configuration" = "清理失效输入法配置";
+"input_method.follow_last_missing_option" = "上次不可用";
+"input_method.clear_missing_configuration" = "清理失效设置";
+"input_method.clear_missing_confirmation.title" = "清理失效设置？";
+"input_method.clear_missing_confirmation.message" = "失效项会改为跟随全局设置。";
+"input_method.clear_missing_confirmation.confirm" = "清理";
 
 // 错误信息
 "error.get_input_methods_failed" = "获取输入法列表失败";

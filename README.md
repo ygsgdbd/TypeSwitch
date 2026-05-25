@@ -13,9 +13,9 @@
 
 </div>
 
-TypeSwitch is a modern macOS menu bar application built with SwiftUI for automatically switching input methods across different applications. It runs quietly in the background and provides an elegant menu bar interface for managing input method preferences per application.
+TypeSwitch is a macOS menu bar utility for switching input methods per app.
 
-✨ **Featuring macOS 26 Liquid Glass Design** - Experience the beautiful translucent interface with cutting-edge macOS 26 liquid glass effects, creating an elegant and modern user experience that seamlessly integrates with your system.
+✨ **System-native appearance** - TypeSwitch uses SwiftUI menu bar controls and follows macOS light and dark mode.
 
 ## ✨ Screenshots
 
@@ -27,19 +27,19 @@ TypeSwitch is a modern macOS menu bar application built with SwiftUI for automat
 
 ## 🎯 Features
 
-- 🔄 **Auto Switch**: Automatically switch to preset input methods when changing applications
-- 📱 **Menu Bar Interface**: Clean and intuitive menu bar interface for easy access
-- 🎯 **Per-App Settings**: Set independent input method preferences for each application
-- 🚀 **Auto Start**: Support automatic startup at login
-- 📋 **Running Apps**: View and configure currently running applications
-- ⚙️ **Installed Apps**: Manage input method settings for all installed applications
+- 🔄 **Auto Switch**: Switch input methods when changing apps
+- 📱 **Menu Bar Interface**: View and set rules quickly
+- 🎯 **Per-App Settings**: Configure each app independently
+- 🚀 **Auto Start**: Run automatically at login
+- 📋 **Running Apps**: Configure current apps directly
+- ⚙️ **Configured Apps**: Manage existing settings
 - ⌨️ **Keyboard Shortcuts**:
   - `⌘ + Q` - Quit application
 - 🔗 **Quick Links**: Direct access to GitHub repository and latest releases
 
 ## 🔧 System Requirements
 
-- 🖥 macOS 13.0 or later (compatible up to macOS 26)
+- 🖥 macOS 14.0 or later
 - 🔐 Accessibility permission for monitoring application switches
 - ⌨️ Input method switching permission
 
@@ -61,14 +61,10 @@ brew install ygsgdbd/tap/typeswitch --cask
 
 1. After launching, the app icon (⌨️) appears in the menu bar
 2. Click the menu bar icon to open the dropdown menu
-3. The menu shows two sections:
-   - **Running Apps**: Currently running applications
-   - **Configured Apps**: Applications with input method settings
-4. Click on any application to set its input method:
-   - Select "Default" to use system default input method
-   - Select any installed input method to set as default for that app
-5. The input method will automatically switch when you switch to that application
-6. Use the settings section to enable auto-launch at login
+3. Pick an app from Running Apps or Configured Apps
+4. Choose Follow global setting, Remember Last, or a fixed input method
+5. TypeSwitch switches input methods when that app becomes active
+6. Use Settings for the global rule and launch at login
 
 ## 🔒 Security
 
@@ -100,7 +96,7 @@ Build tools:
 
 - Xcode 15.0+
 - Swift 5.9+
-- macOS 13.0+ (compatible up to macOS 26)
+- macOS 14.0+
 - [Tuist](https://github.com/tuist/tuist)
 
 ### Build Steps

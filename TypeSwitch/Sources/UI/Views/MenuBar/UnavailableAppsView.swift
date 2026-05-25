@@ -8,8 +8,14 @@ struct UnavailableAppsView: View {
         if !store.unavailableApps.isEmpty {
             Section {
                 Menu(TypeSwitchStrings.Apps.Section.unavailableCount(store.unavailableApps.count)) {
-                    Button(TypeSwitchStrings.Apps.clearUnavailable) {
-                        store.send(.removeUnavailableRulesTapped)
+                    Button(TypeSwitchStrings.Apps.clearUnavailable, role: .destructive) {
+                        if MenuConfirmation.confirm(
+                            title: TypeSwitchStrings.Apps.ClearUnavailableConfirmation.title,
+                            message: TypeSwitchStrings.Apps.ClearUnavailableConfirmation.message,
+                            confirmButton: TypeSwitchStrings.Apps.ClearUnavailableConfirmation.confirm
+                        ) {
+                            store.send(.removeUnavailableRulesTapped)
+                        }
                     }
                     
                     Divider()

@@ -469,7 +469,16 @@ final class AppFeatureTests: XCTestCase {
 
         XCTAssertEqual(
             state.runningMenuItems.first?.followLastOptionLabel,
-            "Pinyin"
+            TypeSwitchStrings.InputMethod.followLastWithInputMethod("Pinyin")
+        )
+    }
+
+    func testFallbackNoneShowsNoAutomaticSwitchLabel() {
+        let state = AppFeature.State()
+
+        XCTAssertEqual(
+            state.fallbackSelectedLabel,
+            TypeSwitchStrings.InputMethod.fallbackDefaultOption
         )
     }
 

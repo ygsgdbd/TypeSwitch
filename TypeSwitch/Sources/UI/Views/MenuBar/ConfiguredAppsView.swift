@@ -10,8 +10,14 @@ struct ConfiguredAppsView: View {
             Section {
                 Menu(TypeSwitchStrings.Apps.Section.configuredCount(store.configuredApps.count)) {
                     if store.hasMissingInputMethodRules {
-                        Button(TypeSwitchStrings.InputMethod.clearMissingConfiguration) {
-                            store.send(.removeMissingInputMethodRulesTapped)
+                        Button(TypeSwitchStrings.InputMethod.clearMissingConfiguration, role: .destructive) {
+                            if MenuConfirmation.confirm(
+                                title: TypeSwitchStrings.InputMethod.ClearMissingConfirmation.title,
+                                message: TypeSwitchStrings.InputMethod.ClearMissingConfirmation.message,
+                                confirmButton: TypeSwitchStrings.InputMethod.ClearMissingConfirmation.confirm
+                            ) {
+                                store.send(.removeMissingInputMethodRulesTapped)
+                            }
                         }
 
                         Divider()
