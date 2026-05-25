@@ -24,6 +24,16 @@
 "apps.clear_unavailable_confirmation.message" = "会移除不存在 App 的设置。";
 "apps.clear_unavailable_confirmation.confirm" = "清理";
 
+// 切换统计
+"switch_statistics.menu_title" = "切换统计 (总计 %d)";
+"switch_statistics.total_count" = "总计 %d 次";
+"switch_statistics.app_count" = "%d 次";
+"switch_statistics.empty" = "暂无切换统计";
+"switch_statistics.clear" = "清零统计";
+"switch_statistics.clear_confirmation.title" = "清零切换统计？";
+"switch_statistics.clear_confirmation.message" = "会清空所有 App 的切换次数，不会影响输入法规则。";
+"switch_statistics.clear_confirmation.confirm" = "清零";
+
 // 输入法相关
 "input_method.default_section" = "默认";
 "input_method.app_default_option" = "跟随全局设置";

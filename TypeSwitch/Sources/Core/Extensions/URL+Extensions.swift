@@ -2,6 +2,7 @@ import Foundation
 
 enum AppStorageConfiguration {
     static let appRulesFilename = "app-rules.json"
+    static let appSwitchStatisticsFilename = "app-switch-statistics.json"
     static let fallbackRuleFilename = "fallback-rule.json"
 
     private final class BundleLocator {}
@@ -43,6 +44,18 @@ extension URL {
         .appending(path: AppStorageConfiguration.fallbackRuleFilename)
     }
 
+    static func appSwitchStatisticsStoreFileURL(
+        applicationSupportDirectory: URL = .applicationSupportDirectory,
+        bundleIdentifier: String = AppStorageConfiguration.bundleIdentifier
+    ) -> URL {
+        appStorageDirectoryURL(
+            applicationSupportDirectory: applicationSupportDirectory,
+            bundleIdentifier: bundleIdentifier
+        )
+        .appending(path: AppStorageConfiguration.appSwitchStatisticsFilename)
+    }
+
     static let appRulesStoreURL = appRulesStoreFileURL()
+    static let appSwitchStatisticsStoreURL = appSwitchStatisticsStoreFileURL()
     static let fallbackRuleStoreURL = fallbackRuleStoreFileURL()
 }

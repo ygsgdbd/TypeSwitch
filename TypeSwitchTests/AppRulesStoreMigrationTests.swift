@@ -42,6 +42,19 @@ final class AppRulesStoreMigrationTests: XCTestCase {
         XCTAssertEqual(try JSONDecoder().decode(FallbackRuleStore.self, from: data), store)
     }
 
+    func testAppSwitchStatisticsStoreDefaultsAndEncoding() throws {
+        let defaultStore = AppSwitchStatisticsStore()
+        XCTAssertTrue(defaultStore.counts.isEmpty)
+
+        let store = AppSwitchStatisticsStore(counts: [
+            "com.test.notes": 2,
+            "com.test.browser": 5
+        ])
+        let data = try JSONEncoder().encode(store)
+
+        XCTAssertEqual(try JSONDecoder().decode(AppSwitchStatisticsStore.self, from: data), store)
+    }
+
     func testAppRulesStoreURLUsesBundleIdentifierDirectory() {
         let applicationSupportDirectory = URL(fileURLWithPath: "/tmp/Application Support", isDirectory: true)
         let url = URL.appRulesStoreFileURL(
@@ -74,6 +87,31 @@ final class AppRulesStoreMigrationTests: XCTestCase {
                 .path
         )
         XCTAssertNotEqual(url, URL.appRulesStoreFileURL(
+            applicationSupportDirectory: applicationSupportDirectory,
+            bundleIdentifier: "com.test.TypeSwitch"
+        ))
+    }
+
+    func testAppSwitchStatisticsStoreURLUsesStatisticsFilename() {
+        let applicationSupportDirectory = URL(fileURLWithPath: "/tmp/Application Support", isDirectory: true)
+        let url = URL.appSwitchStatisticsStoreFileURL(
+            applicationSupportDirectory: applicationSupportDirectory,
+            bundleIdentifier: "com.test.TypeSwitch"
+        )
+
+        XCTAssertEqual(AppStorageConfiguration.appSwitchStatisticsFilename, "app-switch-statistics.json")
+        XCTAssertEqual(
+            url.path,
+            applicationSupportDirectory
+                .appending(path: "com.test.TypeSwitch", directoryHint: .isDirectory)
+                .appending(path: AppStorageConfiguration.appSwitchStatisticsFilename)
+                .path
+        )
+        XCTAssertNotEqual(url, URL.appRulesStoreFileURL(
+            applicationSupportDirectory: applicationSupportDirectory,
+            bundleIdentifier: "com.test.TypeSwitch"
+        ))
+        XCTAssertNotEqual(url, URL.fallbackRuleStoreFileURL(
             applicationSupportDirectory: applicationSupportDirectory,
             bundleIdentifier: "com.test.TypeSwitch"
         ))

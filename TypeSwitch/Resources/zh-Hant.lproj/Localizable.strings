@@ -24,6 +24,16 @@
 "apps.clear_unavailable_confirmation.message" = "會移除不存在 App 的設定。";
 "apps.clear_unavailable_confirmation.confirm" = "清理";
 
+// 切換統計
+"switch_statistics.menu_title" = "切換統計 (總計 %d)";
+"switch_statistics.total_count" = "總計 %d 次";
+"switch_statistics.app_count" = "%d 次";
+"switch_statistics.empty" = "暫無切換統計";
+"switch_statistics.clear" = "清零統計";
+"switch_statistics.clear_confirmation.title" = "清零切換統計？";
+"switch_statistics.clear_confirmation.message" = "會清空所有 App 的切換次數，不會影響輸入法規則。";
+"switch_statistics.clear_confirmation.confirm" = "清零";
+
 // 輸入法相關
 "input_method.default_section" = "預設";
 "input_method.app_default_option" = "跟隨全域設定";

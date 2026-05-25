@@ -12,6 +12,7 @@ struct MenuBarView: View {
             RunningAppsView(store: store)
             ConfiguredAppsView(store: store)
             UnavailableAppsView(store: store)
+            SwitchStatisticsView(store: store)
 
             Divider()
 

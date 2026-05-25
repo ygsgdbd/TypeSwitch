@@ -32,6 +32,37 @@ extension AppFeature.State {
         hasMissingInputMethod(in: fallbackStrategy)
     }
 
+    var totalSuccessfulSwitchCount: Int {
+        appSwitchStatisticsStore.counts.values
+            .filter { $0 > 0 }
+            .reduce(0, +)
+    }
+
+    var switchStatisticsItems: [SwitchStatisticsItem] {
+        appSwitchStatisticsStore.counts.compactMap { bundleId, count in
+            guard count > 0 else { return nil }
+            let appInfo = appInfo(for: bundleId)
+            return SwitchStatisticsItem(
+                bundleId: bundleId,
+                name: appInfo.name,
+                path: appInfo.path,
+                count: count
+            )
+        }
+        .sorted { lhs, rhs in
+            if lhs.count != rhs.count {
+                return lhs.count > rhs.count
+            }
+
+            let nameComparison = lhs.name.localizedStandardCompare(rhs.name)
+            if nameComparison != .orderedSame {
+                return nameComparison == .orderedAscending
+            }
+
+            return lhs.bundleId < rhs.bundleId
+        }
+    }
+
     var configuredApps: [AppMenuItem] {
         sortedRules
             .filter { $0.strategy != .none && $0.isAvailable }
@@ -95,6 +126,18 @@ extension AppFeature.State {
             path: rule.isAvailable ? rule.lastKnownPath : nil,
             strategy: rule.strategy
         )
+    }
+
+    private func appInfo(for bundleId: String) -> AppInfo {
+        if let runningApp = runningApps.first(where: { $0.bundleId == bundleId }) {
+            return runningApp
+        }
+
+        if let rule = appRules[bundleId] {
+            return rule.appInfo
+        }
+
+        return AppInfo(bundleId: bundleId, name: bundleId, path: nil)
     }
 
     private func menuItem(

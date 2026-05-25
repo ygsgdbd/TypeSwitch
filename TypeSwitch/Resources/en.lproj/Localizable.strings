@@ -24,6 +24,16 @@
 "apps.clear_unavailable_confirmation.message" = "This removes settings for apps that no longer exist.";
 "apps.clear_unavailable_confirmation.confirm" = "Clear";
 
+// Switch Statistics
+"switch_statistics.menu_title" = "Switch Statistics (Total %d)";
+"switch_statistics.total_count" = "Total %d";
+"switch_statistics.app_count" = "%d switches";
+"switch_statistics.empty" = "No switch statistics";
+"switch_statistics.clear" = "Clear statistics";
+"switch_statistics.clear_confirmation.title" = "Clear switch statistics?";
+"switch_statistics.clear_confirmation.message" = "This clears switch counts for all apps without changing input method rules.";
+"switch_statistics.clear_confirmation.confirm" = "Clear";
+
 // Input Method Related
 "input_method.default_section" = "Default";
 "input_method.app_default_option" = "Follow global setting";

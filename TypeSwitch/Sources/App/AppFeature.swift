@@ -30,7 +30,17 @@ struct AppFeature {
             let inputMethodId: String
         }
 
+        struct SwitchStatisticsItem: Equatable, Identifiable {
+            let bundleId: String
+            let name: String
+            let path: String?
+            let count: Int
+
+            var id: String { bundleId }
+        }
+
         @Shared(.fileStorage(.appRulesStoreURL)) var appRulesStore = AppRulesStore()
+        @Shared(.fileStorage(.appSwitchStatisticsStoreURL)) var appSwitchStatisticsStore = AppSwitchStatisticsStore()
         @Shared(.fileStorage(.fallbackRuleStoreURL)) var fallbackRuleStore = FallbackRuleStore()
         var currentFrontmostBundleId: String?
         var inputMethods: [InputMethod] = []
@@ -40,6 +50,7 @@ struct AppFeature {
     }
 
     enum ViewAction: Equatable, Sendable {
+        case clearSwitchStatisticsTapped
         case removeMissingInputMethodRulesTapped
         case removeUnavailableRulesTapped
         case setFallbackStrategy(InputMethodStrategy)
@@ -53,7 +64,7 @@ struct AppFeature {
         case inputMethods([InputMethod])
         case launchAtLoginLoaded(LaunchAtLoginStatus)
         case legacyRulesMigrated([String: AppRuleRecord])
-        case programmaticSwitchFinished(bundleId: String, inputMethodId: String)
+        case programmaticSwitchFinished(bundleId: String, inputMethodId: String, didSwitch: Bool)
         case runningApps([AppInfo])
     }
 
@@ -188,9 +199,20 @@ struct AppFeature {
                 }
                 return .none
 
-            case let .response(.programmaticSwitchFinished(bundleId, inputMethodId)):
+            case let .response(.programmaticSwitchFinished(bundleId, inputMethodId, didSwitch)):
                 if state.pendingProgrammaticSwitch == .init(bundleId: bundleId, inputMethodId: inputMethodId) {
                     state.pendingProgrammaticSwitch = nil
+                }
+                if didSwitch {
+                    state.$appSwitchStatisticsStore.withLock { store in
+                        store.counts[bundleId, default: 0] += 1
+                    }
+                }
+                return .none
+
+            case .view(.clearSwitchStatisticsTapped):
+                state.$appSwitchStatisticsStore.withLock { store in
+                    store.counts.removeAll()
                 }
                 return .none
 
@@ -287,10 +309,20 @@ struct AppFeature {
                 )
 
                 return .run { send in
+                    var didSwitch = false
                     if (try? await inputMethodClient.currentInputMethodId()) != inputMethodId {
-                        try? await inputMethodClient.switchToInputMethod(inputMethodId)
+                        do {
+                            try await inputMethodClient.switchToInputMethod(inputMethodId)
+                            didSwitch = true
+                        } catch {
+                            didSwitch = false
+                        }
                     }
-                    await send(.response(.programmaticSwitchFinished(bundleId: appInfo.bundleId, inputMethodId: inputMethodId)))
+                    await send(.response(.programmaticSwitchFinished(
+                        bundleId: appInfo.bundleId,
+                        inputMethodId: inputMethodId,
+                        didSwitch: didSwitch
+                    )))
                 }
             }
         }
