@@ -10,12 +10,10 @@
 "common.cancel" = "取消";
 
 // 設定
-"settings.section" = "設定";
 "settings.general.auto_launch" = "開機啟動";
 "settings.general.auto_launch_requires_approval" = "請在系統設定 > 一般 > 登入項目中批准 TypeSwitch。";
 "settings.general.open_login_items" = "開啟登入項目設定";
 "settings.fallback.default_input_method" = "全域規則";
-"settings.fallback.default_input_method_description" = "未單獨設定的 App 會使用它。";
 
 // 應用程式列表
 "apps.section.running_count" = "正在執行 (%d)";

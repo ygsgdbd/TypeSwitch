@@ -37,178 +37,37 @@ struct AppFeature {
         var launchAtLoginStatus: LaunchAtLoginStatus = .disabled
         var pendingProgrammaticSwitch: PendingProgrammaticSwitch?
         var runningApps: [AppInfo] = []
-
-        var launchAtLoginEnabled: Bool {
-            launchAtLoginStatus.isToggleOn
-        }
-
-        var launchAtLoginRequiresApproval: Bool {
-            launchAtLoginStatus == .requiresApproval
-        }
-
-        var appRules: [String: AppRuleRecord] {
-            appRulesStore.rules
-        }
-
-        var fallbackStrategy: InputMethodStrategy {
-            fallbackRuleStore.strategy
-        }
-
-        var fallbackSelectedLabel: String? {
-            if fallbackStrategy == .none {
-                return TypeSwitchStrings.InputMethod.fallbackDefaultOption
-            }
-            return selectedLabel(for: fallbackStrategy)
-        }
-
-        var fallbackFollowLastOptionLabel: String {
-            followLastOptionLabel(for: fallbackStrategy)
-        }
-
-        var fallbackHasMissingInputMethod: Bool {
-            hasMissingInputMethod(in: fallbackStrategy)
-        }
-        
-        private var sortedRules: [AppRuleRecord] {
-            appRules.values.sorted {
-                $0.lastKnownName.localizedStandardCompare($1.lastKnownName) == .orderedAscending
-            }
-        }
-        
-        var configuredApps: [AppMenuItem] {
-            sortedRules
-                .filter { $0.strategy != .none && $0.isAvailable }
-                .map(menuItem(from:))
-        }
-        
-        var runningMenuItems: [AppMenuItem] {
-            runningApps.map { app in
-                menuItem(
-                    bundleId: app.bundleId,
-                    name: app.name,
-                    path: app.path,
-                    strategy: appRules[app.bundleId]?.strategy ?? .none
-                )
-            }
-        }
-        
-        var unavailableApps: [AppMenuItem] {
-            sortedRules
-                .filter { !$0.isAvailable }
-                .map {
-                    menuItem(
-                        bundleId: $0.bundleId,
-                        name: $0.lastKnownName,
-                        path: nil,
-                        strategy: $0.strategy
-                    )
-                }
-        }
-
-        var hasMissingInputMethodRules: Bool {
-            appRules.values.contains { hasMissingInputMethod(in: $0.strategy) }
-        }
-        
-        func strategy(for bundleId: String) -> InputMethodStrategy {
-            appRules[bundleId]?.strategy ?? .none
-        }
-
-        func hasMissingInputMethod(in strategy: InputMethodStrategy) -> Bool {
-            switch strategy {
-            case .none:
-                return false
-            case .fixed(let inputMethodId):
-                return inputMethodName(for: inputMethodId) == nil
-            case .followLast(let lastInputMethodId):
-                guard let lastInputMethodId else { return false }
-                return inputMethodName(for: lastInputMethodId) == nil
-            }
-        }
-        
-        private func menuItem(from rule: AppRuleRecord) -> AppMenuItem {
-            menuItem(
-                bundleId: rule.bundleId,
-                name: rule.lastKnownName,
-                path: rule.isAvailable ? rule.lastKnownPath : nil,
-                strategy: rule.strategy
-            )
-        }
-        
-        private func menuItem(
-            bundleId: String,
-            name: String,
-            path: String?,
-            strategy: InputMethodStrategy
-        ) -> AppMenuItem {
-            AppMenuItem(
-                bundleId: bundleId,
-                name: name,
-                path: path,
-                strategy: strategy,
-                selectedLabel: selectedLabel(for: strategy),
-                followLastOptionLabel: followLastOptionLabel(for: strategy),
-                hasMissingInputMethod: hasMissingInputMethod(in: strategy)
-            )
-        }
-        
-        private func selectedLabel(for strategy: InputMethodStrategy) -> String? {
-            switch strategy {
-            case .none:
-                return nil
-            case .fixed(let inputMethodId):
-                return inputMethodName(for: inputMethodId) ?? TypeSwitchStrings.InputMethod.deletedOption
-            case .followLast(let lastInputMethodId):
-                guard let lastInputMethodId else {
-                    return TypeSwitchStrings.InputMethod.followLastEmptyOption
-                }
-                guard let inputMethodName = inputMethodName(for: lastInputMethodId) else {
-                    return TypeSwitchStrings.InputMethod.followLastMissingOption
-                }
-                return TypeSwitchStrings.InputMethod.followLastWithInputMethod(inputMethodName)
-            }
-        }
-
-        private func followLastOptionLabel(for strategy: InputMethodStrategy) -> String {
-            guard case .followLast(let lastInputMethodId) = strategy else {
-                return TypeSwitchStrings.InputMethod.followLastEmptyOption
-            }
-
-            guard let lastInputMethodId else {
-                return TypeSwitchStrings.InputMethod.followLastEmptyOption
-            }
-
-            guard let inputMethodName = inputMethodName(for: lastInputMethodId) else {
-                return TypeSwitchStrings.InputMethod.followLastMissingOption
-            }
-
-            return TypeSwitchStrings.InputMethod.followLastWithInputMethod(inputMethodName)
-        }
-
-        private func inputMethodName(for inputMethodId: String) -> String? {
-            inputMethods.first(where: { $0.id == inputMethodId })?.name
-        }
     }
     
-    enum Action: Equatable {
-        case appRulesStorePrepared(AppRulesStoreMigration.PrepareResult)
-        case task
-        case frontmostApplicationLoaded(AppInfo?)
-        case inputMethodAvailabilityChanged
-        case inputMethodSelectedChanged(String)
-        case inputMethodsResponse([InputMethod])
-        case launchAtLoginLoaded(LaunchAtLoginStatus)
-        case migrateLegacyRules
-        case legacyRulesMigrated([String: AppRuleRecord])
-        case programmaticSwitchFinished(bundleId: String, inputMethodId: String)
-        case refreshRunningApps
+    enum ViewAction: Equatable, Sendable {
         case removeMissingInputMethodRulesTapped
         case removeUnavailableRulesTapped
-        case runningAppsResponse([AppInfo])
         case setFallbackStrategy(InputMethodStrategy)
         case setLaunchAtLogin(Bool)
         case setStrategy(bundleId: String, strategy: InputMethodStrategy)
-        case prepareAppRulesStoreMigration
+    }
+
+    enum ResponseAction: Equatable, Sendable {
+        case appRulesStorePrepared(AppRulesStoreMigration.PrepareResult)
+        case frontmostApplicationLoaded(AppInfo?)
+        case inputMethods([InputMethod])
+        case launchAtLoginLoaded(LaunchAtLoginStatus)
+        case legacyRulesMigrated([String: AppRuleRecord])
+        case programmaticSwitchFinished(bundleId: String, inputMethodId: String)
+        case runningApps([AppInfo])
+    }
+
+    enum SystemAction: Equatable, Sendable {
+        case inputMethodAvailabilityChanged
+        case inputMethodSelectedChanged(String)
         case workspaceEvent(WorkspaceClient.Event)
+    }
+
+    enum Action: Equatable, Sendable {
+        case task
+        case view(ViewAction)
+        case response(ResponseAction)
+        case system(SystemAction)
     }
     
     private enum CancelID {
@@ -223,58 +82,58 @@ struct AppFeature {
             case .task:
                 return .merge(
                     .concatenate(
-                        .send(.prepareAppRulesStoreMigration),
+                        prepareAppRulesStoreMigrationEffect(),
                         .run { send in
-                            await send(.launchAtLoginLoaded(await launchAtLoginClient.status()))
+                            await send(.response(.launchAtLoginLoaded(await launchAtLoginClient.status())))
                         },
                         .run { send in
-                            await send(.frontmostApplicationLoaded(await workspaceClient.frontmostApplication()))
+                            await send(.response(.frontmostApplicationLoaded(await workspaceClient.frontmostApplication())))
                         },
                         refreshInputMethodsEffect(),
-                        .send(.refreshRunningApps)
+                        refreshRunningAppsEffect()
                     ),
                     .run { send in
                         let events = await workspaceClient.events()
                         for await event in events {
-                            await send(.workspaceEvent(event))
+                            await send(.system(.workspaceEvent(event)))
                         }
                     }
                     .cancellable(id: CancelID.workspaceEvents, cancelInFlight: true),
                     .run { send in
                         let changes = await inputMethodClient.availabilityChanges()
                         for await _ in changes {
-                            await send(.inputMethodAvailabilityChanged)
+                            await send(.system(.inputMethodAvailabilityChanged))
                         }
                     }
                     .cancellable(id: CancelID.inputMethodAvailability, cancelInFlight: true),
                     .run { send in
                         let changes = await inputMethodClient.selectionChanges()
                         for await inputMethodId in changes {
-                            await send(.inputMethodSelectedChanged(inputMethodId))
+                            await send(.system(.inputMethodSelectedChanged(inputMethodId)))
                         }
                     }
                     .cancellable(id: CancelID.inputMethodSelection, cancelInFlight: true)
                 )
 
-            case .appRulesStorePrepared(let result):
+            case .response(.appRulesStorePrepared(let result)):
                 switch result {
                 case .currentStorePresent:
                     return .none
                 case .noStoreFound:
-                    return .send(.migrateLegacyRules)
+                    return migrateLegacyRulesEffect()
                 }
                 
-            case .frontmostApplicationLoaded(let appInfo):
+            case .response(.frontmostApplicationLoaded(let appInfo)):
                 state.currentFrontmostBundleId = appInfo?.bundleId
                 if let appInfo {
                     upsertRecord(for: appInfo, in: &state)
                 }
                 return .none
                 
-            case .inputMethodAvailabilityChanged:
+            case .system(.inputMethodAvailabilityChanged):
                 return refreshInputMethodsEffect()
                 
-            case .inputMethodSelectedChanged(let inputMethodId):
+            case .system(.inputMethodSelectedChanged(let inputMethodId)):
                 if state.pendingProgrammaticSwitch?.inputMethodId == inputMethodId {
                     state.pendingProgrammaticSwitch = nil
                     return .none
@@ -315,42 +174,27 @@ struct AppFeature {
                 }
                 return .none
                 
-            case .inputMethodsResponse(let inputMethods):
+            case .response(.inputMethods(let inputMethods)):
                 state.inputMethods = inputMethods
                 return .none
                 
-            case .launchAtLoginLoaded(let status):
+            case .response(.launchAtLoginLoaded(let status)):
                 state.launchAtLoginStatus = status
                 return .none
                 
-            case .migrateLegacyRules:
-                return .run { send in
-                    guard !(await legacyDefaultsMigrationClient.didCompleteMigration()) else {
-                        return
-                    }
-
-                    let migratedRules = await legacyDefaultsMigrationClient.migrateRules(now)
-                    await send(.legacyRulesMigrated(migratedRules))
-                }
-                
-            case .legacyRulesMigrated(let migratedRules):
+            case .response(.legacyRulesMigrated(let migratedRules)):
                 state.$appRulesStore.withLock { store in
                     store.rules.merge(migratedRules) { _, newValue in newValue }
                 }
                 return .none
                 
-            case let .programmaticSwitchFinished(bundleId, inputMethodId):
+            case let .response(.programmaticSwitchFinished(bundleId, inputMethodId)):
                 if state.pendingProgrammaticSwitch == .init(bundleId: bundleId, inputMethodId: inputMethodId) {
                     state.pendingProgrammaticSwitch = nil
                 }
                 return .none
                 
-            case .refreshRunningApps:
-                return .run { send in
-                    await send(.runningAppsResponse(await workspaceClient.runningApplications()))
-                }
-
-            case .removeMissingInputMethodRulesTapped:
+            case .view(.removeMissingInputMethodRulesTapped):
                 let updateDate = now
                 let missingBundleIds = state.appRules.values
                     .filter { state.hasMissingInputMethod(in: $0.strategy) }
@@ -366,20 +210,20 @@ struct AppFeature {
                 }
                 return .none
                 
-            case .removeUnavailableRulesTapped:
+            case .view(.removeUnavailableRulesTapped):
                 state.$appRulesStore.withLock { store in
                     store.rules = store.rules.filter { $0.value.isAvailable }
                 }
                 return .none
                 
-            case .runningAppsResponse(let runningApps):
+            case .response(.runningApps(let runningApps)):
                 state.runningApps = runningApps
                 for appInfo in runningApps {
                     upsertRecord(for: appInfo, in: &state)
                 }
                 return .none
 
-            case .setFallbackStrategy(let strategy):
+            case .view(.setFallbackStrategy(let strategy)):
                 state.$fallbackRuleStore.withLock { store in
                     guard store.strategy != strategy else {
                         return
@@ -389,13 +233,13 @@ struct AppFeature {
                 }
                 return .none
                 
-            case .setLaunchAtLogin(let isEnabled):
+            case .view(.setLaunchAtLogin(let isEnabled)):
                 state.launchAtLoginStatus = isEnabled ? .enabled : .disabled
                 return .run { send in
-                    await send(.launchAtLoginLoaded(await launchAtLoginClient.setEnabled(isEnabled)))
+                    await send(.response(.launchAtLoginLoaded(await launchAtLoginClient.setEnabled(isEnabled))))
                 }
                 
-            case let .setStrategy(bundleId, strategy):
+            case let .view(.setStrategy(bundleId, strategy)):
                 let updateDate = now
                 let fallbackAppInfo = state.runningApps.first(where: { $0.bundleId == bundleId })
                 state.$appRulesStore.withLock { store in
@@ -419,21 +263,16 @@ struct AppFeature {
                 }
                 return .none
 
-            case .prepareAppRulesStoreMigration:
-                return .run { send in
-                    await send(.appRulesStorePrepared(await appRulesStoreMigrationClient.prepareStore()))
-                }
+            case .system(.workspaceEvent(.launched(_))):
+                return refreshRunningAppsEffect()
                 
-            case .workspaceEvent(.launched(_)):
-                return .send(.refreshRunningApps)
-                
-            case .workspaceEvent(.terminated(let bundleId)):
+            case .system(.workspaceEvent(.terminated(let bundleId))):
                 if state.currentFrontmostBundleId == bundleId {
                     state.currentFrontmostBundleId = nil
                 }
-                return .send(.refreshRunningApps)
+                return refreshRunningAppsEffect()
                 
-            case .workspaceEvent(.activated(let appInfo)):
+            case .system(.workspaceEvent(.activated(let appInfo))):
                 state.currentFrontmostBundleId = appInfo.bundleId
                 upsertRecord(for: appInfo, in: &state)
                 
@@ -451,16 +290,39 @@ struct AppFeature {
                     if (try? await inputMethodClient.currentInputMethodId()) != inputMethodId {
                         try? await inputMethodClient.switchToInputMethod(inputMethodId)
                     }
-                    await send(.programmaticSwitchFinished(bundleId: appInfo.bundleId, inputMethodId: inputMethodId))
+                    await send(.response(.programmaticSwitchFinished(bundleId: appInfo.bundleId, inputMethodId: inputMethodId)))
                 }
             }
+        }
+    }
+
+    private func prepareAppRulesStoreMigrationEffect() -> Effect<Action> {
+        .run { send in
+            await send(.response(.appRulesStorePrepared(await appRulesStoreMigrationClient.prepareStore())))
+        }
+    }
+
+    private func migrateLegacyRulesEffect() -> Effect<Action> {
+        .run { send in
+            guard !(await legacyDefaultsMigrationClient.didCompleteMigration()) else {
+                return
+            }
+
+            let migratedRules = await legacyDefaultsMigrationClient.migrateRules(now)
+            await send(.response(.legacyRulesMigrated(migratedRules)))
         }
     }
     
     private func refreshInputMethodsEffect() -> Effect<Action> {
         .run { send in
             let inputMethods = (try? await inputMethodClient.fetchInputMethods()) ?? []
-            await send(.inputMethodsResponse(inputMethods))
+            await send(.response(.inputMethods(inputMethods)))
+        }
+    }
+
+    private func refreshRunningAppsEffect() -> Effect<Action> {
+        .run { send in
+            await send(.response(.runningApps(await workspaceClient.runningApplications())))
         }
     }
     

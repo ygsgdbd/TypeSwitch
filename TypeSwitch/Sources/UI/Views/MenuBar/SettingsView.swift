@@ -6,7 +6,7 @@ struct SettingsView: View {
     @Bindable var store: StoreOf<AppFeature>
     
     var body: some View {
-        Section(TypeSwitchStrings.Settings.section) {
+        Section {
             Menu {
                 InputMethodStrategyMenuContent(
                     context: .fallbackRule,
@@ -14,7 +14,7 @@ struct SettingsView: View {
                     inputMethods: store.inputMethods,
                     followLastOptionLabel: store.fallbackFollowLastOptionLabel
                 ) { strategy in
-                    store.send(.setFallbackStrategy(strategy))
+                    store.send(.view(.setFallbackStrategy(strategy)))
                 }
             } label: {
                 Text(TypeSwitchStrings.Settings.Fallback.defaultInputMethod)
@@ -23,16 +23,12 @@ struct SettingsView: View {
                         .foregroundStyle(store.fallbackHasMissingInputMethod ? .secondary : .primary)
                 }
             }
-            
-            Text(TypeSwitchStrings.Settings.Fallback.defaultInputMethodDescription)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
 
             Toggle(
                 TypeSwitchStrings.Settings.General.autoLaunch,
                 isOn: Binding(
                     get: { store.launchAtLoginEnabled },
-                    set: { store.send(.setLaunchAtLogin($0)) }
+                    set: { store.send(.view(.setLaunchAtLogin($0))) }
                 )
             )
             .toggleStyle(.checkbox)

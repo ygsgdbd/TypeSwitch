@@ -10,12 +10,10 @@
 "common.cancel" = "Cancel";
 
 // Settings
-"settings.section" = "Settings";
 "settings.general.auto_launch" = "Launch at Login";
 "settings.general.auto_launch_requires_approval" = "Approve TypeSwitch in System Settings > General > Login Items.";
 "settings.general.open_login_items" = "Open Login Items";
 "settings.fallback.default_input_method" = "Global Rule";
-"settings.fallback.default_input_method_description" = "Used by apps without their own setting.";
 
 // App List
 "apps.section.running_count" = "Running (%d)";

@@ -16,7 +16,7 @@ struct ConfiguredAppsView: View {
                                 message: TypeSwitchStrings.InputMethod.ClearMissingConfirmation.message,
                                 confirmButton: TypeSwitchStrings.InputMethod.ClearMissingConfirmation.confirm
                             ) {
-                                store.send(.removeMissingInputMethodRulesTapped)
+                                store.send(.view(.removeMissingInputMethodRulesTapped))
                             }
                         }
 
@@ -28,7 +28,7 @@ struct ConfiguredAppsView: View {
                             item: item,
                             inputMethods: store.inputMethods
                         ) { strategy in
-                            store.send(.setStrategy(bundleId: item.bundleId, strategy: strategy))
+                            store.send(.view(.setStrategy(bundleId: item.bundleId, strategy: strategy)))
                         }
                     }
                 }

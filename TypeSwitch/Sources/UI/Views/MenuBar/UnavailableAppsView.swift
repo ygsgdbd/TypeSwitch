@@ -14,7 +14,7 @@ struct UnavailableAppsView: View {
                             message: TypeSwitchStrings.Apps.ClearUnavailableConfirmation.message,
                             confirmButton: TypeSwitchStrings.Apps.ClearUnavailableConfirmation.confirm
                         ) {
-                            store.send(.removeUnavailableRulesTapped)
+                            store.send(.view(.removeUnavailableRulesTapped))
                         }
                     }
                     
@@ -25,7 +25,7 @@ struct UnavailableAppsView: View {
                             item: item,
                             inputMethods: store.inputMethods
                         ) { strategy in
-                            store.send(.setStrategy(bundleId: item.bundleId, strategy: strategy))
+                            store.send(.view(.setStrategy(bundleId: item.bundleId, strategy: strategy)))
                         }
                     }
                 }

@@ -12,7 +12,7 @@ struct RunningAppsView: View {
                     item: item,
                     inputMethods: store.inputMethods
                 ) { strategy in
-                    store.send(.setStrategy(bundleId: item.bundleId, strategy: strategy))
+                    store.send(.view(.setStrategy(bundleId: item.bundleId, strategy: strategy)))
                 }
             }
         }

@@ -14,7 +14,7 @@ final class AppFeatureTests: XCTestCase {
         }
         store.dependencies.date = .constant(now)
         
-        await store.send(.frontmostApplicationLoaded(app)) {
+        await store.send(.response(.frontmostApplicationLoaded(app))) {
             $0.currentFrontmostBundleId = app.bundleId
             $0.$appRulesStore.withLock {
                 $0.rules[app.bundleId] = AppRuleRecord(
@@ -28,11 +28,11 @@ final class AppFeatureTests: XCTestCase {
             }
         }
 
-        await store.send(.launchAtLoginLoaded(.enabled)) {
+        await store.send(.response(.launchAtLoginLoaded(.enabled))) {
             $0.launchAtLoginStatus = .enabled
         }
 
-        await store.send(.runningAppsResponse([app])) {
+        await store.send(.response(.runningApps([app]))) {
             $0.runningApps = [app]
         }
 
@@ -44,7 +44,7 @@ final class AppFeatureTests: XCTestCase {
             AppFeature()
         }
 
-        await store.send(.launchAtLoginLoaded(.requiresApproval)) {
+        await store.send(.response(.launchAtLoginLoaded(.requiresApproval))) {
             $0.launchAtLoginStatus = .requiresApproval
         }
 
@@ -61,10 +61,10 @@ final class AppFeatureTests: XCTestCase {
             return .requiresApproval
         }
 
-        await store.send(.setLaunchAtLogin(true)) {
+        await store.send(.view(.setLaunchAtLogin(true))) {
             $0.launchAtLoginStatus = .enabled
         }
-        await store.receive(.launchAtLoginLoaded(.requiresApproval)) {
+        await store.receive(.response(.launchAtLoginLoaded(.requiresApproval))) {
             $0.launchAtLoginStatus = .requiresApproval
         }
 
@@ -95,7 +95,7 @@ final class AppFeatureTests: XCTestCase {
         }
         store.dependencies.date = .constant(newUpdatedAt)
         
-        await store.send(.setStrategy(bundleId: bundleId, strategy: .fixed(inputMethodId: "ime.en"))) {
+        await store.send(.view(.setStrategy(bundleId: bundleId, strategy: .fixed(inputMethodId: "ime.en")))) {
             $0.$appRulesStore.withLock {
                 guard var rule = $0.rules[bundleId] else { return }
                 rule.strategy = .fixed(inputMethodId: "ime.en")
@@ -129,7 +129,7 @@ final class AppFeatureTests: XCTestCase {
             AppFeature()
         }
         
-        await store.send(.setFallbackStrategy(.fixed(inputMethodId: "ime.abc"))) {
+        await store.send(.view(.setFallbackStrategy(.fixed(inputMethodId: "ime.abc")))) {
             $0.$fallbackRuleStore.withLock {
                 $0.strategy = .fixed(inputMethodId: "ime.abc")
             }
@@ -165,11 +165,11 @@ final class AppFeatureTests: XCTestCase {
             await recorder.record(inputMethodId)
         }
         
-        await store.send(.workspaceEvent(.activated(app))) {
+        await store.send(.system(.workspaceEvent(.activated(app)))) {
             $0.currentFrontmostBundleId = app.bundleId
             $0.pendingProgrammaticSwitch = .init(bundleId: app.bundleId, inputMethodId: targetInputMethod)
         }
-        await store.receive(.programmaticSwitchFinished(bundleId: app.bundleId, inputMethodId: targetInputMethod)) {
+        await store.receive(.response(.programmaticSwitchFinished(bundleId: app.bundleId, inputMethodId: targetInputMethod))) {
             $0.pendingProgrammaticSwitch = nil
         }
         
@@ -211,11 +211,11 @@ final class AppFeatureTests: XCTestCase {
             await recorder.record(inputMethodId)
         }
         
-        await store.send(.workspaceEvent(.activated(app))) {
+        await store.send(.system(.workspaceEvent(.activated(app)))) {
             $0.currentFrontmostBundleId = app.bundleId
             $0.pendingProgrammaticSwitch = .init(bundleId: app.bundleId, inputMethodId: appInputMethod)
         }
-        await store.receive(.programmaticSwitchFinished(bundleId: app.bundleId, inputMethodId: appInputMethod)) {
+        await store.receive(.response(.programmaticSwitchFinished(bundleId: app.bundleId, inputMethodId: appInputMethod))) {
             $0.pendingProgrammaticSwitch = nil
         }
         
@@ -253,11 +253,11 @@ final class AppFeatureTests: XCTestCase {
             await recorder.record(inputMethodId)
         }
         
-        await store.send(.workspaceEvent(.activated(app))) {
+        await store.send(.system(.workspaceEvent(.activated(app)))) {
             $0.currentFrontmostBundleId = app.bundleId
             $0.pendingProgrammaticSwitch = .init(bundleId: app.bundleId, inputMethodId: fallbackInputMethod)
         }
-        await store.receive(.programmaticSwitchFinished(bundleId: app.bundleId, inputMethodId: fallbackInputMethod)) {
+        await store.receive(.response(.programmaticSwitchFinished(bundleId: app.bundleId, inputMethodId: fallbackInputMethod))) {
             $0.pendingProgrammaticSwitch = nil
         }
         
@@ -286,7 +286,7 @@ final class AppFeatureTests: XCTestCase {
             await recorder.record(inputMethodId)
         }
         
-        await store.send(.workspaceEvent(.activated(app))) {
+        await store.send(.system(.workspaceEvent(.activated(app)))) {
             $0.currentFrontmostBundleId = app.bundleId
             $0.pendingProgrammaticSwitch = .init(bundleId: app.bundleId, inputMethodId: fallbackInputMethod)
             $0.$appRulesStore.withLock {
@@ -300,7 +300,7 @@ final class AppFeatureTests: XCTestCase {
                 )
             }
         }
-        await store.receive(.programmaticSwitchFinished(bundleId: app.bundleId, inputMethodId: fallbackInputMethod)) {
+        await store.receive(.response(.programmaticSwitchFinished(bundleId: app.bundleId, inputMethodId: fallbackInputMethod))) {
             $0.pendingProgrammaticSwitch = nil
         }
         
@@ -339,7 +339,7 @@ final class AppFeatureTests: XCTestCase {
             await recorder.record(inputMethodId)
         }
         
-        await store.send(.workspaceEvent(.activated(app))) {
+        await store.send(.system(.workspaceEvent(.activated(app)))) {
             $0.currentFrontmostBundleId = app.bundleId
         }
         
@@ -379,7 +379,7 @@ final class AppFeatureTests: XCTestCase {
             await recorder.record(inputMethodId)
         }
         
-        await store.send(.workspaceEvent(.activated(app))) {
+        await store.send(.system(.workspaceEvent(.activated(app)))) {
             $0.currentFrontmostBundleId = app.bundleId
         }
         
@@ -438,7 +438,7 @@ final class AppFeatureTests: XCTestCase {
             await recorder.record(inputMethodId)
         }
         
-        await store.send(.workspaceEvent(.activated(app))) {
+        await store.send(.system(.workspaceEvent(.activated(app)))) {
             $0.currentFrontmostBundleId = app.bundleId
         }
         
@@ -559,7 +559,7 @@ final class AppFeatureTests: XCTestCase {
             await recorder.record(inputMethodId)
         }
         
-        await store.send(.workspaceEvent(.activated(app))) {
+        await store.send(.system(.workspaceEvent(.activated(app)))) {
             $0.currentFrontmostBundleId = app.bundleId
         }
         
@@ -593,7 +593,7 @@ final class AppFeatureTests: XCTestCase {
         }
         store.dependencies.date = .constant(updateDate)
         
-        await store.send(.inputMethodSelectedChanged("ime.jp")) {
+        await store.send(.system(.inputMethodSelectedChanged("ime.jp"))) {
             $0.$appRulesStore.withLock {
                 guard var rule = $0.rules[bundleId] else { return }
                 rule.strategy = .followLast(lastInputMethodId: "ime.jp")
@@ -626,7 +626,7 @@ final class AppFeatureTests: XCTestCase {
             AppFeature()
         }
         
-        await store.send(.inputMethodSelectedChanged("ime.jp")) {
+        await store.send(.system(.inputMethodSelectedChanged("ime.jp"))) {
             $0.$fallbackRuleStore.withLock {
                 $0.strategy = .followLast(lastInputMethodId: "ime.jp")
             }
@@ -648,7 +648,7 @@ final class AppFeatureTests: XCTestCase {
             AppFeature()
         }
         
-        await store.send(.inputMethodSelectedChanged("ime.jp")) {
+        await store.send(.system(.inputMethodSelectedChanged("ime.jp"))) {
             $0.$fallbackRuleStore.withLock {
                 $0.strategy = .followLast(lastInputMethodId: "ime.jp")
             }
@@ -679,7 +679,7 @@ final class AppFeatureTests: XCTestCase {
             AppFeature()
         }
         
-        await store.send(.inputMethodSelectedChanged(targetInputMethod)) {
+        await store.send(.system(.inputMethodSelectedChanged(targetInputMethod))) {
             $0.pendingProgrammaticSwitch = nil
         }
         
@@ -704,7 +704,7 @@ final class AppFeatureTests: XCTestCase {
             AppFeature()
         }
         
-        await store.send(.inputMethodSelectedChanged(targetInputMethod)) {
+        await store.send(.system(.inputMethodSelectedChanged(targetInputMethod))) {
             $0.pendingProgrammaticSwitch = nil
         }
         
@@ -754,7 +754,7 @@ final class AppFeatureTests: XCTestCase {
         }
         store.dependencies.date = .constant(newUpdatedAt)
         
-        await store.send(.removeMissingInputMethodRulesTapped) {
+        await store.send(.view(.removeMissingInputMethodRulesTapped)) {
             $0.$appRulesStore.withLock {
                 guard var missingFixed = $0.rules["missing-fixed"],
                       var missingFollowLast = $0.rules["missing-follow-last"]
@@ -811,7 +811,7 @@ final class AppFeatureTests: XCTestCase {
             AppFeature()
         }
         
-        await store.send(.removeUnavailableRulesTapped) {
+        await store.send(.view(.removeUnavailableRulesTapped)) {
             $0.$appRulesStore.withLock {
                 _ = $0.rules.removeValue(forKey: "missing")
             }
@@ -846,8 +846,8 @@ final class AppFeatureTests: XCTestCase {
             ]
         }
         
-        await store.send(.migrateLegacyRules)
-        await store.receive(.legacyRulesMigrated([
+        await store.send(.response(.appRulesStorePrepared(.noStoreFound)))
+        await store.receive(.response(.legacyRulesMigrated([
             "com.test.notes": AppRuleRecord(
                 bundleId: "com.test.notes",
                 lastKnownPath: matchedApp.path,
@@ -856,7 +856,7 @@ final class AppFeatureTests: XCTestCase {
                 createdAt: migrationDate,
                 updatedAt: migrationDate
             )
-        ])) {
+        ]))) {
             $0.$appRulesStore.withLock {
                 $0.rules["com.test.notes"] = AppRuleRecord(
                     bundleId: "com.test.notes",
