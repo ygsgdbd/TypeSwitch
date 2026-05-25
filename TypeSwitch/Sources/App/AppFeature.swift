@@ -10,7 +10,7 @@ struct AppFeature {
     @Dependency(\.legacyDefaultsMigrationClient) var legacyDefaultsMigrationClient
     @Dependency(\.launchAtLoginClient) var launchAtLoginClient
     @Dependency(\.workspaceClient) var workspaceClient
-    
+
     @ObservableState
     struct State: Equatable {
         struct AppMenuItem: Equatable, Identifiable {
@@ -21,15 +21,15 @@ struct AppFeature {
             let selectedLabel: String?
             let followLastOptionLabel: String
             let hasMissingInputMethod: Bool
-            
+
             var id: String { bundleId }
         }
-        
+
         struct PendingProgrammaticSwitch: Equatable {
             let bundleId: String
             let inputMethodId: String
         }
-        
+
         @Shared(.fileStorage(.appRulesStoreURL)) var appRulesStore = AppRulesStore()
         @Shared(.fileStorage(.fallbackRuleStoreURL)) var fallbackRuleStore = FallbackRuleStore()
         var currentFrontmostBundleId: String?
@@ -38,7 +38,7 @@ struct AppFeature {
         var pendingProgrammaticSwitch: PendingProgrammaticSwitch?
         var runningApps: [AppInfo] = []
     }
-    
+
     enum ViewAction: Equatable, Sendable {
         case removeMissingInputMethodRulesTapped
         case removeUnavailableRulesTapped
@@ -69,13 +69,13 @@ struct AppFeature {
         case response(ResponseAction)
         case system(SystemAction)
     }
-    
+
     private enum CancelID {
         case inputMethodAvailability
         case inputMethodSelection
         case workspaceEvents
     }
-    
+
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
@@ -122,27 +122,27 @@ struct AppFeature {
                 case .noStoreFound:
                     return migrateLegacyRulesEffect()
                 }
-                
+
             case .response(.frontmostApplicationLoaded(let appInfo)):
                 state.currentFrontmostBundleId = appInfo?.bundleId
                 if let appInfo {
                     upsertRecord(for: appInfo, in: &state)
                 }
                 return .none
-                
+
             case .system(.inputMethodAvailabilityChanged):
                 return refreshInputMethodsEffect()
-                
+
             case .system(.inputMethodSelectedChanged(let inputMethodId)):
                 if state.pendingProgrammaticSwitch?.inputMethodId == inputMethodId {
                     state.pendingProgrammaticSwitch = nil
                     return .none
                 }
-                
+
                 guard let bundleId = state.currentFrontmostBundleId else {
                     return .none
                 }
-                
+
                 if case .followLast(let previousInputMethodId) = state.appRules[bundleId]?.strategy {
                     guard previousInputMethodId != inputMethodId else {
                         return .none
@@ -173,27 +173,27 @@ struct AppFeature {
                     store.strategy = .followLast(lastInputMethodId: inputMethodId)
                 }
                 return .none
-                
+
             case .response(.inputMethods(let inputMethods)):
                 state.inputMethods = inputMethods
                 return .none
-                
+
             case .response(.launchAtLoginLoaded(let status)):
                 state.launchAtLoginStatus = status
                 return .none
-                
+
             case .response(.legacyRulesMigrated(let migratedRules)):
                 state.$appRulesStore.withLock { store in
                     store.rules.merge(migratedRules) { _, newValue in newValue }
                 }
                 return .none
-                
+
             case let .response(.programmaticSwitchFinished(bundleId, inputMethodId)):
                 if state.pendingProgrammaticSwitch == .init(bundleId: bundleId, inputMethodId: inputMethodId) {
                     state.pendingProgrammaticSwitch = nil
                 }
                 return .none
-                
+
             case .view(.removeMissingInputMethodRulesTapped):
                 let updateDate = now
                 let missingBundleIds = state.appRules.values
@@ -209,13 +209,13 @@ struct AppFeature {
                     }
                 }
                 return .none
-                
+
             case .view(.removeUnavailableRulesTapped):
                 state.$appRulesStore.withLock { store in
                     store.rules = store.rules.filter { $0.value.isAvailable }
                 }
                 return .none
-                
+
             case .response(.runningApps(let runningApps)):
                 state.runningApps = runningApps
                 for appInfo in runningApps {
@@ -232,13 +232,13 @@ struct AppFeature {
                     store.strategy = strategy
                 }
                 return .none
-                
+
             case .view(.setLaunchAtLogin(let isEnabled)):
                 state.launchAtLoginStatus = isEnabled ? .enabled : .disabled
                 return .run { send in
                     await send(.response(.launchAtLoginLoaded(await launchAtLoginClient.setEnabled(isEnabled))))
                 }
-                
+
             case let .view(.setStrategy(bundleId, strategy)):
                 let updateDate = now
                 let fallbackAppInfo = state.runningApps.first(where: { $0.bundleId == bundleId })
@@ -251,11 +251,11 @@ struct AppFeature {
                         createdAt: updateDate,
                         updatedAt: updateDate
                     )
-                    
+
                     guard currentRule.strategy != strategy || store.rules[bundleId] == nil else {
                         return
                     }
-                    
+
                     var updatedRule = currentRule
                     updatedRule.strategy = strategy
                     updatedRule.updatedAt = updateDate
@@ -263,29 +263,29 @@ struct AppFeature {
                 }
                 return .none
 
-            case .system(.workspaceEvent(.launched(_))):
+            case .system(.workspaceEvent(.launched)):
                 return refreshRunningAppsEffect()
-                
+
             case .system(.workspaceEvent(.terminated(let bundleId))):
                 if state.currentFrontmostBundleId == bundleId {
                     state.currentFrontmostBundleId = nil
                 }
                 return refreshRunningAppsEffect()
-                
+
             case .system(.workspaceEvent(.activated(let appInfo))):
                 state.currentFrontmostBundleId = appInfo.bundleId
                 upsertRecord(for: appInfo, in: &state)
-                
+
                 guard let inputMethodId = targetInputMethodId(for: appInfo.bundleId, state: state) else {
                     state.pendingProgrammaticSwitch = nil
                     return .none
                 }
-                
+
                 state.pendingProgrammaticSwitch = .init(
                     bundleId: appInfo.bundleId,
                     inputMethodId: inputMethodId
                 )
-                
+
                 return .run { send in
                     if (try? await inputMethodClient.currentInputMethodId()) != inputMethodId {
                         try? await inputMethodClient.switchToInputMethod(inputMethodId)
@@ -312,7 +312,7 @@ struct AppFeature {
             await send(.response(.legacyRulesMigrated(migratedRules)))
         }
     }
-    
+
     private func refreshInputMethodsEffect() -> Effect<Action> {
         .run { send in
             let inputMethods = (try? await inputMethodClient.fetchInputMethods()) ?? []
@@ -325,12 +325,12 @@ struct AppFeature {
             await send(.response(.runningApps(await workspaceClient.runningApplications())))
         }
     }
-    
+
     private func targetInputMethodId(for bundleId: String, state: State) -> String? {
         let appStrategy = state.strategy(for: bundleId)
         let strategy = appStrategy == .none ? state.fallbackStrategy : appStrategy
         let candidateId: String?
-        
+
         switch strategy {
         case .none:
             return nil
@@ -339,13 +339,13 @@ struct AppFeature {
         case .followLast(let lastInputMethodId):
             candidateId = lastInputMethodId
         }
-        
+
         guard let candidateId else {
             return nil
         }
         return state.inputMethods.contains(where: { $0.id == candidateId }) ? candidateId : nil
     }
-    
+
     private func upsertRecord(for appInfo: AppInfo, in state: inout State) {
         let updateDate = now
         state.$appRulesStore.withLock { store in
@@ -360,11 +360,11 @@ struct AppFeature {
                 )
                 return
             }
-            
+
             guard existingRule.lastKnownPath != appInfo.path || existingRule.lastKnownName != appInfo.name else {
                 return
             }
-            
+
             existingRule.lastKnownPath = appInfo.path
             existingRule.lastKnownName = appInfo.name
             existingRule.updatedAt = updateDate

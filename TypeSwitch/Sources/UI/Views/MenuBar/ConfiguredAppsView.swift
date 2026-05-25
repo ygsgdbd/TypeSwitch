@@ -4,7 +4,7 @@ import SwiftUI
 /// 已配置的应用列表视图
 struct ConfiguredAppsView: View {
     let store: StoreOf<AppFeature>
-    
+
     var body: some View {
         if !store.configuredApps.isEmpty {
             Section {

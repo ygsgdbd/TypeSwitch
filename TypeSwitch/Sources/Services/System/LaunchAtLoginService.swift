@@ -18,7 +18,7 @@ enum LaunchAtLoginService {
             return .unavailable
         }
     }
-    
+
     /// 设置开机启动状态
     /// - Parameter enabled: 是否启用开机启动
     /// - Returns: 设置后的系统状态

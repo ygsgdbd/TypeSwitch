@@ -6,7 +6,7 @@ import SwiftUIX
 /// 菜单栏主视图
 struct MenuBarView: View {
     let store: StoreOf<AppFeature>
-    
+
     var body: some View {
         Group {
             RunningAppsView(store: store)

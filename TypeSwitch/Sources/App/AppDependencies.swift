@@ -25,7 +25,7 @@ struct WorkspaceClient {
         case terminated(bundleId: String)
         case activated(AppInfo)
     }
-    
+
     var frontmostApplication: @Sendable () async -> AppInfo?
     var runningApplications: @Sendable () async -> [AppInfo]
     var events: @Sendable () async -> AsyncStream<Event>
@@ -43,7 +43,7 @@ extension WorkspaceClient: DependencyKey {
             await MainActor.run {
                 AsyncStream { continuation in
                     let notificationCenter = NSWorkspace.shared.notificationCenter
-                    
+
                     let launchObserver = notificationCenter.addObserver(
                         forName: NSWorkspace.didLaunchApplicationNotification,
                         object: nil,
@@ -59,7 +59,7 @@ extension WorkspaceClient: DependencyKey {
                             continuation.yield(.launched(appInfo))
                         }
                     }
-                    
+
                     let terminateObserver = notificationCenter.addObserver(
                         forName: NSWorkspace.didTerminateApplicationNotification,
                         object: nil,
@@ -74,7 +74,7 @@ extension WorkspaceClient: DependencyKey {
                         }
                         continuation.yield(.terminated(bundleId: bundleId))
                     }
-                    
+
                     let activateObserver = notificationCenter.addObserver(
                         forName: NSWorkspace.didActivateApplicationNotification,
                         object: nil,
@@ -90,7 +90,7 @@ extension WorkspaceClient: DependencyKey {
                             continuation.yield(.activated(appInfo))
                         }
                     }
-                    
+
                     continuation.onTermination = { _ in
                         Task { @MainActor in
                             notificationCenter.removeObserver(launchObserver)
@@ -102,7 +102,7 @@ extension WorkspaceClient: DependencyKey {
             }
         }
     )
-    
+
     static let testValue = Self(
         frontmostApplication: { nil },
         runningApplications: { [] },
@@ -146,7 +146,7 @@ extension InputMethodClient: DependencyKey {
                 ) { _ in
                     continuation.yield(())
                 }
-                
+
                 continuation.onTermination = { _ in
                     notificationCenter.removeObserver(observer)
                 }
@@ -167,14 +167,14 @@ extension InputMethodClient: DependencyKey {
                         continuation.yield(inputMethodId)
                     }
                 }
-                
+
                 continuation.onTermination = { _ in
                     notificationCenter.removeObserver(observer)
                 }
             }
         }
     )
-    
+
     static let testValue = Self(
         fetchInputMethods: { [] },
         currentInputMethodId: { "" },
@@ -205,7 +205,7 @@ extension LaunchAtLoginClient: DependencyKey {
             LaunchAtLoginService.setLaunchAtLogin(enabled)
         }
     )
-    
+
     static let testValue = Self(
         status: { .disabled },
         setEnabled: { $0 ? .enabled : .disabled }

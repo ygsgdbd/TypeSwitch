@@ -8,12 +8,12 @@ final class AppFeatureTests: XCTestCase {
     func testFrontmostAndRunningAppsCreateDefaultRule() async {
         let now = Date(timeIntervalSince1970: 1_000)
         let app = AppInfo(bundleId: "com.test.notes", name: "Notes", path: "/Applications/Notes.app")
-        
+
         let store = TestStore(initialState: AppFeature.State()) {
             AppFeature()
         }
         store.dependencies.date = .constant(now)
-        
+
         await store.send(.response(.frontmostApplicationLoaded(app))) {
             $0.currentFrontmostBundleId = app.bundleId
             $0.$appRulesStore.withLock {
@@ -71,13 +71,13 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertTrue(store.state.launchAtLoginEnabled)
         XCTAssertTrue(store.state.launchAtLoginRequiresApproval)
     }
-    
+
     func testSetStrategyUpdatesUpdatedAtButKeepsCreatedAt() async {
         let createdAt = Date(timeIntervalSince1970: 100)
         let updatedAt = Date(timeIntervalSince1970: 200)
         let newUpdatedAt = Date(timeIntervalSince1970: 300)
         let bundleId = "com.test.editor"
-        
+
         var initialState = AppFeature.State()
         initialState.$appRulesStore.withLock {
             $0.rules[bundleId] = AppRuleRecord(
@@ -89,12 +89,12 @@ final class AppFeatureTests: XCTestCase {
                 updatedAt: updatedAt
             )
         }
-        
+
         let store = TestStore(initialState: initialState) {
             AppFeature()
         }
         store.dependencies.date = .constant(newUpdatedAt)
-        
+
         await store.send(.view(.setStrategy(bundleId: bundleId, strategy: .fixed(inputMethodId: "ime.en")))) {
             $0.$appRulesStore.withLock {
                 guard var rule = $0.rules[bundleId] else { return }
@@ -103,7 +103,7 @@ final class AppFeatureTests: XCTestCase {
                 $0.rules[bundleId] = rule
             }
         }
-        
+
         let rule = store.state.appRules[bundleId]
         XCTAssertEqual(rule?.createdAt, createdAt)
         XCTAssertEqual(rule?.updatedAt, newUpdatedAt)
@@ -119,30 +119,30 @@ final class AppFeatureTests: XCTestCase {
             createdAt: Date(timeIntervalSince1970: 100),
             updatedAt: Date(timeIntervalSince1970: 200)
         )
-        
+
         var initialState = AppFeature.State()
         initialState.$appRulesStore.withLock {
             $0.rules[bundleId] = appRule
         }
-        
+
         let store = TestStore(initialState: initialState) {
             AppFeature()
         }
-        
+
         await store.send(.view(.setFallbackStrategy(.fixed(inputMethodId: "ime.abc")))) {
             $0.$fallbackRuleStore.withLock {
                 $0.strategy = .fixed(inputMethodId: "ime.abc")
             }
         }
-        
+
         XCTAssertEqual(store.state.appRules, [bundleId: appRule])
     }
-    
+
     func testActivatedAppSwitchesFixedInputMethodWhenNeeded() async {
         let app = AppInfo(bundleId: "com.test.browser", name: "Browser", path: "/Applications/Browser.app")
         let targetInputMethod = "ime.en"
         let recorder = SwitchRecorder()
-        
+
         var initialState = AppFeature.State()
         initialState.inputMethods = [InputMethod(id: targetInputMethod, name: "English")]
         initialState.$appRulesStore.withLock {
@@ -155,7 +155,7 @@ final class AppFeatureTests: XCTestCase {
                 updatedAt: Date(timeIntervalSince1970: 10)
             )
         }
-        
+
         let store = TestStore(initialState: initialState) {
             AppFeature()
         }
@@ -164,7 +164,7 @@ final class AppFeatureTests: XCTestCase {
         store.dependencies.inputMethodClient.switchToInputMethod = { inputMethodId in
             await recorder.record(inputMethodId)
         }
-        
+
         await store.send(.system(.workspaceEvent(.activated(app)))) {
             $0.currentFrontmostBundleId = app.bundleId
             $0.pendingProgrammaticSwitch = .init(bundleId: app.bundleId, inputMethodId: targetInputMethod)
@@ -172,7 +172,7 @@ final class AppFeatureTests: XCTestCase {
         await store.receive(.response(.programmaticSwitchFinished(bundleId: app.bundleId, inputMethodId: targetInputMethod))) {
             $0.pendingProgrammaticSwitch = nil
         }
-        
+
         let switchedInputMethods = await recorder.values
         XCTAssertEqual(switchedInputMethods, [targetInputMethod])
     }
@@ -182,7 +182,7 @@ final class AppFeatureTests: XCTestCase {
         let appInputMethod = "ime.app"
         let fallbackInputMethod = "ime.fallback"
         let recorder = SwitchRecorder()
-        
+
         var initialState = AppFeature.State()
         initialState.inputMethods = [
             InputMethod(id: appInputMethod, name: "App"),
@@ -201,7 +201,7 @@ final class AppFeatureTests: XCTestCase {
                 updatedAt: Date(timeIntervalSince1970: 10)
             )
         }
-        
+
         let store = TestStore(initialState: initialState) {
             AppFeature()
         }
@@ -210,7 +210,7 @@ final class AppFeatureTests: XCTestCase {
         store.dependencies.inputMethodClient.switchToInputMethod = { inputMethodId in
             await recorder.record(inputMethodId)
         }
-        
+
         await store.send(.system(.workspaceEvent(.activated(app)))) {
             $0.currentFrontmostBundleId = app.bundleId
             $0.pendingProgrammaticSwitch = .init(bundleId: app.bundleId, inputMethodId: appInputMethod)
@@ -218,7 +218,7 @@ final class AppFeatureTests: XCTestCase {
         await store.receive(.response(.programmaticSwitchFinished(bundleId: app.bundleId, inputMethodId: appInputMethod))) {
             $0.pendingProgrammaticSwitch = nil
         }
-        
+
         let switchedInputMethods = await recorder.values
         XCTAssertEqual(switchedInputMethods, [appInputMethod])
     }
@@ -227,7 +227,7 @@ final class AppFeatureTests: XCTestCase {
         let app = AppInfo(bundleId: "com.test.browser", name: "Browser", path: "/Applications/Browser.app")
         let fallbackInputMethod = "ime.fallback"
         let recorder = SwitchRecorder()
-        
+
         var initialState = AppFeature.State()
         initialState.inputMethods = [InputMethod(id: fallbackInputMethod, name: "Fallback")]
         initialState.$fallbackRuleStore.withLock {
@@ -243,7 +243,7 @@ final class AppFeatureTests: XCTestCase {
                 updatedAt: Date(timeIntervalSince1970: 10)
             )
         }
-        
+
         let store = TestStore(initialState: initialState) {
             AppFeature()
         }
@@ -252,7 +252,7 @@ final class AppFeatureTests: XCTestCase {
         store.dependencies.inputMethodClient.switchToInputMethod = { inputMethodId in
             await recorder.record(inputMethodId)
         }
-        
+
         await store.send(.system(.workspaceEvent(.activated(app)))) {
             $0.currentFrontmostBundleId = app.bundleId
             $0.pendingProgrammaticSwitch = .init(bundleId: app.bundleId, inputMethodId: fallbackInputMethod)
@@ -260,7 +260,7 @@ final class AppFeatureTests: XCTestCase {
         await store.receive(.response(.programmaticSwitchFinished(bundleId: app.bundleId, inputMethodId: fallbackInputMethod))) {
             $0.pendingProgrammaticSwitch = nil
         }
-        
+
         let switchedInputMethods = await recorder.values
         XCTAssertEqual(switchedInputMethods, [fallbackInputMethod])
     }
@@ -270,13 +270,13 @@ final class AppFeatureTests: XCTestCase {
         let app = AppInfo(bundleId: "com.test.browser", name: "Browser", path: "/Applications/Browser.app")
         let fallbackInputMethod = "ime.fallback"
         let recorder = SwitchRecorder()
-        
+
         var initialState = AppFeature.State()
         initialState.inputMethods = [InputMethod(id: fallbackInputMethod, name: "Fallback")]
         initialState.$fallbackRuleStore.withLock {
             $0.strategy = .fixed(inputMethodId: fallbackInputMethod)
         }
-        
+
         let store = TestStore(initialState: initialState) {
             AppFeature()
         }
@@ -285,7 +285,7 @@ final class AppFeatureTests: XCTestCase {
         store.dependencies.inputMethodClient.switchToInputMethod = { inputMethodId in
             await recorder.record(inputMethodId)
         }
-        
+
         await store.send(.system(.workspaceEvent(.activated(app)))) {
             $0.currentFrontmostBundleId = app.bundleId
             $0.pendingProgrammaticSwitch = .init(bundleId: app.bundleId, inputMethodId: fallbackInputMethod)
@@ -303,7 +303,7 @@ final class AppFeatureTests: XCTestCase {
         await store.receive(.response(.programmaticSwitchFinished(bundleId: app.bundleId, inputMethodId: fallbackInputMethod))) {
             $0.pendingProgrammaticSwitch = nil
         }
-        
+
         let switchedInputMethods = await recorder.values
         XCTAssertEqual(switchedInputMethods, [fallbackInputMethod])
     }
@@ -311,7 +311,7 @@ final class AppFeatureTests: XCTestCase {
     func testActivatedAppSkipsSwitchWhenFallbackRuleIsNone() async {
         let app = AppInfo(bundleId: "com.test.browser", name: "Browser", path: "/Applications/Browser.app")
         let recorder = SwitchRecorder()
-        
+
         var initialState = AppFeature.State()
         initialState.$fallbackRuleStore.withLock {
             $0.strategy = .none
@@ -326,7 +326,7 @@ final class AppFeatureTests: XCTestCase {
                 updatedAt: Date(timeIntervalSince1970: 10)
             )
         }
-        
+
         let store = TestStore(initialState: initialState) {
             AppFeature()
         }
@@ -338,11 +338,11 @@ final class AppFeatureTests: XCTestCase {
         store.dependencies.inputMethodClient.switchToInputMethod = { inputMethodId in
             await recorder.record(inputMethodId)
         }
-        
+
         await store.send(.system(.workspaceEvent(.activated(app)))) {
             $0.currentFrontmostBundleId = app.bundleId
         }
-        
+
         let switchedInputMethods = await recorder.values
         XCTAssertTrue(switchedInputMethods.isEmpty)
     }
@@ -350,7 +350,7 @@ final class AppFeatureTests: XCTestCase {
     func testActivatedAppSkipsMissingFallbackInputMethod() async {
         let app = AppInfo(bundleId: "com.test.browser", name: "Browser", path: "/Applications/Browser.app")
         let recorder = SwitchRecorder()
-        
+
         var initialState = AppFeature.State()
         initialState.inputMethods = [InputMethod(id: "ime.en", name: "English")]
         initialState.$fallbackRuleStore.withLock {
@@ -366,7 +366,7 @@ final class AppFeatureTests: XCTestCase {
                 updatedAt: Date(timeIntervalSince1970: 10)
             )
         }
-        
+
         let store = TestStore(initialState: initialState) {
             AppFeature()
         }
@@ -378,11 +378,11 @@ final class AppFeatureTests: XCTestCase {
         store.dependencies.inputMethodClient.switchToInputMethod = { inputMethodId in
             await recorder.record(inputMethodId)
         }
-        
+
         await store.send(.system(.workspaceEvent(.activated(app)))) {
             $0.currentFrontmostBundleId = app.bundleId
         }
-        
+
         let switchedInputMethods = await recorder.values
         XCTAssertTrue(switchedInputMethods.isEmpty)
         XCTAssertEqual(store.state.fallbackStrategy, .fixed(inputMethodId: "ime.deleted"))
@@ -390,7 +390,7 @@ final class AppFeatureTests: XCTestCase {
 
     func testUnavailableAppIsExcludedFromConfiguredApps() async {
         let missingPath = "/tmp/\(UUID().uuidString)"
-        
+
         var initialState = AppFeature.State()
         initialState.inputMethods = [InputMethod(id: "ime.en", name: "English")]
         initialState.$appRulesStore.withLock {
@@ -403,7 +403,7 @@ final class AppFeatureTests: XCTestCase {
                 updatedAt: Date(timeIntervalSince1970: 10)
             )
         }
-        
+
         XCTAssertTrue(initialState.configuredApps.isEmpty)
         XCTAssertEqual(initialState.unavailableApps.map(\.bundleId), ["com.test.missing"])
     }
@@ -412,7 +412,7 @@ final class AppFeatureTests: XCTestCase {
         let app = AppInfo(bundleId: "com.test.browser", name: "Browser", path: "/Applications/Browser.app")
         let missingInputMethod = "ime.deleted"
         let recorder = SwitchRecorder()
-        
+
         var initialState = AppFeature.State()
         initialState.inputMethods = [InputMethod(id: "ime.en", name: "English")]
         initialState.$appRulesStore.withLock {
@@ -425,7 +425,7 @@ final class AppFeatureTests: XCTestCase {
                 updatedAt: Date(timeIntervalSince1970: 10)
             )
         }
-        
+
         let store = TestStore(initialState: initialState) {
             AppFeature()
         }
@@ -437,11 +437,11 @@ final class AppFeatureTests: XCTestCase {
         store.dependencies.inputMethodClient.switchToInputMethod = { inputMethodId in
             await recorder.record(inputMethodId)
         }
-        
+
         await store.send(.system(.workspaceEvent(.activated(app)))) {
             $0.currentFrontmostBundleId = app.bundleId
         }
-        
+
         let switchedInputMethods = await recorder.values
         XCTAssertTrue(switchedInputMethods.isEmpty)
         XCTAssertEqual(
@@ -452,7 +452,7 @@ final class AppFeatureTests: XCTestCase {
 
     func testFollowLastAvailableInputMethodShowsCurrentInputMethodInMenuOption() {
         let app = AppInfo(bundleId: "com.test.chat", name: "Chat", path: "/Applications/Chat.app")
-        
+
         var state = AppFeature.State()
         state.inputMethods = [InputMethod(id: "ime.zh", name: "Pinyin")]
         state.runningApps = [app]
@@ -484,7 +484,7 @@ final class AppFeatureTests: XCTestCase {
 
     func testFollowLastWithoutRecordShowsEmptyMenuOption() {
         let app = AppInfo(bundleId: "com.test.chat", name: "Chat", path: "/Applications/Chat.app")
-        
+
         var state = AppFeature.State()
         state.runningApps = [app]
         state.$appRulesStore.withLock {
@@ -523,7 +523,7 @@ final class AppFeatureTests: XCTestCase {
         let app = AppInfo(bundleId: "com.test.chat", name: "Chat", path: appURL.path)
         let missingInputMethod = "ime.deleted"
         let recorder = SwitchRecorder()
-        
+
         var initialState = AppFeature.State()
         initialState.inputMethods = [InputMethod(id: "ime.en", name: "English")]
         initialState.$appRulesStore.withLock {
@@ -536,7 +536,7 @@ final class AppFeatureTests: XCTestCase {
                 updatedAt: Date(timeIntervalSince1970: 10)
             )
         }
-        
+
         XCTAssertEqual(
             initialState.configuredApps.first?.selectedLabel,
             TypeSwitchStrings.InputMethod.followLastMissingOption
@@ -546,7 +546,7 @@ final class AppFeatureTests: XCTestCase {
             TypeSwitchStrings.InputMethod.followLastMissingOption
         )
         XCTAssertEqual(initialState.configuredApps.first?.hasMissingInputMethod, true)
-        
+
         let store = TestStore(initialState: initialState) {
             AppFeature()
         }
@@ -558,11 +558,11 @@ final class AppFeatureTests: XCTestCase {
         store.dependencies.inputMethodClient.switchToInputMethod = { inputMethodId in
             await recorder.record(inputMethodId)
         }
-        
+
         await store.send(.system(.workspaceEvent(.activated(app)))) {
             $0.currentFrontmostBundleId = app.bundleId
         }
-        
+
         let switchedInputMethods = await recorder.values
         XCTAssertTrue(switchedInputMethods.isEmpty)
         XCTAssertEqual(
@@ -570,11 +570,11 @@ final class AppFeatureTests: XCTestCase {
             .followLast(lastInputMethodId: missingInputMethod)
         )
     }
-    
+
     func testManualSelectionUpdatesFollowLastStrategy() async {
         let bundleId = "com.test.chat"
         let updateDate = Date(timeIntervalSince1970: 888)
-        
+
         var initialState = AppFeature.State()
         initialState.currentFrontmostBundleId = bundleId
         initialState.$appRulesStore.withLock {
@@ -587,12 +587,12 @@ final class AppFeatureTests: XCTestCase {
                 updatedAt: Date(timeIntervalSince1970: 100)
             )
         }
-        
+
         let store = TestStore(initialState: initialState) {
             AppFeature()
         }
         store.dependencies.date = .constant(updateDate)
-        
+
         await store.send(.system(.inputMethodSelectedChanged("ime.jp"))) {
             $0.$appRulesStore.withLock {
                 guard var rule = $0.rules[bundleId] else { return }
@@ -605,7 +605,7 @@ final class AppFeatureTests: XCTestCase {
 
     func testManualSelectionUpdatesFallbackFollowLastWhenAppRuleIsNone() async {
         let bundleId = "com.test.chat"
-        
+
         var initialState = AppFeature.State()
         initialState.currentFrontmostBundleId = bundleId
         initialState.$fallbackRuleStore.withLock {
@@ -621,11 +621,11 @@ final class AppFeatureTests: XCTestCase {
                 updatedAt: Date(timeIntervalSince1970: 100)
             )
         }
-        
+
         let store = TestStore(initialState: initialState) {
             AppFeature()
         }
-        
+
         await store.send(.system(.inputMethodSelectedChanged("ime.jp"))) {
             $0.$fallbackRuleStore.withLock {
                 $0.strategy = .followLast(lastInputMethodId: "ime.jp")
@@ -637,17 +637,17 @@ final class AppFeatureTests: XCTestCase {
 
     func testManualSelectionUpdatesFallbackFollowLastWhenAppRuleIsMissing() async {
         let bundleId = "com.test.chat"
-        
+
         var initialState = AppFeature.State()
         initialState.currentFrontmostBundleId = bundleId
         initialState.$fallbackRuleStore.withLock {
             $0.strategy = .followLast(lastInputMethodId: nil)
         }
-        
+
         let store = TestStore(initialState: initialState) {
             AppFeature()
         }
-        
+
         await store.send(.system(.inputMethodSelectedChanged("ime.jp"))) {
             $0.$fallbackRuleStore.withLock {
                 $0.strategy = .followLast(lastInputMethodId: "ime.jp")
@@ -656,11 +656,11 @@ final class AppFeatureTests: XCTestCase {
 
         XCTAssertTrue(store.state.appRules.isEmpty)
     }
-    
+
     func testProgrammaticSelectionDoesNotOverwriteFollowLastStrategy() async {
         let bundleId = "com.test.terminal"
         let targetInputMethod = "ime.en"
-        
+
         var initialState = AppFeature.State()
         initialState.currentFrontmostBundleId = bundleId
         initialState.pendingProgrammaticSwitch = .init(bundleId: bundleId, inputMethodId: targetInputMethod)
@@ -674,15 +674,15 @@ final class AppFeatureTests: XCTestCase {
                 updatedAt: Date(timeIntervalSince1970: 100)
             )
         }
-        
+
         let store = TestStore(initialState: initialState) {
             AppFeature()
         }
-        
+
         await store.send(.system(.inputMethodSelectedChanged(targetInputMethod))) {
             $0.pendingProgrammaticSwitch = nil
         }
-        
+
         XCTAssertEqual(
             store.state.appRules[bundleId]?.strategy,
             .followLast(lastInputMethodId: nil)
@@ -692,22 +692,22 @@ final class AppFeatureTests: XCTestCase {
     func testProgrammaticSelectionDoesNotOverwriteFallbackFollowLastStrategy() async {
         let bundleId = "com.test.terminal"
         let targetInputMethod = "ime.en"
-        
+
         var initialState = AppFeature.State()
         initialState.currentFrontmostBundleId = bundleId
         initialState.pendingProgrammaticSwitch = .init(bundleId: bundleId, inputMethodId: targetInputMethod)
         initialState.$fallbackRuleStore.withLock {
             $0.strategy = .followLast(lastInputMethodId: nil)
         }
-        
+
         let store = TestStore(initialState: initialState) {
             AppFeature()
         }
-        
+
         await store.send(.system(.inputMethodSelectedChanged(targetInputMethod))) {
             $0.pendingProgrammaticSwitch = nil
         }
-        
+
         XCTAssertEqual(
             store.state.fallbackStrategy,
             .followLast(lastInputMethodId: nil)
@@ -719,7 +719,7 @@ final class AppFeatureTests: XCTestCase {
         let createdAt = Date(timeIntervalSince1970: 100)
         let updatedAt = Date(timeIntervalSince1970: 200)
         let newUpdatedAt = Date(timeIntervalSince1970: 300)
-        
+
         var initialState = AppFeature.State()
         initialState.inputMethods = [InputMethod(id: "ime.en", name: "English")]
         initialState.$appRulesStore.withLock {
@@ -748,28 +748,28 @@ final class AppFeatureTests: XCTestCase {
                 updatedAt: updatedAt
             )
         }
-        
+
         let store = TestStore(initialState: initialState) {
             AppFeature()
         }
         store.dependencies.date = .constant(newUpdatedAt)
-        
+
         await store.send(.view(.removeMissingInputMethodRulesTapped)) {
             $0.$appRulesStore.withLock {
                 guard var missingFixed = $0.rules["missing-fixed"],
                       var missingFollowLast = $0.rules["missing-follow-last"]
                 else { return }
-                
+
                 missingFixed.strategy = .none
                 missingFixed.updatedAt = newUpdatedAt
                 $0.rules["missing-fixed"] = missingFixed
-                
+
                 missingFollowLast.strategy = .none
                 missingFollowLast.updatedAt = newUpdatedAt
                 $0.rules["missing-follow-last"] = missingFollowLast
             }
         }
-        
+
         XCTAssertEqual(store.state.appRules["missing-fixed"]?.lastKnownName, "Missing Fixed")
         XCTAssertEqual(store.state.appRules["missing-fixed"]?.createdAt, createdAt)
         XCTAssertEqual(store.state.appRules["missing-fixed"]?.strategy, InputMethodStrategy.none)
@@ -777,7 +777,7 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertEqual(store.state.appRules["valid"]?.strategy, .fixed(inputMethodId: "ime.en"))
         XCTAssertEqual(store.state.appRules["valid"]?.updatedAt, updatedAt)
     }
-    
+
     func testRemoveUnavailableRulesTappedRemovesOnlyUnavailableRules() async throws {
         let availableURL = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         try FileManager.default.createDirectory(
@@ -786,7 +786,7 @@ final class AppFeatureTests: XCTestCase {
             attributes: nil
         )
         defer { try? FileManager.default.removeItem(at: availableURL) }
-        
+
         var initialState = AppFeature.State()
         initialState.$appRulesStore.withLock {
             $0.rules["available"] = AppRuleRecord(
@@ -806,26 +806,26 @@ final class AppFeatureTests: XCTestCase {
                 updatedAt: Date(timeIntervalSince1970: 20)
             )
         }
-        
+
         let store = TestStore(initialState: initialState) {
             AppFeature()
         }
-        
+
         await store.send(.view(.removeUnavailableRulesTapped)) {
             $0.$appRulesStore.withLock {
                 _ = $0.rules.removeValue(forKey: "missing")
             }
         }
-        
+
         XCTAssertNotNil(store.state.appRules["available"])
         XCTAssertNil(store.state.appRules["missing"])
     }
-    
+
     func testLegacyMigrationMigratesOnlyMatchedRules() async {
         let migrationDate = Date(timeIntervalSince1970: 777)
         let migrationTracker = MigrationTracker()
         let matchedApp = AppInfo(bundleId: "com.test.notes", name: "Notes", path: "/Applications/Notes.app")
-        
+
         let store = TestStore(initialState: AppFeature.State()) {
             AppFeature()
         }
@@ -845,7 +845,7 @@ final class AppFeatureTests: XCTestCase {
                 )
             ]
         }
-        
+
         await store.send(.response(.appRulesStorePrepared(.noStoreFound)))
         await store.receive(.response(.legacyRulesMigrated([
             "com.test.notes": AppRuleRecord(
@@ -868,7 +868,7 @@ final class AppFeatureTests: XCTestCase {
                 )
             }
         }
-        
+
         let didMigrate = await migrationTracker.didMigrate
         XCTAssertTrue(didMigrate)
         XCTAssertNil(store.state.appRules["com.test.missing"])
@@ -878,7 +878,7 @@ final class AppFeatureTests: XCTestCase {
 
 private actor SwitchRecorder {
     private(set) var values: [String] = []
-    
+
     func record(_ inputMethodId: String) {
         values.append(inputMethodId)
     }
@@ -886,7 +886,7 @@ private actor SwitchRecorder {
 
 private actor MigrationTracker {
     private(set) var didMigrate = false
-    
+
     func markMigrated() {
         didMigrate = true
     }

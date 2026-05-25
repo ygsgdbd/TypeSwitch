@@ -6,7 +6,7 @@ import OSLog
 /// 负责获取、切换和管理系统输入法
 @MainActor
 enum InputMethodService {
-    
+
     /// 输入法相关错误
     enum InputMethodError: Error, LocalizedError {
         case failedToFetchInputMethods
@@ -14,7 +14,7 @@ enum InputMethodService {
         case inputMethodNotEnabled(String)
         case failedToSwitchInputMethod(String)
         case failedToGetCurrentInputMethod
-        
+
         var errorDescription: String? {
             switch self {
             case .failedToFetchInputMethods:
@@ -30,16 +30,15 @@ enum InputMethodService {
             }
         }
     }
-    
-    
+
     // MARK: - 公共方法
-    
+
     /// 获取所有可用的输入法
     /// - Returns: 输入法数组，按名称排序
     /// - Throws: Error 当获取失败时
     static func fetchInputMethods() throws -> [InputMethod] {
         let inputSources = try getInputSourceList()
-        
+
         // 过滤和转换输入源
         let methods = inputSources.compactMap { source -> InputMethod? in
             guard let properties = getInputSourceProperties(source),
@@ -48,20 +47,20 @@ enum InputMethodService {
             else {
                 return nil
             }
-            
+
             return InputMethod(id: properties.sourceID, name: properties.localizedName)
         }
-        
+
         // 按本地化名称排序
         return methods.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
-    
+
     /// 切换到指定的输入法
     /// - Parameter inputMethodID: 输入法ID
     /// - Throws: Error 当切换失败时
     static func switchToInputMethod(_ inputMethodID: String) throws {
         let inputSources = try getInputSourceList()
-        
+
         // 查找目标输入源
         guard let targetSource = inputSources.first(where: { source in
             guard let properties = getInputSourceProperties(source) else {
@@ -71,7 +70,7 @@ enum InputMethodService {
         }) else {
             throw InputMethodError.inputMethodNotFound(inputMethodID)
         }
-        
+
         // 切换输入法前确保输入法是启用的
         guard let enabledPtr = TISGetInputSourceProperty(targetSource, kTISPropertyInputSourceIsEnabled),
               let enabled = Unmanaged<CFBoolean>.fromOpaque(enabledPtr).takeUnretainedValue() as? Bool,
@@ -79,13 +78,13 @@ enum InputMethodService {
         else {
             throw InputMethodError.inputMethodNotEnabled(inputMethodID)
         }
-        
+
         let status = TISSelectInputSource(targetSource)
         if status != noErr {
             throw InputMethodError.failedToSwitchInputMethod(inputMethodID)
         }
     }
-    
+
     /// 获取当前激活的输入法ID
     /// - Returns: 当前输入法ID
     /// - Throws: Error 当获取失败时
@@ -94,17 +93,17 @@ enum InputMethodService {
         guard let currentSource = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue() else {
             throw InputMethodError.failedToGetCurrentInputMethod
         }
-        
+
         // 获取输入源属性
         guard let properties = getInputSourceProperties(currentSource) else {
             throw InputMethodError.failedToGetCurrentInputMethod
         }
-        
+
         return properties.sourceID
     }
-    
+
     // MARK: - Private Helpers
-    
+
     /// 获取输入源列表
     /// - Returns: 输入源数组
     /// - Throws: Error 当获取失败时
@@ -114,11 +113,10 @@ enum InputMethodService {
         else {
             throw InputMethodError.failedToFetchInputMethods
         }
-        
+
         return inputSources
     }
-    
-    
+
     /// 获取输入源属性
     /// - Parameter source: 输入源
     /// - Returns: 输入源属性，失败时返回nil
@@ -139,10 +137,10 @@ enum InputMethodService {
         else {
             return nil
         }
-        
+
         let isSelectable = CFBooleanGetValue(Unmanaged<CFBoolean>.fromOpaque(selectablePtr).takeUnretainedValue())
         let isEnabled = CFBooleanGetValue(Unmanaged<CFBoolean>.fromOpaque(enabledPtr).takeUnretainedValue())
-        
+
         return InputSourceProperties(
             sourceID: sourceID,
             sourceType: sourceType,
@@ -151,7 +149,7 @@ enum InputMethodService {
             isEnabled: isEnabled
         )
     }
-    
+
     /// 检查输入源类型是否有效
     /// - Parameter sourceType: 输入源类型
     /// - Returns: 是否为有效的输入源类型

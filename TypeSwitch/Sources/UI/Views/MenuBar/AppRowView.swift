@@ -7,7 +7,7 @@ struct AppRowView: View {
     let item: AppFeature.State.AppMenuItem
     let inputMethods: [InputMethod]
     let onSelectStrategy: (InputMethodStrategy) -> Void
-    
+
     var body: some View {
         Menu {
             InputMethodStrategyMenuContent(
@@ -36,7 +36,7 @@ struct InputMethodStrategyMenuContent: View {
     let inputMethods: [InputMethod]
     let followLastOptionLabel: String
     let onSelectStrategy: (InputMethodStrategy) -> Void
-    
+
     var body: some View {
         Section(TypeSwitchStrings.InputMethod.defaultSection) {
             Button(action: {
@@ -48,7 +48,7 @@ struct InputMethodStrategyMenuContent: View {
                 Text(context.defaultOptionLabel)
             }
         }
-        
+
         Section(context.followLastSectionTitle) {
             Button(action: {
                 onSelectStrategy(followLastStrategy)

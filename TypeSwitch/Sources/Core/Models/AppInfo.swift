@@ -7,9 +7,9 @@ struct AppInfo: Identifiable, Sendable, Hashable {
     let bundleId: String
     let name: String
     let path: String?
-    
+
     var id: String { bundleId }
-    
+
     @MainActor
     var icon: Image {
         guard let path, FileManager.default.fileExists(atPath: path) else {
@@ -17,7 +17,7 @@ struct AppInfo: Identifiable, Sendable, Hashable {
         }
         return Image(nsImage: NSWorkspace.shared.icon(forFile: path))
     }
-    
+
     init(bundleId: String, name: String, path: String?) {
         self.bundleId = bundleId
         self.name = name

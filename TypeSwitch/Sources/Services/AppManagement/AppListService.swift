@@ -12,7 +12,7 @@ enum AppListService {
         "~/Applications",       // 用户主目录下的应用
         "/System/Applications"  // 系统应用
     ].map { NSString(string: $0).expandingTildeInPath }
-    
+
     @MainActor
     static func fetchRunningApps() -> [AppInfo] {
         let runningApps = NSWorkspace.shared.runningApplications
@@ -87,7 +87,7 @@ enum AppListService {
 
         return bundleURL.pathExtension.caseInsensitiveCompare("app") == .orderedSame
     }
-    
+
     /// 从指定目录获取匹配的应用信息
     private static func scanAppsInDirectory(_ dir: String, matching bundleIds: Set<String>) -> [String: AppInfo] {
         let fileManager = FileManager.default
@@ -97,7 +97,7 @@ enum AppListService {
             print("⚠️ 无法访问目录: \(dir)")
             return [:]
         }
-        
+
         let dirURL = URL(fileURLWithPath: dir)
         guard let enumerator = fileManager.enumerator(
             at: dirURL,
@@ -107,16 +107,16 @@ enum AppListService {
             print("⚠️ 无法创建目录枚举器: \(dir)")
             return [:]
         }
-        
+
         var matchedApps: [String: AppInfo] = [:]
-        
+
         while let fileURL = enumerator.nextObject() as? URL {
             guard fileManager.isReadableFile(atPath: fileURL.path) else { continue }
-            
+
             do {
                 let resourceValues = try fileURL.resourceValues(forKeys: [.isApplicationKey])
                 guard resourceValues.isApplication == true else { continue }
-                
+
                 if let app = AppInfo(bundleURL: fileURL),
                    bundleIds.contains(app.bundleId),
                    app.bundleId != Bundle.main.bundleIdentifier {
@@ -130,7 +130,7 @@ enum AppListService {
                 continue
             }
         }
-        
+
         return matchedApps
     }
 }

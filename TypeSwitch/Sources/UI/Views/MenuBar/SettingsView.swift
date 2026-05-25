@@ -4,7 +4,7 @@ import SwiftUI
 /// 设置视图，包含各种应用设置选项
 struct SettingsView: View {
     @Bindable var store: StoreOf<AppFeature>
-    
+
     var body: some View {
         Section {
             Menu {

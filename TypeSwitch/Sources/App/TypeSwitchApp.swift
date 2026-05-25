@@ -12,7 +12,7 @@ struct TypeSwitchApp: App {
         }
         self.store.send(.task)
     }
-    
+
     var body: some Scene {
         MenuBarExtra {
             MenuBarView(store: store)

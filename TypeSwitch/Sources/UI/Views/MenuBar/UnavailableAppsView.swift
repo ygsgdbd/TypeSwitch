@@ -3,7 +3,7 @@ import SwiftUI
 
 struct UnavailableAppsView: View {
     let store: StoreOf<AppFeature>
-    
+
     var body: some View {
         if !store.unavailableApps.isEmpty {
             Section {
@@ -17,9 +17,9 @@ struct UnavailableAppsView: View {
                             store.send(.view(.removeUnavailableRulesTapped))
                         }
                     }
-                    
+
                     Divider()
-                    
+
                     ForEach(store.unavailableApps) { item in
                         AppRowView(
                             item: item,
