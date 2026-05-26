@@ -17,8 +17,16 @@ struct TypeSwitchApp: App {
         MenuBarExtra {
             MenuBarView(store: store)
         } label: {
-            Image(systemName: .keyboard)
+            MenuBarIconView(store: store)
         }
         .menuBarExtraStyle(.menu)
+    }
+}
+
+private struct MenuBarIconView: View {
+    let store: StoreOf<AppFeature>
+
+    var body: some View {
+        Image(systemName: store.menuBarIconSystemName)
     }
 }

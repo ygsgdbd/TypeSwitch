@@ -13,6 +13,16 @@ extension AppFeature.State {
         appRulesStore.rules
     }
 
+    var menuBarIconSystemName: String {
+        guard let currentFrontmostBundleId else {
+            return "keyboard"
+        }
+
+        return strategy(for: currentFrontmostBundleId) == .none
+            ? "keyboard.badge.ellipsis"
+            : "keyboard"
+    }
+
     var fallbackStrategy: InputMethodStrategy {
         if case .followLast = fallbackRuleStore.strategy {
             return .none

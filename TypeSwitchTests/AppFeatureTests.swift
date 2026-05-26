@@ -687,6 +687,76 @@ final class AppFeatureTests: XCTestCase {
         )
     }
 
+    func testMenuBarIconUsesKeyboardWithoutFrontmostApp() {
+        let state = AppFeature.State()
+
+        XCTAssertEqual(state.menuBarIconSystemName, "keyboard")
+    }
+
+    func testMenuBarIconUsesUnconfiguredIconForFrontmostAppWithoutRule() {
+        var state = AppFeature.State()
+        state.currentFrontmostBundleId = "com.test.chat"
+
+        XCTAssertEqual(state.menuBarIconSystemName, "keyboard.badge.ellipsis")
+    }
+
+    func testMenuBarIconUsesUnconfiguredIconForFrontmostAppWithNoneStrategy() {
+        let app = AppInfo(bundleId: "com.test.chat", name: "Chat", path: "/Applications/Chat.app")
+
+        var state = AppFeature.State()
+        state.currentFrontmostBundleId = app.bundleId
+        state.$appRulesStore.withLock {
+            $0.rules[app.bundleId] = AppRuleRecord(
+                bundleId: app.bundleId,
+                lastKnownPath: app.path,
+                lastKnownName: app.name,
+                strategy: .none,
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+        }
+
+        XCTAssertEqual(state.menuBarIconSystemName, "keyboard.badge.ellipsis")
+    }
+
+    func testMenuBarIconUsesKeyboardForFrontmostAppWithFixedStrategy() {
+        let app = AppInfo(bundleId: "com.test.chat", name: "Chat", path: "/Applications/Chat.app")
+
+        var state = AppFeature.State()
+        state.currentFrontmostBundleId = app.bundleId
+        state.$appRulesStore.withLock {
+            $0.rules[app.bundleId] = AppRuleRecord(
+                bundleId: app.bundleId,
+                lastKnownPath: app.path,
+                lastKnownName: app.name,
+                strategy: .fixed(inputMethodId: "ime.zh"),
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+        }
+
+        XCTAssertEqual(state.menuBarIconSystemName, "keyboard")
+    }
+
+    func testMenuBarIconUsesKeyboardForFrontmostAppWithFollowLastStrategy() {
+        let app = AppInfo(bundleId: "com.test.chat", name: "Chat", path: "/Applications/Chat.app")
+
+        var state = AppFeature.State()
+        state.currentFrontmostBundleId = app.bundleId
+        state.$appRulesStore.withLock {
+            $0.rules[app.bundleId] = AppRuleRecord(
+                bundleId: app.bundleId,
+                lastKnownPath: app.path,
+                lastKnownName: app.name,
+                strategy: .followLast(lastInputMethodId: nil),
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+        }
+
+        XCTAssertEqual(state.menuBarIconSystemName, "keyboard")
+    }
+
     func testFollowLastWithoutRecordShowsEmptyMenuOption() {
         let app = AppInfo(bundleId: "com.test.chat", name: "Chat", path: "/Applications/Chat.app")
 
