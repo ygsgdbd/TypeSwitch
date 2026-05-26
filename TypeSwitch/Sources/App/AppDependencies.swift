@@ -3,6 +3,10 @@ import Carbon
 import ComposableArchitecture
 import Foundation
 
+private struct NotificationObserverToken: @unchecked Sendable {
+    let rawValue: NSObjectProtocol
+}
+
 enum LaunchAtLoginStatus: Equatable, Sendable {
     case disabled
     case enabled
@@ -44,58 +48,76 @@ extension WorkspaceClient: DependencyKey {
                 AsyncStream { continuation in
                     let notificationCenter = NSWorkspace.shared.notificationCenter
 
-                    let launchObserver = notificationCenter.addObserver(
-                        forName: NSWorkspace.didLaunchApplicationNotification,
-                        object: nil,
-                        queue: nil
-                    ) { notification in
-                        Task { @MainActor in
+                    let launchObserver = NotificationObserverToken(
+                        rawValue: notificationCenter.addObserver(
+                            forName: NSWorkspace.didLaunchApplicationNotification,
+                            object: nil,
+                            queue: nil
+                        ) { notification in
+                            guard let processIdentifier = (
+                                notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+                            )?.processIdentifier else {
+                                return
+                            }
+
+                            Task { @MainActor [processIdentifier] in
+                                guard
+                                    let runningApplication = NSRunningApplication(processIdentifier: processIdentifier),
+                                    let appInfo = AppListService.trackedRunningApplicationInfo(for: runningApplication)
+                                else {
+                                    return
+                                }
+                                continuation.yield(.launched(appInfo))
+                            }
+                        }
+                    )
+
+                    let terminateObserver = NotificationObserverToken(
+                        rawValue: notificationCenter.addObserver(
+                            forName: NSWorkspace.didTerminateApplicationNotification,
+                            object: nil,
+                            queue: nil
+                        ) { notification in
                             guard
                                 let runningApplication = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
-                                let appInfo = AppListService.trackedRunningApplicationInfo(for: runningApplication)
+                                let bundleId = runningApplication.bundleIdentifier,
+                                bundleId != Bundle.main.bundleIdentifier
                             else {
                                 return
                             }
-                            continuation.yield(.launched(appInfo))
+                            continuation.yield(.terminated(bundleId: bundleId))
                         }
-                    }
+                    )
 
-                    let terminateObserver = notificationCenter.addObserver(
-                        forName: NSWorkspace.didTerminateApplicationNotification,
-                        object: nil,
-                        queue: nil
-                    ) { notification in
-                        guard
-                            let runningApplication = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
-                            let bundleId = runningApplication.bundleIdentifier,
-                            bundleId != Bundle.main.bundleIdentifier
-                        else {
-                            return
-                        }
-                        continuation.yield(.terminated(bundleId: bundleId))
-                    }
-
-                    let activateObserver = notificationCenter.addObserver(
-                        forName: NSWorkspace.didActivateApplicationNotification,
-                        object: nil,
-                        queue: nil
-                    ) { notification in
-                        Task { @MainActor in
-                            guard
-                                let runningApplication = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
-                                let appInfo = AppListService.trackedRunningApplicationInfo(for: runningApplication)
-                            else {
+                    let activateObserver = NotificationObserverToken(
+                        rawValue: notificationCenter.addObserver(
+                            forName: NSWorkspace.didActivateApplicationNotification,
+                            object: nil,
+                            queue: nil
+                        ) { notification in
+                            guard let processIdentifier = (
+                                notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+                            )?.processIdentifier else {
                                 return
                             }
-                            continuation.yield(.activated(appInfo))
+
+                            Task { @MainActor [processIdentifier] in
+                                guard
+                                    let runningApplication = NSRunningApplication(processIdentifier: processIdentifier),
+                                    let appInfo = AppListService.trackedRunningApplicationInfo(for: runningApplication)
+                                else {
+                                    return
+                                }
+                                continuation.yield(.activated(appInfo))
+                            }
                         }
-                    }
+                    )
 
                     continuation.onTermination = { _ in
                         Task { @MainActor in
-                            notificationCenter.removeObserver(launchObserver)
-                            notificationCenter.removeObserver(terminateObserver)
-                            notificationCenter.removeObserver(activateObserver)
+                            notificationCenter.removeObserver(launchObserver.rawValue)
+                            notificationCenter.removeObserver(terminateObserver.rawValue)
+                            notificationCenter.removeObserver(activateObserver.rawValue)
                         }
                     }
                 }
@@ -139,37 +161,41 @@ extension InputMethodClient: DependencyKey {
         availabilityChanges: {
             AsyncStream { continuation in
                 let notificationCenter = DistributedNotificationCenter.default()
-                let observer = notificationCenter.addObserver(
-                    forName: NSNotification.Name(kTISNotifyEnabledKeyboardInputSourcesChanged as String),
-                    object: nil,
-                    queue: nil
-                ) { _ in
-                    continuation.yield(())
-                }
+                let observer = NotificationObserverToken(
+                    rawValue: notificationCenter.addObserver(
+                        forName: NSNotification.Name(kTISNotifyEnabledKeyboardInputSourcesChanged as String),
+                        object: nil,
+                        queue: nil
+                    ) { _ in
+                        continuation.yield(())
+                    }
+                )
 
                 continuation.onTermination = { _ in
-                    notificationCenter.removeObserver(observer)
+                    notificationCenter.removeObserver(observer.rawValue)
                 }
             }
         },
         selectionChanges: {
             AsyncStream { continuation in
                 let notificationCenter = DistributedNotificationCenter.default()
-                let observer = notificationCenter.addObserver(
-                    forName: NSNotification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String),
-                    object: nil,
-                    queue: nil
-                ) { _ in
-                    Task { @MainActor in
-                        guard let inputMethodId = try? InputMethodService.getCurrentInputMethodId() else {
-                            return
+                let observer = NotificationObserverToken(
+                    rawValue: notificationCenter.addObserver(
+                        forName: NSNotification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String),
+                        object: nil,
+                        queue: nil
+                    ) { _ in
+                        Task { @MainActor in
+                            guard let inputMethodId = try? InputMethodService.getCurrentInputMethodId() else {
+                                return
+                            }
+                            continuation.yield(inputMethodId)
                         }
-                        continuation.yield(inputMethodId)
                     }
-                }
+                )
 
                 continuation.onTermination = { _ in
-                    notificationCenter.removeObserver(observer)
+                    notificationCenter.removeObserver(observer.rawValue)
                 }
             }
         }
