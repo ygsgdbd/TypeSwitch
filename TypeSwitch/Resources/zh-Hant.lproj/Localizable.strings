@@ -13,7 +13,7 @@
 "settings.general.auto_launch" = "開機啟動";
 "settings.general.auto_launch_requires_approval" = "請在系統設定 > 一般 > 登入項目中批准 TypeSwitch。";
 "settings.general.open_login_items" = "開啟登入項目設定";
-"settings.fallback.default_input_method" = "全域規則";
+"settings.fallback.default_input_method" = "預設規則";
 
 // 應用程式列表
 "apps.section.running_count" = "正在執行 (%d)";
@@ -36,18 +36,21 @@
 
 // 輸入法相關
 "input_method.default_section" = "預設";
-"input_method.app_default_option" = "跟隨全域設定";
-"input_method.fallback_default_option" = "不自動切換";
-"input_method.default_option" = "不自動切換";
+"input_method.app_default_option" = "預設";
+"input_method.app_default_fallback_none_option" = "預設（忽略）";
+"input_method.app_default_missing_option" = "預設（不可用）";
+"input_method.app_default_with_input_method" = "預設（%@）";
+"input_method.fallback_default_option" = "忽略";
+"input_method.default_option" = "忽略";
 "input_method.follow_last_section" = "記住上次輸入法";
 "input_method.follow_last_app_section" = "記住此 App";
 "input_method.follow_last_fallback_section" = "記住上次";
 "input_method.follow_last_option" = "記住上次輸入法";
-"input_method.follow_last_empty_option" = "等待記錄";
-"input_method.follow_last_with_input_method" = "上次：%@";
+"input_method.follow_last_empty_option" = "記住上次";
+"input_method.follow_last_with_input_method" = "記住上次（%@）";
 "input_method.fixed_section" = "指定輸入法";
 "input_method.deleted_option" = "已刪除的輸入法";
-"input_method.follow_last_missing_option" = "上次不可用";
+"input_method.follow_last_missing_option" = "記住上次（不可用）";
 "input_method.clear_missing_configuration" = "清理失效設定";
 "input_method.clear_missing_confirmation.title" = "清理失效設定？";
 "input_method.clear_missing_confirmation.message" = "失效項會改為跟隨全域設定。";

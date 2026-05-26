@@ -13,7 +13,7 @@
 "settings.general.auto_launch" = "Launch at Login";
 "settings.general.auto_launch_requires_approval" = "Approve TypeSwitch in System Settings > General > Login Items.";
 "settings.general.open_login_items" = "Open Login Items";
-"settings.fallback.default_input_method" = "Global Rule";
+"settings.fallback.default_input_method" = "Default Rule";
 
 // App List
 "apps.section.running_count" = "Running (%d)";
@@ -36,18 +36,21 @@
 
 // Input Method Related
 "input_method.default_section" = "Default";
-"input_method.app_default_option" = "Follow global setting";
-"input_method.fallback_default_option" = "Do not switch automatically";
-"input_method.default_option" = "Do not switch automatically";
+"input_method.app_default_option" = "Default";
+"input_method.app_default_fallback_none_option" = "Default (Ignore)";
+"input_method.app_default_missing_option" = "Default (Unavailable)";
+"input_method.app_default_with_input_method" = "Default (%@)";
+"input_method.fallback_default_option" = "Ignore";
+"input_method.default_option" = "Ignore";
 "input_method.follow_last_section" = "Remember Last Input Method";
 "input_method.follow_last_app_section" = "Remember This App";
 "input_method.follow_last_fallback_section" = "Remember Last";
 "input_method.follow_last_option" = "Remember last input method";
-"input_method.follow_last_empty_option" = "Waiting";
-"input_method.follow_last_with_input_method" = "Last: %@";
+"input_method.follow_last_empty_option" = "Remember Last";
+"input_method.follow_last_with_input_method" = "Remember Last (%@)";
 "input_method.fixed_section" = "Specific Input Method";
 "input_method.deleted_option" = "Deleted input method";
-"input_method.follow_last_missing_option" = "Last unavailable";
+"input_method.follow_last_missing_option" = "Remember Last (Unavailable)";
 "input_method.clear_missing_configuration" = "Clear unavailable settings";
 "input_method.clear_missing_confirmation.title" = "Clear unavailable settings?";
 "input_method.clear_missing_confirmation.message" = "Unavailable items will follow the global rule.";

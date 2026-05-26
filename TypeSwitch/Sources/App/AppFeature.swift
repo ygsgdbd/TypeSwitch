@@ -18,6 +18,7 @@ struct AppFeature {
             let name: String
             let path: String?
             let strategy: InputMethodStrategy
+            let defaultOptionLabel: String
             let selectedLabel: String?
             let followLastOptionLabel: String
             let hasMissingInputMethod: Bool

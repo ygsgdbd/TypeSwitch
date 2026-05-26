@@ -11,12 +11,15 @@ struct MenuBarView: View {
         Group {
             RunningAppsView(store: store)
             ConfiguredAppsView(store: store)
-            UnavailableAppsView(store: store)
-            SwitchStatisticsView(store: store)
 
             Divider()
 
             SettingsView(store: store)
+
+            Divider()
+
+            UnavailableAppsView(store: store)
+            SwitchStatisticsView(store: store)
 
             Divider()
 

@@ -659,6 +659,34 @@ final class AppFeatureTests: XCTestCase {
         )
     }
 
+    func testAppDefaultOptionShowsIgnoredFallbackRule() {
+        let app = AppInfo(bundleId: "com.test.chat", name: "Chat", path: "/Applications/Chat.app")
+
+        var state = AppFeature.State()
+        state.runningApps = [app]
+
+        XCTAssertEqual(
+            state.runningMenuItems.first?.defaultOptionLabel,
+            TypeSwitchStrings.InputMethod.appDefaultFallbackNoneOption
+        )
+    }
+
+    func testAppDefaultOptionShowsFixedFallbackRule() {
+        let app = AppInfo(bundleId: "com.test.chat", name: "Chat", path: "/Applications/Chat.app")
+
+        var state = AppFeature.State()
+        state.inputMethods = [InputMethod(id: "ime.zh", name: "Pinyin")]
+        state.runningApps = [app]
+        state.$fallbackRuleStore.withLock {
+            $0.strategy = .fixed(inputMethodId: "ime.zh")
+        }
+
+        XCTAssertEqual(
+            state.runningMenuItems.first?.defaultOptionLabel,
+            TypeSwitchStrings.InputMethod.appDefaultWithInputMethod("Pinyin")
+        )
+    }
+
     func testFollowLastWithoutRecordShowsEmptyMenuOption() {
         let app = AppInfo(bundleId: "com.test.chat", name: "Chat", path: "/Applications/Chat.app")
 

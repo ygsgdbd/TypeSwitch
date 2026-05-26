@@ -14,6 +14,7 @@ struct AppRowView: View {
                 context: .appRule,
                 strategy: item.strategy,
                 inputMethods: inputMethods,
+                defaultOptionLabel: item.defaultOptionLabel,
                 followLastOptionLabel: item.followLastOptionLabel,
                 onSelectStrategy: onSelectStrategy
             )
@@ -34,44 +35,43 @@ struct InputMethodStrategyMenuContent: View {
     let context: InputMethodStrategyMenuContext
     let strategy: InputMethodStrategy
     let inputMethods: [InputMethod]
+    let defaultOptionLabel: String
     let followLastOptionLabel: String
     let onSelectStrategy: (InputMethodStrategy) -> Void
 
     var body: some View {
-        Section(TypeSwitchStrings.InputMethod.defaultSection) {
-            Button(action: {
-                onSelectStrategy(.none)
-            }) {
-                if strategy == .none {
-                    Image(systemName: .checkmark)
-                }
-                Text(context.defaultOptionLabel)
+        Button(action: {
+            onSelectStrategy(.none)
+        }) {
+            if strategy == .none {
+                Image(systemName: .checkmark)
             }
+            Text(defaultOptionLabel)
         }
+
+        Divider()
 
         if context.supportsFollowLast {
-            Section(context.followLastSectionTitle) {
-                Button(action: {
-                    onSelectStrategy(followLastStrategy)
-                }) {
-                    if case .followLast = strategy {
-                        Image(systemName: .checkmark)
-                    }
-                    Text(followLastOptionLabel)
+            Button(action: {
+                onSelectStrategy(followLastStrategy)
+            }) {
+                if case .followLast = strategy {
+                    Image(systemName: .checkmark)
                 }
+                Text(followLastOptionLabel)
             }
+
+            Divider()
         }
 
-        Section(TypeSwitchStrings.InputMethod.fixedSection) {
-            ForEach(inputMethods, id: \.id) { inputMethod in
-                Button(action: {
-                    onSelectStrategy(.fixed(inputMethodId: inputMethod.id))
-                }) {
-                    if strategy == .fixed(inputMethodId: inputMethod.id) {
-                        Image(systemName: .checkmark)
-                    }
-                    Text(inputMethod.name)
+        ForEach(inputMethods, id: \.id) { inputMethod in
+            Button(action: {
+                onSelectStrategy(.fixed(inputMethodId: inputMethod.id))
+            }) {
+                if strategy == .fixed(inputMethodId: inputMethod.id) {
+                    Image(systemName: .checkmark)
                 }
+                Text(inputMethod.name)
             }
         }
     }
@@ -87,24 +87,6 @@ struct InputMethodStrategyMenuContent: View {
 enum InputMethodStrategyMenuContext {
     case appRule
     case fallbackRule
-
-    var defaultOptionLabel: String {
-        switch self {
-        case .appRule:
-            return TypeSwitchStrings.InputMethod.appDefaultOption
-        case .fallbackRule:
-            return TypeSwitchStrings.InputMethod.fallbackDefaultOption
-        }
-    }
-
-    var followLastSectionTitle: String {
-        switch self {
-        case .appRule:
-            return TypeSwitchStrings.InputMethod.followLastAppSection
-        case .fallbackRule:
-            return TypeSwitchStrings.InputMethod.followLastFallbackSection
-        }
-    }
 
     var supportsFollowLast: Bool {
         switch self {

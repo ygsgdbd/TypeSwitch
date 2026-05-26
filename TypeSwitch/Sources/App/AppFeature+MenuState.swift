@@ -150,10 +150,25 @@ extension AppFeature.State {
             name: name,
             path: path,
             strategy: strategy,
+            defaultOptionLabel: appDefaultOptionLabel,
             selectedLabel: selectedLabel(for: strategy),
             followLastOptionLabel: followLastOptionLabel(for: strategy),
             hasMissingInputMethod: hasMissingInputMethod(in: strategy)
         )
+    }
+
+    private var appDefaultOptionLabel: String {
+        switch fallbackStrategy {
+        case .none:
+            return TypeSwitchStrings.InputMethod.appDefaultFallbackNoneOption
+        case .fixed(let inputMethodId):
+            guard let inputMethodName = inputMethodName(for: inputMethodId) else {
+                return TypeSwitchStrings.InputMethod.appDefaultMissingOption
+            }
+            return TypeSwitchStrings.InputMethod.appDefaultWithInputMethod(inputMethodName)
+        case .followLast:
+            return TypeSwitchStrings.InputMethod.appDefaultFallbackNoneOption
+        }
     }
 
     private func selectedLabel(for strategy: InputMethodStrategy) -> String? {
