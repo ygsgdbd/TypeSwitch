@@ -16,6 +16,7 @@
 "settings.fallback.default_input_method" = "Default Rule";
 
 // App List
+"apps.section.current_app" = "Current App";
 "apps.section.running_count" = "Running (%d)";
 "apps.section.configured_count" = "Configured (%d)";
 "apps.section.unavailable_count" = "Unavailable (%d)";

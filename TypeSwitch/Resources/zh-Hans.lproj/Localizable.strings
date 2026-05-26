@@ -16,6 +16,7 @@
 "settings.fallback.default_input_method" = "默认规则";
 
 // 应用列表
+"apps.section.current_app" = "当前应用";
 "apps.section.running_count" = "运行中 (%d)";
 "apps.section.configured_count" = "已配置 (%d)";
 "apps.section.unavailable_count" = "不可用 (%d)";

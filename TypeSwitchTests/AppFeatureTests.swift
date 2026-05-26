@@ -687,17 +687,29 @@ final class AppFeatureTests: XCTestCase {
         )
     }
 
+    func testCurrentAppMenuItemIsSeparatedFromRunningApps() {
+        let chat = AppInfo(bundleId: "com.test.chat", name: "Chat", path: "/Applications/Chat.app")
+        let notes = AppInfo(bundleId: "com.test.notes", name: "Notes", path: "/Applications/Notes.app")
+
+        var state = AppFeature.State()
+        state.currentFrontmostBundleId = chat.bundleId
+        state.runningApps = [chat, notes]
+
+        XCTAssertEqual(state.currentAppMenuItem?.bundleId, chat.bundleId)
+        XCTAssertEqual(state.runningMenuItems.map(\.bundleId), [notes.bundleId])
+    }
+
     func testMenuBarIconUsesKeyboardWithoutFrontmostApp() {
         let state = AppFeature.State()
 
-        XCTAssertEqual(state.menuBarIconSystemName, "keyboard")
+        XCTAssertEqual(state.menuBarIconSystemName, .keyboard)
     }
 
     func testMenuBarIconUsesUnconfiguredIconForFrontmostAppWithoutRule() {
         var state = AppFeature.State()
         state.currentFrontmostBundleId = "com.test.chat"
 
-        XCTAssertEqual(state.menuBarIconSystemName, "keyboard.badge.ellipsis")
+        XCTAssertEqual(state.menuBarIconSystemName, .keyboardBadgeEllipsis)
     }
 
     func testMenuBarIconUsesUnconfiguredIconForFrontmostAppWithNoneStrategy() {
@@ -716,7 +728,7 @@ final class AppFeatureTests: XCTestCase {
             )
         }
 
-        XCTAssertEqual(state.menuBarIconSystemName, "keyboard.badge.ellipsis")
+        XCTAssertEqual(state.menuBarIconSystemName, .keyboardBadgeEllipsis)
     }
 
     func testMenuBarIconUsesKeyboardForFrontmostAppWithFixedStrategy() {
@@ -735,7 +747,7 @@ final class AppFeatureTests: XCTestCase {
             )
         }
 
-        XCTAssertEqual(state.menuBarIconSystemName, "keyboard")
+        XCTAssertEqual(state.menuBarIconSystemName, .keyboard)
     }
 
     func testMenuBarIconUsesKeyboardForFrontmostAppWithFollowLastStrategy() {
@@ -754,7 +766,7 @@ final class AppFeatureTests: XCTestCase {
             )
         }
 
-        XCTAssertEqual(state.menuBarIconSystemName, "keyboard")
+        XCTAssertEqual(state.menuBarIconSystemName, .keyboard)
     }
 
     func testFollowLastWithoutRecordShowsEmptyMenuOption() {

@@ -9,6 +9,7 @@ struct MenuBarView: View {
 
     var body: some View {
         Group {
+            CurrentAppView(store: store)
             RunningAppsView(store: store)
             ConfiguredAppsView(store: store)
 
@@ -24,6 +25,23 @@ struct MenuBarView: View {
             Divider()
 
             AppInfoView()
+        }
+    }
+}
+
+private struct CurrentAppView: View {
+    let store: StoreOf<AppFeature>
+
+    var body: some View {
+        if let item = store.currentAppMenuItem {
+            Section(TypeSwitchStrings.Apps.Section.currentApp) {
+                AppRowView(
+                    item: item,
+                    inputMethods: store.inputMethods
+                ) { strategy in
+                    store.send(.view(.setStrategy(bundleId: item.bundleId, strategy: strategy)))
+                }
+            }
         }
     }
 }

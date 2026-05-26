@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUIX
 
 extension AppFeature.State {
     var launchAtLoginEnabled: Bool {
@@ -13,14 +14,14 @@ extension AppFeature.State {
         appRulesStore.rules
     }
 
-    var menuBarIconSystemName: String {
+    var menuBarIconSystemName: SFSymbolName {
         guard let currentFrontmostBundleId else {
-            return "keyboard"
+            return .keyboard
         }
 
         return strategy(for: currentFrontmostBundleId) == .none
-            ? "keyboard.badge.ellipsis"
-            : "keyboard"
+            ? .keyboardBadgeEllipsis
+            : .keyboard
     }
 
     var fallbackStrategy: InputMethodStrategy {
@@ -78,15 +79,31 @@ extension AppFeature.State {
             .map(menuItem(from:))
     }
 
-    var runningMenuItems: [AppMenuItem] {
-        runningApps.map { app in
-            menuItem(
-                bundleId: app.bundleId,
-                name: app.name,
-                path: app.path,
-                strategy: appRules[app.bundleId]?.strategy ?? .none
-            )
+    var currentAppMenuItem: AppMenuItem? {
+        guard let currentFrontmostBundleId,
+              let appInfo = knownAppInfo(for: currentFrontmostBundleId) else {
+            return nil
         }
+
+        return menuItem(
+            bundleId: appInfo.bundleId,
+            name: appInfo.name,
+            path: appInfo.path,
+            strategy: appRules[appInfo.bundleId]?.strategy ?? .none
+        )
+    }
+
+    var runningMenuItems: [AppMenuItem] {
+        runningApps
+            .filter { $0.bundleId != currentFrontmostBundleId }
+            .map { app in
+                menuItem(
+                    bundleId: app.bundleId,
+                    name: app.name,
+                    path: app.path,
+                    strategy: appRules[app.bundleId]?.strategy ?? .none
+                )
+            }
     }
 
     var unavailableApps: [AppMenuItem] {
@@ -147,6 +164,14 @@ extension AppFeature.State {
         }
 
         return AppInfo(bundleId: bundleId, name: bundleId, path: nil)
+    }
+
+    private func knownAppInfo(for bundleId: String) -> AppInfo? {
+        if let runningApp = runningApps.first(where: { $0.bundleId == bundleId }) {
+            return runningApp
+        }
+
+        return appRules[bundleId]?.appInfo
     }
 
     private func menuItem(
