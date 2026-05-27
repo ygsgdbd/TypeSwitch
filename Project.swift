@@ -1,8 +1,8 @@
 import ProjectDescription
 
 // MARK: - Version
-let appVersion = "0.4"  // 应用版本号
-let buildVersion = "@BUILD_NUMBER@"  // 构建版本号占位符，会被 GitHub Actions 替换
+let appVersion = Environment.appVersion.getString(default: "0.0.0")
+let buildVersion = Environment.buildVersion.getString(default: "0")
 
 let project = Project(
     name: "TypeSwitch",
