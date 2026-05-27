@@ -1,41 +1,99 @@
+import ComposableArchitecture
 import SwiftUI
 import SwiftUIX
 
 /// 应用行视图，处理单个应用的显示和输入法选择
 struct AppRowView: View {
-    let app: AppInfo
-    @EnvironmentObject private var viewModel: InputMethodManager
-    
+    let item: AppFeature.State.AppMenuItem
+    let inputMethods: [InputMethod]
+    let onSelectStrategy: (InputMethodStrategy) -> Void
+
     var body: some View {
         Menu {
-            // 默认输入法选项
+            InputMethodStrategyMenuContent(
+                context: .appRule,
+                strategy: item.strategy,
+                inputMethods: inputMethods,
+                defaultOptionLabel: item.defaultOptionLabel,
+                followLastOptionLabel: item.followLastOptionLabel,
+                onSelectStrategy: onSelectStrategy
+            )
+        } label: {
+            if item.path != nil {
+                AppInfo(bundleId: item.bundleId, name: item.name, path: item.path).icon
+            }
+            Text(item.name)
+            item.selectedLabel.ifSome {
+                Text($0)
+                    .foregroundStyle(item.hasMissingInputMethod ? .secondary : .primary)
+            }
+        }
+    }
+}
+
+struct InputMethodStrategyMenuContent: View {
+    let context: InputMethodStrategyMenuContext
+    let strategy: InputMethodStrategy
+    let inputMethods: [InputMethod]
+    let defaultOptionLabel: String
+    let followLastOptionLabel: String
+    let onSelectStrategy: (InputMethodStrategy) -> Void
+
+    var body: some View {
+        Button(action: {
+            onSelectStrategy(.none)
+        }) {
+            if strategy == .none {
+                Image(systemName: .checkmark)
+            }
+            Text(defaultOptionLabel)
+        }
+
+        Divider()
+
+        if context.supportsFollowLast {
             Button(action: {
-                viewModel.setInputMethod(for: app, to: nil)
+                onSelectStrategy(followLastStrategy)
             }) {
-                if viewModel.getInputMethod(for: app) == nil {
+                if case .followLast = strategy {
                     Image(systemName: .checkmark)
                 }
-                Text(TypeSwitchStrings.InputMethod.defaultOption)
+                Text(followLastOptionLabel)
             }
-            
+
             Divider()
-            
-            // 已安装的输入法选项
-            ForEach(viewModel.inputMethods, id: \.id) { inputMethod in
-                Button(action: {
-                    viewModel.setInputMethod(for: app, to: inputMethod.id)
-                }) {
-                    if viewModel.getInputMethod(for: app) == inputMethod.id {
-                        Image(systemName: .checkmark)
-                    }
-                    Text(inputMethod.name)
+        }
+
+        ForEach(inputMethods, id: \.id) { inputMethod in
+            Button(action: {
+                onSelectStrategy(.fixed(inputMethodId: inputMethod.id))
+            }) {
+                if strategy == .fixed(inputMethodId: inputMethod.id) {
+                    Image(systemName: .checkmark)
                 }
+                Text(inputMethod.name)
             }
-        } label: {
-            // 应用行标签内容
-            app.icon
-            Text(app.name)
-            viewModel.getSelectedInputMethodName(for: app).ifSome { Text($0) }
+        }
+    }
+
+    private var followLastStrategy: InputMethodStrategy {
+        if case .followLast(let lastInputMethodId) = strategy {
+            return .followLast(lastInputMethodId: lastInputMethodId)
+        }
+        return .followLast(lastInputMethodId: nil)
+    }
+}
+
+enum InputMethodStrategyMenuContext {
+    case appRule
+    case fallbackRule
+
+    var supportsFollowLast: Bool {
+        switch self {
+        case .appRule:
+            return true
+        case .fallbackRule:
+            return false
         }
     }
 }
