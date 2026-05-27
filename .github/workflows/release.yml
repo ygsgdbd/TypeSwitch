@@ -58,6 +58,8 @@ jobs:
             -project TypeSwitch.xcodeproj \
             -scheme TypeSwitch \
             -destination "platform=macOS" \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO
@@ -70,6 +72,8 @@ jobs:
             -configuration Release \
             -destination "generic/platform=macOS" \
             -archivePath ./DerivedData/Archives/TypeSwitch.xcarchive \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
             archive \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_ALLOWED=NO \
