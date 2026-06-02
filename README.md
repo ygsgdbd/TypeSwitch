@@ -87,7 +87,8 @@ TypeSwitch takes user privacy and security seriously:
 
 This project uses the following open source libraries:
 
-- [Defaults](https://github.com/sindresorhus/Defaults) (7.3.1) - For persistent settings storage
+- [The Composable Architecture](https://github.com/pointfreeco/swift-composable-architecture) (1.25.5) - For TCA app architecture and state management
+- [Sharing](https://github.com/pointfreeco/swift-sharing) (2.0.0) - For file-backed shared state persistence
 - [SwiftUIX](https://github.com/SwiftUIX/SwiftUIX) (0.2.3) - Provides additional SwiftUI components
 - [SwifterSwift](https://github.com/SwifterSwift/SwifterSwift) (8.0.0) - Swift native extensions
 

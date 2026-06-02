@@ -91,7 +91,8 @@ TypeSwitch 非常重视用户隐私和安全：
 
 本项目使用以下开源库：
 
-- [Defaults](https://github.com/sindresorhus/Defaults) (7.3.1) - 用于持久化存储设置
+- [The Composable Architecture](https://github.com/pointfreeco/swift-composable-architecture) (1.25.5) - 用于 TCA 应用架构和状态管理
+- [Sharing](https://github.com/pointfreeco/swift-sharing) (2.0.0) - 用于基于文件的共享状态持久化
 - [SwiftUIX](https://github.com/SwiftUIX/SwiftUIX) (0.2.3) - 提供额外的 SwiftUI 组件
 - [SwifterSwift](https://github.com/SwifterSwift/SwifterSwift) (8.0.0) - Swift 原生扩展
 
