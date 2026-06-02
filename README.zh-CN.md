@@ -20,19 +20,22 @@ TypeSwitch 是一个 macOS 菜单栏工具，用于按 App 自动切换输入法
 ## 截图预览
 
 <div align="center">
-  <img src="Screenshots/main-20250913-220809.png" width="400" alt="主界面">
-  <p><em>菜单栏界面 - 为不同应用设置默认输入法</em></p>
+  <img src="Screenshots/main-20260602-kuxy.png" width="382" alt="TypeSwitch 菜单栏界面">
+  <p><em>菜单栏界面 - 管理 App 规则、默认规则、不可用项和切换统计</em></p>
 </div>
 
 
 ## 功能特点
 
 - 🔄 自动切换：切换 App 时切换输入法
+- 🧭 当前应用：在菜单顶部直接配置当前 App
 - 📱 菜单栏界面：快速查看和设置
-- 🎯 按 App 设置：每个 App 独立配置
+- 📋 运行中应用：直接配置打开中的 App
+- ⚙️ 已配置应用：管理已有 App 规则
+- 🎯 默认规则：设置未单独配置 App 的输入法策略
+- 🧹 不可用应用：查看并清理已失效 App 规则
+- 📊 切换统计：查看每个 App 的成功切换次数，可清零
 - 🚀 开机启动：登录后自动运行
-- 📋 运行中应用：直接配置当前 App
-- ⚙️ 已配置应用：集中管理已有设置
 - ⌨️ 快捷键支持：
   - `⌘ + Q` - 退出应用
 - 🔗 快速链接：直接访问 GitHub 仓库和最新发布版本
@@ -65,10 +68,11 @@ brew install --cask typeswitch
 
 1. 启动后，应用图标（⌨️）会出现在菜单栏中
 2. 点击菜单栏图标打开下拉菜单
-3. 在“运行中应用”或“已配置应用”中选择 App
-4. 选择“跟随全局设置”“记住上次”或指定输入法
-5. 切换到该 App 时，TypeSwitch 会自动切换输入法
-6. 在“设置”中配置全局规则和开机启动
+3. 用“当前应用”或“运行中应用”配置当前或打开中的 App
+4. 用“已配置应用”管理已保存的 App 规则
+5. 选择“默认”“记住上次”“忽略”或指定输入法
+6. 在主菜单设置“默认规则”和“开机启动”
+7. 按需查看“不可用”和“切换统计”
 
 ## 🔒 安全
 
@@ -140,49 +144,6 @@ git push origin v1.0.0
    - 生成更新日志
 
 3. 构建产物可在 [Releases](https://github.com/ygsgdbd/TypeSwitch/releases) 页面下载
-
-### 项目结构
-
-```
-TypeSwitch/
-├── Project.swift                    # Tuist 项目配置
-├── Tuist/                          # Tuist 配置文件
-│   └── Signing/
-│       └── TypeSwitch.entitlements
-├── TypeSwitch/                     # 主要源代码
-│   ├── Sources/
-│   │   ├── App/                    # 应用入口
-│   │   │   └── TypeSwitchApp.swift
-│   │   ├── Core/                   # 核心模型和扩展
-│   │   │   ├── Models/
-│   │   │   │   ├── AppInfo.swift
-│   │   │   │   ├── InputMethod.swift
-│   │   │   │   └── InputSourceProperties.swift
-│   │   │   └── Extensions/
-│   │   │       └── Defaults+Extensions.swift
-│   │   ├── Services/               # 业务逻辑服务
-│   │   │   ├── AppManagement/
-│   │   │   │   ├── AppInfoService.swift
-│   │   │   │   └── AppListService.swift
-│   │   │   ├── InputMethod/
-│   │   │   │   ├── InputMethodManager.swift
-│   │   │   │   └── InputMethodService.swift
-│   │   │   └── System/
-│   │   │       └── LaunchAtLoginService.swift
-│   │   └── UI/                     # 用户界面
-│   │       └── Views/
-│   │           └── MenuBar/        # 菜单栏界面
-│   │               ├── MenuBarView.swift
-│   │               ├── RunningAppsView.swift
-│   │               ├── ConfiguredAppsView.swift
-│   │               ├── AppRowView.swift
-│   │               ├── SettingsView.swift
-│   │               └── AppInfoView.swift
-│   └── Resources/                  # 应用资源
-│       ├── Assets.xcassets/        # 应用图标和图片
-│       └── *.lproj/               # 本地化文件
-└── Screenshots/                   # 应用截图
-```
 
 ## 贡献指南
 

@@ -20,19 +20,22 @@ TypeSwitch is a macOS menu bar utility for switching input methods per app.
 ## ✨ Screenshots
 
 <div align="center">
-  <img src="Screenshots/main-20250913-220809.png" width="400" alt="Main Interface">
-  <p><em>Menu Bar Interface - Set default input method for different applications</em></p>
+  <img src="Screenshots/main-20260602-kuxy.png" width="382" alt="TypeSwitch menu bar interface">
+  <p><em>Menu bar interface - manage app rules, default rule, unavailable apps, and switch statistics</em></p>
 </div>
 
 
 ## 🎯 Features
 
 - 🔄 **Auto Switch**: Switch input methods when changing apps
+- 🧭 **Current App**: Configure the frontmost app at the top of the menu
 - 📱 **Menu Bar Interface**: View and set rules quickly
-- 🎯 **Per-App Settings**: Configure each app independently
-- 🚀 **Auto Start**: Run automatically at login
-- 📋 **Running Apps**: Configure current apps directly
-- ⚙️ **Configured Apps**: Manage existing settings
+- 📋 **Running Apps**: Configure open apps directly
+- ⚙️ **Configured Apps**: Manage saved app rules
+- 🎯 **Default Rule**: Set the fallback strategy for apps without their own rule
+- 🧹 **Unavailable Apps**: Review and clean up rules for missing apps
+- 📊 **Switch Statistics**: Track successful switches per app and clear the counts
+- 🚀 **Launch at Login**: Run automatically after login
 - ⌨️ **Keyboard Shortcuts**:
   - `⌘ + Q` - Quit application
 - 🔗 **Quick Links**: Direct access to GitHub repository and latest releases
@@ -61,10 +64,11 @@ brew install ygsgdbd/tap/typeswitch --cask
 
 1. After launching, the app icon (⌨️) appears in the menu bar
 2. Click the menu bar icon to open the dropdown menu
-3. Pick an app from Running Apps or Configured Apps
-4. Choose Follow global setting, Remember Last, or a fixed input method
-5. TypeSwitch switches input methods when that app becomes active
-6. Use Settings for the global rule and launch at login
+3. Use Current App or Running Apps to configure the active or open apps
+4. Use Configured Apps to manage saved app rules
+5. Choose Default, Remember Last, Ignore, or a fixed input method
+6. Set the Default Rule and Launch at Login from the main menu
+7. Review Unavailable Apps and Switch Statistics when needed
 
 ## 🔒 Security
 
@@ -136,49 +140,6 @@ git push origin v1.0.0
    - Generate changelog
 
 3. Build artifacts can be downloaded from [Releases](https://github.com/ygsgdbd/TypeSwitch/releases)
-
-### Project Structure
-
-```
-TypeSwitch/
-├── Project.swift                    # Tuist project configuration
-├── Tuist/                          # Tuist configuration files
-│   └── Signing/
-│       └── TypeSwitch.entitlements
-├── TypeSwitch/                     # Main source code
-│   ├── Sources/
-│   │   ├── App/                    # App entry point
-│   │   │   └── TypeSwitchApp.swift
-│   │   ├── Core/                   # Core models and extensions
-│   │   │   ├── Models/
-│   │   │   │   ├── AppInfo.swift
-│   │   │   │   ├── InputMethod.swift
-│   │   │   │   └── InputSourceProperties.swift
-│   │   │   └── Extensions/
-│   │   │       └── Defaults+Extensions.swift
-│   │   ├── Services/               # Business logic services
-│   │   │   ├── AppManagement/
-│   │   │   │   ├── AppInfoService.swift
-│   │   │   │   └── AppListService.swift
-│   │   │   ├── InputMethod/
-│   │   │   │   ├── InputMethodManager.swift
-│   │   │   │   └── InputMethodService.swift
-│   │   │   └── System/
-│   │   │       └── LaunchAtLoginService.swift
-│   │   └── UI/                     # User interface
-│   │       └── Views/
-│   │           └── MenuBar/        # Menu bar interface
-│   │               ├── MenuBarView.swift
-│   │               ├── RunningAppsView.swift
-│   │               ├── ConfiguredAppsView.swift
-│   │               ├── AppRowView.swift
-│   │               ├── SettingsView.swift
-│   │               └── AppInfoView.swift
-│   └── Resources/                  # App resources
-│       ├── Assets.xcassets/        # App icons and images
-│       └── *.lproj/               # Localization files
-└── Screenshots/                   # App screenshots
-```
 
 ## Contributing
 
