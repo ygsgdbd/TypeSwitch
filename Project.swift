@@ -11,12 +11,11 @@ let project = Project(
         developmentRegion: "zh-Hans"
     ),
     packages: [
-        .remote(url: "https://github.com/pointfreeco/swift-case-paths", requirement: .upToNextMajor(from: "1.7.3")),
-        .remote(url: "https://github.com/pointfreeco/swift-composable-architecture", requirement: .upToNextMajor(from: "1.25.5")),
-        .remote(url: "https://github.com/pointfreeco/swift-dependencies", requirement: .upToNextMajor(from: "1.12.0")),
+        .remote(url: "https://github.com/pointfreeco/swift-case-paths", requirement: .upToNextMajor(from: "1.8.0")),
+        .remote(url: "https://github.com/pointfreeco/swift-composable-architecture", requirement: .upToNextMajor(from: "1.26.0")),
+        .remote(url: "https://github.com/pointfreeco/swift-dependencies", requirement: .upToNextMajor(from: "1.14.1")),
         .remote(url: "https://github.com/pointfreeco/swift-perception", requirement: .upToNextMajor(from: "2.0.10")),
-        .remote(url: "https://github.com/pointfreeco/swift-sharing", requirement: .upToNextMajor(from: "2.0.0")),
-        .remote(url: "https://github.com/SwiftUIX/SwiftUIX", requirement: .upToNextMajor(from: "0.2.3")),
+        .remote(url: "https://github.com/pointfreeco/swift-sharing", requirement: .upToNextMajor(from: "2.9.1")),
         .remote(url: "https://github.com/SwifterSwift/SwifterSwift", requirement: .upToNextMajor(from: "8.0.0"))
     ],
     settings: .settings(
@@ -63,7 +62,6 @@ let project = Project(
                 .package(product: "Dependencies"),
                 .package(product: "PerceptionCore"),
                 .package(product: "Sharing"),
-                .package(product: "SwiftUIX"),
                 .package(product: "SwifterSwift")
             ],
             settings: .settings(

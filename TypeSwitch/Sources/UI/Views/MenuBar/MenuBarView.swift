@@ -1,7 +1,6 @@
 import AppKit
 import ComposableArchitecture
 import SwiftUI
-import SwiftUIX
 
 /// 菜单栏主视图
 struct MenuBarView: View {

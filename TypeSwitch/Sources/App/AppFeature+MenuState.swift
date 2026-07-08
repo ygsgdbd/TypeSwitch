@@ -1,5 +1,4 @@
 import Foundation
-import SwiftUIX
 
 extension AppFeature.State {
     var launchAtLoginEnabled: Bool {
@@ -14,14 +13,14 @@ extension AppFeature.State {
         appRulesStore.rules
     }
 
-    var menuBarIconSystemName: SFSymbolName {
+    var menuBarIconSystemName: String {
         guard let currentFrontmostBundleId else {
-            return .keyboard
+            return "keyboard"
         }
 
         return strategy(for: currentFrontmostBundleId) == .none
-            ? .keyboardBadgeEllipsis
-            : .keyboard
+            ? "keyboard.badge.ellipsis"
+            : "keyboard"
     }
 
     var fallbackStrategy: InputMethodStrategy {
@@ -93,17 +92,12 @@ extension AppFeature.State {
         )
     }
 
-    var runningMenuItems: [AppMenuItem] {
-        runningApps
-            .filter { $0.bundleId != currentFrontmostBundleId }
-            .map { app in
-                menuItem(
-                    bundleId: app.bundleId,
-                    name: app.name,
-                    path: app.path,
-                    strategy: appRules[app.bundleId]?.strategy ?? .none
-                )
-            }
+    var runningConfiguredMenuItems: [AppMenuItem] {
+        runningMenuItems { $0 != .none }
+    }
+
+    var runningUnconfiguredMenuItems: [AppMenuItem] {
+        runningMenuItems { $0 == .none }
     }
 
     var unavailableApps: [AppMenuItem] {
@@ -152,6 +146,28 @@ extension AppFeature.State {
             path: rule.isAvailable ? rule.lastKnownPath : nil,
             strategy: rule.strategy
         )
+    }
+
+    private func runningMenuItems(
+        matching isIncluded: (InputMethodStrategy) -> Bool
+    ) -> [AppMenuItem] {
+        runningApps.compactMap { app in
+            guard app.bundleId != currentFrontmostBundleId else {
+                return nil
+            }
+
+            let strategy = appRules[app.bundleId]?.strategy ?? .none
+            guard isIncluded(strategy) else {
+                return nil
+            }
+
+            return menuItem(
+                bundleId: app.bundleId,
+                name: app.name,
+                path: app.path,
+                strategy: strategy
+            )
+        }
     }
 
     private func appInfo(for bundleId: String) -> AppInfo {

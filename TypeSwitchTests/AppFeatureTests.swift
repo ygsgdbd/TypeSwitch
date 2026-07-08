@@ -645,7 +645,7 @@ final class AppFeatureTests: XCTestCase {
         }
 
         XCTAssertEqual(
-            state.runningMenuItems.first?.followLastOptionLabel,
+            state.runningConfiguredMenuItems.first?.followLastOptionLabel,
             TypeSwitchStrings.InputMethod.followLastWithInputMethod("Pinyin")
         )
     }
@@ -659,14 +659,14 @@ final class AppFeatureTests: XCTestCase {
         )
     }
 
-    func testAppDefaultOptionShowsIgnoredFallbackRule() {
+    func testAppDefaultOptionShowsNoAutomaticSwitchFallbackRule() {
         let app = AppInfo(bundleId: "com.test.chat", name: "Chat", path: "/Applications/Chat.app")
 
         var state = AppFeature.State()
         state.runningApps = [app]
 
         XCTAssertEqual(
-            state.runningMenuItems.first?.defaultOptionLabel,
+            state.runningUnconfiguredMenuItems.first?.defaultOptionLabel,
             TypeSwitchStrings.InputMethod.appDefaultFallbackNoneOption
         )
     }
@@ -682,9 +682,54 @@ final class AppFeatureTests: XCTestCase {
         }
 
         XCTAssertEqual(
-            state.runningMenuItems.first?.defaultOptionLabel,
+            state.runningUnconfiguredMenuItems.first?.defaultOptionLabel,
             TypeSwitchStrings.InputMethod.appDefaultWithInputMethod("Pinyin")
         )
+    }
+
+    func testRunningAppsSplitConfiguredAndUnconfiguredMenuItems() {
+        let browser = AppInfo(bundleId: "com.test.browser", name: "Browser", path: "/Applications/Browser.app")
+        let chat = AppInfo(bundleId: "com.test.chat", name: "Chat", path: "/Applications/Chat.app")
+        let notes = AppInfo(bundleId: "com.test.notes", name: "Notes", path: "/Applications/Notes.app")
+        let terminal = AppInfo(bundleId: "com.test.terminal", name: "Terminal", path: "/Applications/Terminal.app")
+
+        var state = AppFeature.State()
+        state.runningApps = [browser, chat, notes, terminal]
+        state.$appRulesStore.withLock {
+            $0.rules[browser.bundleId] = AppRuleRecord(
+                bundleId: browser.bundleId,
+                lastKnownPath: browser.path,
+                lastKnownName: browser.name,
+                strategy: .fixed(inputMethodId: "ime.en"),
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+            $0.rules[chat.bundleId] = AppRuleRecord(
+                bundleId: chat.bundleId,
+                lastKnownPath: chat.path,
+                lastKnownName: chat.name,
+                strategy: .none,
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+            $0.rules[terminal.bundleId] = AppRuleRecord(
+                bundleId: terminal.bundleId,
+                lastKnownPath: terminal.path,
+                lastKnownName: terminal.name,
+                strategy: .followLast(lastInputMethodId: nil),
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+        }
+
+        XCTAssertEqual(state.runningConfiguredMenuItems.map(\.bundleId), [
+            browser.bundleId,
+            terminal.bundleId
+        ])
+        XCTAssertEqual(state.runningUnconfiguredMenuItems.map(\.bundleId), [
+            chat.bundleId,
+            notes.bundleId
+        ])
     }
 
     func testCurrentAppMenuItemIsSeparatedFromRunningApps() {
@@ -696,20 +741,21 @@ final class AppFeatureTests: XCTestCase {
         state.runningApps = [chat, notes]
 
         XCTAssertEqual(state.currentAppMenuItem?.bundleId, chat.bundleId)
-        XCTAssertEqual(state.runningMenuItems.map(\.bundleId), [notes.bundleId])
+        XCTAssertTrue(state.runningConfiguredMenuItems.isEmpty)
+        XCTAssertEqual(state.runningUnconfiguredMenuItems.map(\.bundleId), [notes.bundleId])
     }
 
     func testMenuBarIconUsesKeyboardWithoutFrontmostApp() {
         let state = AppFeature.State()
 
-        XCTAssertEqual(state.menuBarIconSystemName, .keyboard)
+        XCTAssertEqual(state.menuBarIconSystemName, "keyboard")
     }
 
     func testMenuBarIconUsesUnconfiguredIconForFrontmostAppWithoutRule() {
         var state = AppFeature.State()
         state.currentFrontmostBundleId = "com.test.chat"
 
-        XCTAssertEqual(state.menuBarIconSystemName, .keyboardBadgeEllipsis)
+        XCTAssertEqual(state.menuBarIconSystemName, "keyboard.badge.ellipsis")
     }
 
     func testMenuBarIconUsesUnconfiguredIconForFrontmostAppWithNoneStrategy() {
@@ -728,7 +774,7 @@ final class AppFeatureTests: XCTestCase {
             )
         }
 
-        XCTAssertEqual(state.menuBarIconSystemName, .keyboardBadgeEllipsis)
+        XCTAssertEqual(state.menuBarIconSystemName, "keyboard.badge.ellipsis")
     }
 
     func testMenuBarIconUsesKeyboardForFrontmostAppWithFixedStrategy() {
@@ -747,7 +793,7 @@ final class AppFeatureTests: XCTestCase {
             )
         }
 
-        XCTAssertEqual(state.menuBarIconSystemName, .keyboard)
+        XCTAssertEqual(state.menuBarIconSystemName, "keyboard")
     }
 
     func testMenuBarIconUsesKeyboardForFrontmostAppWithFollowLastStrategy() {
@@ -766,7 +812,7 @@ final class AppFeatureTests: XCTestCase {
             )
         }
 
-        XCTAssertEqual(state.menuBarIconSystemName, .keyboard)
+        XCTAssertEqual(state.menuBarIconSystemName, "keyboard")
     }
 
     func testFollowLastWithoutRecordShowsEmptyMenuOption() {
@@ -786,14 +832,20 @@ final class AppFeatureTests: XCTestCase {
         }
 
         XCTAssertEqual(
-            state.runningMenuItems.first?.followLastOptionLabel,
+            state.runningConfiguredMenuItems.first?.followLastOptionLabel,
             TypeSwitchStrings.InputMethod.followLastEmptyOption
         )
 
+        let unrecordedApp = AppInfo(
+            bundleId: "com.test.unrecorded-chat",
+            name: "Chat",
+            path: "/Applications/Chat.app"
+        )
+
         var defaultState = AppFeature.State()
-        defaultState.runningApps = [app]
+        defaultState.runningApps = [unrecordedApp]
         XCTAssertEqual(
-            defaultState.runningMenuItems.first?.followLastOptionLabel,
+            defaultState.runningUnconfiguredMenuItems.first?.followLastOptionLabel,
             TypeSwitchStrings.InputMethod.followLastEmptyOption
         )
     }

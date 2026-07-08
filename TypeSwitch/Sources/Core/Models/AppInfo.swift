@@ -1,7 +1,6 @@
 import AppKit
 import Foundation
 import SwiftUI
-import SwiftUIX
 
 /// 应用信息数据模型
 struct AppInfo: Identifiable, Sendable, Hashable {
@@ -14,7 +13,7 @@ struct AppInfo: Identifiable, Sendable, Hashable {
     @MainActor
     var icon: Image {
         guard let path, FileManager.default.fileExists(atPath: path) else {
-            return Image(systemName: .appDashed)
+            return Image(systemName: "app.dashed")
         }
         return Image(nsImage: NSWorkspace.shared.icon(forFile: path))
     }

@@ -1,6 +1,6 @@
 import AppKit
 import ComposableArchitecture
-import SwiftUIX
+import SwiftUI
 
 @main
 struct TypeSwitchApp: App {

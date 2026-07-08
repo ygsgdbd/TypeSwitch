@@ -1,10 +1,14 @@
 // 应用信息
-"app.about" = "关于 TypeSwitch %@";
-"app.github_repository" = "打开 GitHub 仓库";
-"app.latest_release" = "最新版本";
+"app.about" = "关于 TypeSwitch";
+"app.about.summary" = "macOS 输入法自动切换工具";
+"app.about.repository_title" = "仓库";
+"app.about.license_title" = "许可证";
+"app.about.copyright_title" = "版权";
+"app.about.open_repository" = "打开仓库";
+"app.about.close" = "关闭";
 
 // 菜单
-"menu.quit" = "退出";
+"menu.quit" = "退出 TypeSwitch";
 
 // 通用
 "common.cancel" = "取消";
@@ -13,11 +17,12 @@
 "settings.general.auto_launch" = "开机启动";
 "settings.general.auto_launch_requires_approval" = "请在系统设置 > 通用 > 登录项中批准 TypeSwitch。";
 "settings.general.open_login_items" = "打开登录项设置";
-"settings.fallback.default_input_method" = "默认规则";
+"settings.fallback.default_input_method" = "未配置应用规则";
 
 // 应用列表
 "apps.section.current_app" = "当前应用";
 "apps.section.running_count" = "运行中 (%d)";
+"apps.section.unconfigured_count" = "未配置 (%d)";
 "apps.section.configured_count" = "已配置 (%d)";
 "apps.section.unavailable_count" = "不可用 (%d)";
 "apps.clear_unavailable" = "清理不可用项";
@@ -26,8 +31,7 @@
 "apps.clear_unavailable_confirmation.confirm" = "清理";
 
 // 切换统计
-"switch_statistics.menu_title" = "切换统计 (总计 %d)";
-"switch_statistics.total_count" = "总计 %d 次";
+"switch_statistics.menu_title" = "切换统计 (%d)";
 "switch_statistics.app_count" = "%d 次";
 "switch_statistics.empty" = "暂无切换统计";
 "switch_statistics.clear" = "清零统计";
@@ -38,23 +42,23 @@
 // 输入法相关
 "input_method.default_section" = "默认";
 "input_method.app_default_option" = "默认";
-"input_method.app_default_fallback_none_option" = "默认（忽略）";
+"input_method.app_default_fallback_none_option" = "默认（不自动切换）";
 "input_method.app_default_missing_option" = "默认（不可用）";
 "input_method.app_default_with_input_method" = "默认（%@）";
-"input_method.fallback_default_option" = "忽略";
-"input_method.default_option" = "忽略";
-"input_method.follow_last_section" = "记住上次输入法";
+"input_method.fallback_default_option" = "不自动切换";
+"input_method.default_option" = "不自动切换";
+"input_method.follow_last_section" = "记住上次切换";
 "input_method.follow_last_app_section" = "记住此 App";
-"input_method.follow_last_fallback_section" = "记住上次";
-"input_method.follow_last_option" = "记住上次输入法";
-"input_method.follow_last_empty_option" = "记住上次";
-"input_method.follow_last_with_input_method" = "记住上次（%@）";
+"input_method.follow_last_fallback_section" = "记住上次切换";
+"input_method.follow_last_option" = "记住上次切换";
+"input_method.follow_last_empty_option" = "记住上次切换";
+"input_method.follow_last_with_input_method" = "记住上次切换（%@）";
 "input_method.fixed_section" = "指定输入法";
 "input_method.deleted_option" = "已删除的输入法";
-"input_method.follow_last_missing_option" = "记住上次（不可用）";
+"input_method.follow_last_missing_option" = "记住上次切换（不可用）";
 "input_method.clear_missing_configuration" = "清理失效设置";
 "input_method.clear_missing_confirmation.title" = "清理失效设置？";
-"input_method.clear_missing_confirmation.message" = "失效项会改为跟随全局设置。";
+"input_method.clear_missing_confirmation.message" = "失效项会改为跟随未配置应用规则。";
 "input_method.clear_missing_confirmation.confirm" = "清理";
 
 // 错误信息

@@ -1,5 +1,5 @@
 {
-  "originHash" : "f93fef90fa085eb204c05ea2442e6beb0725c1fd15466e1636c98cedb06d86a7",
+  "originHash" : "cd3a826fa436f96c5ef6a304b920a622283a069e1663a0a5688fcced36e025c9",
   "pins" : [
     {
       "identity" : "combine-schedulers",
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-case-paths",
       "state" : {
-        "revision" : "206cbce3882b4de9aee19ce62ac5b7306cadd45b",
-        "version" : "1.7.3"
+        "revision" : "1197e80bc7e4b177051b6869ef93d8ac3ad677da",
+        "version" : "1.8.0"
       }
     },
     {
@@ -42,8 +42,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-composable-architecture",
       "state" : {
-        "revision" : "1eaa6fa2ee57ac42843283b9fd3457af408c858d",
-        "version" : "1.25.5"
+        "revision" : "e2fa1df6cd9eec6fa6314aa20513e47da576f24e",
+        "version" : "1.26.0"
       }
     },
     {
@@ -69,8 +69,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-dependencies",
       "state" : {
-        "revision" : "706feb7858a7f6c242879d137b8ee30926aa5b26",
-        "version" : "1.12.0"
+        "revision" : "8dc1fbf2f6255a73dec53b4648164884898db4c5",
+        "version" : "1.14.1"
       }
     },
     {
@@ -105,8 +105,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-sharing",
       "state" : {
-        "revision" : "bc27f8322bc30f6ce7d864d137dc77a6de8b57eb",
-        "version" : "2.8.0"
+        "revision" : "8244fe63bf43e58188ab13851ad693eecf6a9e90",
+        "version" : "2.9.1"
       }
     },
     {
@@ -125,15 +125,6 @@
       "state" : {
         "revision" : "5d948a15446bddb6c367bc7e7100cfcbaa0e9b57",
         "version" : "8.0.0"
-      }
-    },
-    {
-      "identity" : "swiftuix",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/SwiftUIX/SwiftUIX",
-      "state" : {
-        "revision" : "e984fd2e08140ad5a95d084be38fe02b774bc15d",
-        "version" : "0.2.3"
       }
     },
     {

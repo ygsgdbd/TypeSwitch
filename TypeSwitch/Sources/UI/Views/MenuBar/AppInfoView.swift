@@ -1,23 +1,13 @@
 import AppKit
 import SwiftUI
 
-/// 应用信息视图，显示版本信息和相关链接
+/// 应用信息视图，显示关于面板和退出入口
 struct AppInfoView: View {
     var body: some View {
         Section {
-            // 版本信息
-            Text(TypeSwitchStrings.App.about(AppInfoService.fullVersionInfo))
-                .foregroundColor(.secondary)
-
-            Divider()
-
-            // 相关链接
-            Button(TypeSwitchStrings.App.githubRepository) {
-                AppInfoService.openGitHubRepository()
-            }
-
-            Button(TypeSwitchStrings.App.latestRelease) {
-                AppInfoService.openLatestRelease()
+            // 关于面板
+            Button(TypeSwitchStrings.App.about) {
+                AppInfoService.openAboutWindow()
             }
 
             Divider()

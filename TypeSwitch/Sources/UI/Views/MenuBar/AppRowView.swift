@@ -1,6 +1,5 @@
 import ComposableArchitecture
 import SwiftUI
-import SwiftUIX
 
 /// 应用行视图，处理单个应用的显示和输入法选择
 struct AppRowView: View {
@@ -23,8 +22,8 @@ struct AppRowView: View {
                 AppInfo(bundleId: item.bundleId, name: item.name, path: item.path).icon
             }
             Text(item.name)
-            item.selectedLabel.ifSome {
-                Text($0)
+            if let selectedLabel = item.selectedLabel {
+                Text(selectedLabel)
                     .foregroundStyle(item.hasMissingInputMethod ? .secondary : .primary)
             }
         }
@@ -44,7 +43,7 @@ struct InputMethodStrategyMenuContent: View {
             onSelectStrategy(.none)
         }) {
             if strategy == .none {
-                Image(systemName: .checkmark)
+                Image(systemName: "checkmark")
             }
             Text(defaultOptionLabel)
         }
@@ -56,7 +55,7 @@ struct InputMethodStrategyMenuContent: View {
                 onSelectStrategy(followLastStrategy)
             }) {
                 if case .followLast = strategy {
-                    Image(systemName: .checkmark)
+                    Image(systemName: "checkmark")
                 }
                 Text(followLastOptionLabel)
             }
@@ -69,7 +68,7 @@ struct InputMethodStrategyMenuContent: View {
                 onSelectStrategy(.fixed(inputMethodId: inputMethod.id))
             }) {
                 if strategy == .fixed(inputMethodId: inputMethod.id) {
-                    Image(systemName: .checkmark)
+                    Image(systemName: "checkmark")
                 }
                 Text(inputMethod.name)
             }

@@ -11,10 +11,6 @@ struct SwitchStatisticsView: View {
                     Text(TypeSwitchStrings.SwitchStatistics.empty)
                         .foregroundStyle(.secondary)
                 } else {
-                    Text(TypeSwitchStrings.SwitchStatistics.totalCount(store.totalSuccessfulSwitchCount))
-
-                    Divider()
-
                     ForEach(store.switchStatisticsItems) { item in
                         Button {} label: {
                             if item.path != nil {
