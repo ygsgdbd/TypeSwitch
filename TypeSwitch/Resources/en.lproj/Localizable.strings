@@ -1,11 +1,5 @@
 // App Information
-"app.about" = "About TypeSwitch";
-"app.about.summary" = "Automatic input method switcher for macOS";
-"app.about.repository_title" = "Repository";
-"app.about.license_title" = "License";
-"app.about.copyright_title" = "Copyright";
-"app.about.open_repository" = "Open Repository";
-"app.about.close" = "Close";
+"app.github" = "GitHub";
 
 // Menu
 "menu.quit" = "Quit TypeSwitch";

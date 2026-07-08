@@ -1,11 +1,5 @@
 // 应用信息
-"app.about" = "关于 TypeSwitch";
-"app.about.summary" = "macOS 输入法自动切换工具";
-"app.about.repository_title" = "仓库";
-"app.about.license_title" = "许可证";
-"app.about.copyright_title" = "版权";
-"app.about.open_repository" = "打开仓库";
-"app.about.close" = "关闭";
+"app.github" = "GitHub";
 
 // 菜单
 "menu.quit" = "退出 TypeSwitch";

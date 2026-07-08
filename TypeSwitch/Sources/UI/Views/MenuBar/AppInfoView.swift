@@ -1,13 +1,13 @@
 import AppKit
 import SwiftUI
 
-/// 应用信息视图，显示关于面板和退出入口
+/// 应用信息视图，显示项目链接和退出入口
 struct AppInfoView: View {
     var body: some View {
         Section {
-            // 关于面板
-            Button(TypeSwitchStrings.App.about) {
-                AppInfoService.openAboutWindow()
+            // GitHub 仓库
+            Button(TypeSwitchStrings.App.github) {
+                AppInfoService.openGitHubRepository()
             }
 
             Divider()
