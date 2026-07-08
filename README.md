@@ -1,102 +1,101 @@
-# TypeSwitch 🔄
+# TypeSwitch
 
 <div align="center">
 
+<img src="TypeSwitch/Resources/Assets.xcassets/AppIcon.appiconset/icon_256x256.png" width="96" alt="TypeSwitch icon">
+
 [![Swift](https://img.shields.io/badge/Swift-5.9-orange.svg)](https://swift.org)
-[![Platform](https://img.shields.io/badge/Platform-macOS%2013.0+-blue.svg)](https://www.apple.com/macos/)
+[![Platform](https://img.shields.io/badge/Platform-macOS%2014.0+-blue.svg)](https://www.apple.com/macos/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Homebrew](https://img.shields.io/badge/homebrew-available-brightgreen.svg)](https://github.com/ygsgdbd/homebrew-tap)
 [![Release](https://img.shields.io/github/v/release/ygsgdbd/TypeSwitch?include_prereleases)](https://github.com/ygsgdbd/TypeSwitch/releases)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/ygsgdbd/TypeSwitch/pulls)
 
-[🇨🇳 中文文档](README.zh-CN.md) | [📦 Installation](#-installation) | [📖 Usage](#-usage)
+[中文文档](README.zh-CN.md) | [Installation](#installation) | [Usage](#usage)
 
 </div>
 
 TypeSwitch is a macOS menu bar utility for switching input methods per app.
 
-✨ **System-native appearance** - TypeSwitch uses SwiftUI menu bar controls and follows macOS light and dark mode.
+It keeps the workflow in the menu bar: choose how each app should behave, set the rule for unconfigured apps, and let TypeSwitch switch to the right input method when the frontmost app changes.
 
-## ✨ Screenshots
+## Screenshots
 
 <div align="center">
   <img src="Screenshots/main-20260602-kuxy.png" width="382" alt="TypeSwitch menu bar interface">
-  <p><em>Menu bar interface - manage app rules, default rule, unavailable apps, and switch statistics</em></p>
+  <p><em>Menu bar interface for app rules, unconfigured apps, unavailable items, and switch statistics.</em></p>
 </div>
 
+## Features
 
-## 🎯 Features
+- **Auto switch per app**: Switch input methods when the active app changes.
+- **Current App**: Configure the frontmost app directly at the top of the menu.
+- **Unconfigured and Running groups**: Review running apps without rules separately from running apps that already have rules.
+- **Configured apps**: Manage saved app rules from the menu bar.
+- **Unconfigured Apps rule**: Set the fallback behavior for apps without their own rule.
+- **Rule strategies**: Choose `Don't Switch`, `Last Switch`, or a `Specific Input Method`.
+- **Unavailable cleanup**: Review rules for missing apps and clear unavailable settings.
+- **Switch statistics**: Track successful input method switches per app and clear the counts.
+- **Launch at Login**: Start TypeSwitch automatically after login, with a Login Items shortcut when macOS requires approval.
+- **Manual update checks**: Use `Check for Updates...` in the menu bar app for manual installs.
+- **Quick project access**: Open the GitHub repository from the menu.
+- **Keyboard shortcut**: Press `Command + Q` to quit TypeSwitch.
 
-- 🔄 **Auto Switch**: Switch input methods when changing apps
-- 🧭 **Current App**: Configure the frontmost app at the top of the menu
-- 📱 **Menu Bar Interface**: View and set rules quickly
-- 📋 **Running Apps**: Configure open apps directly
-- ⚙️ **Configured Apps**: Manage saved app rules
-- 🎯 **Default Rule**: Set the fallback strategy for apps without their own rule
-- 🧹 **Unavailable Apps**: Review and clean up rules for missing apps
-- 📊 **Switch Statistics**: Track successful switches per app and clear the counts
-- 🚀 **Launch at Login**: Run automatically after login
-- ⌨️ **Keyboard Shortcuts**:
-  - `⌘ + Q` - Quit application
-- 🔗 **Quick Links**: Direct access to GitHub repository and latest releases
+## System Requirements
 
-## 🔧 System Requirements
+- macOS 14.0 or later
+- Enabled macOS keyboard layouts or input methods
+- macOS permissions needed for app activation monitoring, system input method switching, and optional Login Items
 
-- 🖥 macOS 14.0 or later
-- 🔐 Accessibility permission for monitoring application switches
-- ⌨️ Input method switching permission
+## Installation
 
-## 📦 Installation
-
-### 🍺 Option 1: Homebrew
+### Homebrew
 
 ```bash
 brew install ygsgdbd/tap/typeswitch --cask
 ```
 
-Homebrew installations should be updated with `brew upgrade typeswitch`.
+Update Homebrew installations with:
 
-### 💾 Option 2: Manual Installation
+```bash
+brew upgrade typeswitch
+```
 
-1. Download the latest version from [Releases](https://github.com/ygsgdbd/TypeSwitch/releases)
-2. Drag the application to Applications folder
-3. Grant necessary system permissions on first launch
-4. Use Check for Updates from the menu bar app for future updates
+### Manual Installation
 
-## 📖 Usage
+1. Download the latest build from [Releases](https://github.com/ygsgdbd/TypeSwitch/releases).
+2. Drag `TypeSwitch.app` to the Applications folder.
+3. Launch TypeSwitch and grant any system permissions macOS requests.
+4. Use `Check for Updates...` from the menu bar app to check GitHub Releases for future updates.
 
-1. After launching, the app icon (⌨️) appears in the menu bar
-2. Click the menu bar icon to open the dropdown menu
-3. Use Current App or Running Apps to configure the active or open apps
-4. Use Configured Apps to manage saved app rules
-5. Choose Default, Remember Last, Ignore, or a fixed input method
-6. Set the Default Rule and Launch at Login from the main menu
-7. Review Unavailable Apps and Switch Statistics when needed
+## Usage
 
-## 🔒 Security
+1. Launch TypeSwitch. Its keyboard icon appears in the menu bar.
+2. Open the menu and use `Current App` to configure the frontmost app.
+3. Use `Unconfigured` to assign rules to running apps that do not have one yet.
+4. Use `Running` and `Configured` to review and change existing app rules.
+5. For each app, choose `Default`, `Last Switch`, `Don't Switch`, or a specific input method.
+6. Use `Unconfigured Apps` to set the fallback rule for apps without their own rule.
+7. Check `Unavailable` and `Switches` when you want to clean missing rules or review successful switches.
 
-TypeSwitch takes user privacy and security seriously:
+## Privacy and Permissions
 
-- 🏠 All data is stored locally, nothing is uploaded to the network
-- 🚫 No user information or usage data is collected
-- 📖 Source code is fully open source and welcome for review
-- 🛡️ Uses Swift's built-in security features
-- 🔐 Permission usage:
-  - Accessibility: Only used for detecting application switches
-  - Input method switching: Only used for switching input methods
-  - Auto-start: Only used for launching at startup
+- App rules, the unconfigured-apps rule, and switch statistics are stored locally.
+- TypeSwitch has no server-side component in this repository.
+- The GitHub link and `Check for Updates...` contact GitHub only when you use them.
+- Input method switching uses macOS system input sources.
+- Launch at Login uses macOS Login Items, with a LaunchAgent fallback when needed.
 
-## Dependencies
+## Tech Stack
 
-This project uses the following open source libraries:
+This project uses:
 
-- [The Composable Architecture](https://github.com/pointfreeco/swift-composable-architecture) (1.25.5) - For TCA app architecture and state management
-- [Sharing](https://github.com/pointfreeco/swift-sharing) (2.0.0) - For file-backed shared state persistence
-- [SwiftUIX](https://github.com/SwiftUIX/SwiftUIX) (0.2.3) - Provides additional SwiftUI components
-- [SwifterSwift](https://github.com/SwifterSwift/SwifterSwift) (8.0.0) - Swift native extensions
-
-Build tools:
-- [Tuist](https://github.com/tuist/tuist) - For project generation and management
+- [The Composable Architecture](https://github.com/pointfreeco/swift-composable-architecture) `1.26.0` for app architecture and state management
+- [Sharing](https://github.com/pointfreeco/swift-sharing) `2.9.1` for file-backed shared state
+- [Sparkle](https://github.com/sparkle-project/Sparkle) `2.9.4` for manual update checks and appcast support
+- [SwifterSwift](https://github.com/SwifterSwift/SwifterSwift) `8.0.0` for Swift extensions
+- Point-Free support libraries: CasePaths, Dependencies, and PerceptionCore
+- [Tuist](https://github.com/tuist/tuist) for project generation and build configuration
 
 ## Development
 
@@ -109,58 +108,43 @@ Build tools:
 
 ### Build Steps
 
-1. Install [Tuist](https://github.com/tuist/tuist#install-▶️)
+Install Tuist:
 
-2. Clone repository
+```bash
+brew tap tuist/tuist
+brew install --formula tuist
+```
+
+Clone and generate the Xcode project:
+
 ```bash
 git clone https://github.com/ygsgdbd/TypeSwitch.git
 cd TypeSwitch
-```
-
-3. Generate Xcode project
-```bash
 tuist generate
-```
-
-4. Open and build
-```bash
 open TypeSwitch.xcworkspace
 ```
 
-### Automated Build and Release
+Run tests:
 
-This project uses GitHub Actions for automated building and releasing:
-
-1. Push a new version tag to trigger automatic build:
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+tuist test
 ```
 
-2. GitHub Actions will automatically:
-   - Build the application
-   - Create macOS zip package
-   - Generate Sparkle appcast
-   - Release new version
-   - Generate changelog
+### Release Workflow
 
-3. Build artifacts can be downloaded from [Releases](https://github.com/ygsgdbd/TypeSwitch/releases)
+Production releases are built by GitHub Actions when a `vX.Y.Z` tag is pushed:
 
-## Contributing
+```bash
+git tag v0.6.0
+git push origin v0.6.0
+```
 
-Pull requests and issues are welcome. Before submitting a PR, please ensure:
+The workflow validates the tag, runs tests, builds a universal macOS app, packages a zip, generates checksums, creates a signed Sparkle `appcast.xml`, publishes a GitHub Release, and updates the Homebrew cask.
 
-1. Code follows project style
-2. Necessary tests are added
-3. Documentation is updated
+## Acknowledgments
 
-## License
+TypeSwitch was inspired by:
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) file for details.
-
-## Acknowledgments 🙏
-
-This project was inspired by and received help from:
-- [SwitchKey](https://github.com/itsuhane/SwitchKey) - An excellent input method switcher that provided valuable reference
-- Swift and SwiftUI community
-- All contributors and users who provided feedback
+- [SwitchKey](https://github.com/itsuhane/SwitchKey), an input method switcher for macOS
+- The Swift and SwiftUI community
+- Contributors and users who shared feedback
