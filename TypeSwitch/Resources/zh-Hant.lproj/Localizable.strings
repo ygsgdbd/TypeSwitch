@@ -8,6 +8,7 @@
 "settings.general.auto_launch" = "開機啟動";
 "settings.general.auto_launch_requires_approval" = "請在系統設定 > 一般 > 登入項目中批准 TypeSwitch。";
 "settings.general.open_login_items" = "開啟登入項目設定";
+"settings.general.check_for_updates" = "檢查更新...";
 "settings.fallback.default_input_method" = "未設定應用規則";
 
 // 應用程式列表

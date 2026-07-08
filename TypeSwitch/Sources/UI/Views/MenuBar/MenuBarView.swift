@@ -1,10 +1,12 @@
 import AppKit
 import ComposableArchitecture
+import Sparkle
 import SwiftUI
 
 /// 菜单栏主视图
 struct MenuBarView: View {
     let store: StoreOf<AppFeature>
+    let updaterController: SPUStandardUpdaterController
 
     var body: some View {
         Group {
@@ -14,7 +16,7 @@ struct MenuBarView: View {
 
             Divider()
 
-            SettingsView(store: store)
+            SettingsView(store: store, updaterController: updaterController)
 
             Divider()
 
@@ -49,6 +51,11 @@ private struct CurrentAppView: View {
     MenuBarView(
         store: Store(initialState: AppFeature.State()) {
             AppFeature()
-        }
+        },
+        updaterController: SPUStandardUpdaterController(
+            startingUpdater: false,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
     )
 }

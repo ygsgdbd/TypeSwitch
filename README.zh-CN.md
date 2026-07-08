@@ -58,11 +58,14 @@ brew tap ygsgdbd/tap
 brew install --cask typeswitch
 ```
 
+Homebrew 安装版请使用 `brew upgrade typeswitch` 更新。
+
 ### 💾 方式二：手动安装
 
 1. 从 [Releases](https://github.com/ygsgdbd/TypeSwitch/releases) 下载最新版本
 2. 将应用拖入应用程序文件夹
 3. 首次启动时授予必要系统权限
+4. 后续可在菜单栏应用中使用“检查更新...”更新
 
 ## 使用说明
 
@@ -140,7 +143,8 @@ git push origin v1.0.0
 
 2. GitHub Actions 会自动：
    - 构建应用
-   - 创建 DMG 安装包
+   - 创建 macOS zip 包
+   - 生成 Sparkle appcast
    - 发布新版本
    - 生成更新日志
 

@@ -98,18 +98,99 @@ jobs:
           ditto DerivedData/Archives/TypeSwitch.xcarchive/Products/Applications/TypeSwitch.app DerivedData/Exports/TypeSwitch.app
           cd DerivedData/Exports
           ditto -c -k --sequesterRsrc --keepParent TypeSwitch.app ../../TypeSwitch-macOS-universal.zip
+
+      - name: Prepare release notes
+        run: |
+          if ! awk -v version="${GITHUB_REF_NAME}" '
+            $0 == "## " version {
+              found = 1
+              next
+            }
+            found && /^## / {
+              exit
+            }
+            found {
+              lines[++count] = $0
+            }
+            END {
+              if (!found) {
+                exit 2
+              }
+
+              start = 1
+              while (start <= count && lines[start] ~ /^[[:space:]]*$/) {
+                start++
+              }
+
+              end = count
+              while (end >= start && lines[end] ~ /^[[:space:]]*$/) {
+                end--
+              }
+
+              if (end < start) {
+                exit 3
+              }
+
+              for (i = start; i <= end; i++) {
+                print lines[i]
+              }
+            }
+          ' CHANGELOG.md > release-notes.md; then
+            echo "::error title=Missing release notes::CHANGELOG.md must contain a non-empty ## ${GITHUB_REF_NAME} section."
+            exit 1
+          fi
+
+          echo "Release notes for ${GITHUB_REF_NAME}:"
+          cat release-notes.md
       
       - name: Generate Checksums
         run: |
-          echo "### TypeSwitch ${{ github.ref_name }}" > checksums.txt
-          echo "" >> checksums.txt
-          echo "- Universal Binary (Apple Silicon + Intel)" >> checksums.txt
-          echo "- macOS 14.0+" >> checksums.txt
-          echo "" >> checksums.txt
-          echo "### SHA-256 Checksums" >> checksums.txt
+          echo "### SHA-256 Checksums" > checksums.txt
           echo "\`\`\`" >> checksums.txt
           shasum -a 256 TypeSwitch-macOS-universal.zip >> checksums.txt
           echo "\`\`\`" >> checksums.txt
+
+          {
+            echo "## TypeSwitch ${{ github.ref_name }}"
+            echo ""
+            cat release-notes.md
+            echo ""
+            echo "### Build"
+            echo ""
+            echo "- Universal Binary (Apple Silicon + Intel)"
+            echo "- macOS 14.0+"
+            echo ""
+            cat checksums.txt
+          } > release-body.md
+
+      - name: Download Sparkle tools
+        run: |
+          curl -fsSL -o Sparkle-2.9.4.tar.xz https://github.com/sparkle-project/Sparkle/releases/download/2.9.4/Sparkle-2.9.4.tar.xz
+          mkdir -p sparkle-tools
+          tar -xf Sparkle-2.9.4.tar.xz -C sparkle-tools --strip-components=1
+
+      - name: Generate Sparkle appcast
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          if [[ -z "$SPARKLE_ED_PRIVATE_KEY" ]]; then
+            echo "::error title=Missing Sparkle signing key::Set the SPARKLE_ED_PRIVATE_KEY repository secret before publishing a release."
+            exit 1
+          fi
+
+          mkdir -p DerivedData/SparkleFeed
+          cp TypeSwitch-macOS-universal.zip DerivedData/SparkleFeed/
+          cp release-notes.md DerivedData/SparkleFeed/TypeSwitch-macOS-universal.md
+
+          printf '%s' "$SPARKLE_ED_PRIVATE_KEY" | ./sparkle-tools/bin/generate_appcast \
+            --ed-key-file - \
+            --download-url-prefix "https://github.com/ygsgdbd/TypeSwitch/releases/download/${GITHUB_REF_NAME}/" \
+            --link "https://github.com/ygsgdbd/TypeSwitch" \
+            --embed-release-notes \
+            --maximum-versions 1 \
+            DerivedData/SparkleFeed
+
+          cp DerivedData/SparkleFeed/appcast.xml appcast.xml
       
       - name: Release
         uses: softprops/action-gh-release@v1
@@ -117,7 +198,8 @@ jobs:
           files: |
             TypeSwitch-macOS-universal.zip
             checksums.txt
-          body_path: checksums.txt
+            appcast.xml
+          body_path: release-body.md
           draft: false
           prerelease: false
           generate_release_notes: true

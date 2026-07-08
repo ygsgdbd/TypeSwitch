@@ -8,6 +8,7 @@
 "settings.general.auto_launch" = "Launch at Login";
 "settings.general.auto_launch_requires_approval" = "Approve TypeSwitch in System Settings > General > Login Items.";
 "settings.general.open_login_items" = "Open Login Items";
+"settings.general.check_for_updates" = "Check for Updates...";
 "settings.fallback.default_input_method" = "Unconfigured Apps";
 
 // App List

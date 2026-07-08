@@ -16,6 +16,7 @@ let project = Project(
         .remote(url: "https://github.com/pointfreeco/swift-dependencies", requirement: .upToNextMajor(from: "1.14.1")),
         .remote(url: "https://github.com/pointfreeco/swift-perception", requirement: .upToNextMajor(from: "2.0.10")),
         .remote(url: "https://github.com/pointfreeco/swift-sharing", requirement: .upToNextMajor(from: "2.9.1")),
+        .remote(url: "https://github.com/sparkle-project/Sparkle", requirement: .upToNextMajor(from: "2.9.4")),
         .remote(url: "https://github.com/SwifterSwift/SwifterSwift", requirement: .upToNextMajor(from: "8.0.0"))
     ],
     settings: .settings(
@@ -51,7 +52,10 @@ let project = Project(
                 "LSApplicationCategoryType": "public.app-category.utilities",
                 "LSMinimumSystemVersion": "14.0",
                 "CFBundleShortVersionString": .string(appVersion),  // 市场版本号
-                "CFBundleVersion": .string(buildVersion)  // 构建版本号
+                "CFBundleVersion": .string(buildVersion),  // 构建版本号
+                "SUFeedURL": "https://github.com/ygsgdbd/TypeSwitch/releases/latest/download/appcast.xml",
+                "SUPublicEDKey": "tzapCS0NiXBf0Alm3T2veTCaauxr2dmMCnIFYaK+lOs=",
+                "SUEnableAutomaticChecks": false
             ]),
             sources: ["TypeSwitch/Sources/**"],
             resources: ["TypeSwitch/Resources/**"],
@@ -62,6 +66,7 @@ let project = Project(
                 .package(product: "Dependencies"),
                 .package(product: "PerceptionCore"),
                 .package(product: "Sharing"),
+                .package(product: "Sparkle"),
                 .package(product: "SwifterSwift")
             ],
             settings: .settings(

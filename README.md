@@ -54,11 +54,14 @@ TypeSwitch is a macOS menu bar utility for switching input methods per app.
 brew install ygsgdbd/tap/typeswitch --cask
 ```
 
+Homebrew installations should be updated with `brew upgrade typeswitch`.
+
 ### 💾 Option 2: Manual Installation
 
 1. Download the latest version from [Releases](https://github.com/ygsgdbd/TypeSwitch/releases)
 2. Drag the application to Applications folder
 3. Grant necessary system permissions on first launch
+4. Use Check for Updates from the menu bar app for future updates
 
 ## 📖 Usage
 
@@ -136,7 +139,8 @@ git push origin v1.0.0
 
 2. GitHub Actions will automatically:
    - Build the application
-   - Create DMG package
+   - Create macOS zip package
+   - Generate Sparkle appcast
    - Release new version
    - Generate changelog
 

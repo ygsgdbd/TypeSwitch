@@ -1,9 +1,11 @@
 import ComposableArchitecture
+import Sparkle
 import SwiftUI
 
 /// 设置视图，包含各种应用设置选项
 struct SettingsView: View {
     @Bindable var store: StoreOf<AppFeature>
+    let updaterController: SPUStandardUpdaterController
 
     var body: some View {
         Section {
@@ -42,6 +44,10 @@ struct SettingsView: View {
                 Button(TypeSwitchStrings.Settings.General.openLoginItems) {
                     LaunchAtLoginService.openSystemSettingsLoginItems()
                 }
+            }
+
+            Button(TypeSwitchStrings.Settings.General.checkForUpdates) {
+                updaterController.checkForUpdates(nil)
             }
         }
     }
