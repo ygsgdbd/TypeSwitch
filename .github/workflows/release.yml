@@ -142,6 +142,25 @@ jobs:
 
           echo "Release notes for ${GITHUB_REF_NAME}:"
           cat release-notes.md
+
+      - name: Render Sparkle release notes HTML
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api markdown \
+            --method POST \
+            -F text=@release-notes.md \
+            -f mode=gfm \
+            -f context="${GITHUB_REPOSITORY}" \
+            > release-notes.html
+
+          if [[ ! -s release-notes.html ]]; then
+            echo "::error title=Missing rendered release notes::GitHub Markdown API returned an empty release-notes.html file."
+            exit 1
+          fi
+
+          echo "Rendered Sparkle release notes HTML:"
+          cat release-notes.html
       
       - name: Generate Checksums
         run: |
@@ -180,7 +199,7 @@ jobs:
 
           mkdir -p DerivedData/SparkleFeed
           cp TypeSwitch-macOS-universal.zip DerivedData/SparkleFeed/
-          cp release-notes.md DerivedData/SparkleFeed/TypeSwitch-macOS-universal.md
+          cp release-notes.html DerivedData/SparkleFeed/TypeSwitch-macOS-universal.html
 
           printf '%s' "$SPARKLE_ED_PRIVATE_KEY" | ./sparkle-tools/bin/generate_appcast \
             --ed-key-file - \

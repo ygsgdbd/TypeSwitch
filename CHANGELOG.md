@@ -4,8 +4,13 @@
 
 ### 🇨🇳 中文
 
+#### 功能
+
 - 新增菜单栏“检查更新...”功能，手动安装版可直接从 GitHub Releases 检查更新。
 - 新增 Sparkle 签名 appcast，并在更新弹窗中嵌入本版本更新说明。
+
+#### 优化
+
 - 将运行中 App 拆分为“未配置”和“运行中”分组，未设置规则的 App 更容易集中处理。
 - 优化菜单文案：默认规则改为“未配置应用规则”，“忽略”改为“不自动切换”，“记住上次”改为“记住上次切换”。
 - 优化切换统计、退出按钮和清理失效设置等菜单文案。
@@ -15,8 +20,13 @@
 
 ### 🇺🇸 English
 
+#### Features
+
 - Added a Check for Updates item to the menu bar app so manual installs can check GitHub Releases directly.
 - Added a signed Sparkle appcast with embedded release notes for the update dialog.
+
+#### Improvements
+
 - Split running apps into Unconfigured and Running groups so apps without rules are easier to review.
 - Improved menu wording: Default Rule is now Unconfigured Apps, Ignore is now Don't Switch, and Remember Last is now Last Switch.
 - Refined wording for switch statistics, quit, and unavailable-settings cleanup actions.
