@@ -1,6 +1,3 @@
-// 应用信息
-"app.github" = "GitHub";
-
 // 菜单
 "menu.quit" = "退出 TypeSwitch";
 

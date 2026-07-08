@@ -6,8 +6,10 @@ struct AppInfoView: View {
     var body: some View {
         Section {
             // GitHub 仓库
-            Button(TypeSwitchStrings.App.github) {
+            Button {
                 AppInfoService.openGitHubRepository()
+            } label: {
+                Text(verbatim: "GitHub")
             }
 
             Divider()
