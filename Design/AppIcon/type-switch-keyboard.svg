@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <g transform="translate(-72 -72) scale(1.14)">
+    <rect x="218" y="338" width="588" height="348" rx="82" fill="#15191F"/>
+    <rect x="238" y="358" width="548" height="308" rx="64" fill="#252B33"/>
+    <rect x="246" y="366" width="532" height="292" rx="58" fill="none" stroke="#5F6975" stroke-opacity="0.82" stroke-width="8"/>
+    <g>
+      <circle cx="356" cy="456" r="25" fill="#E7ECF2"/>
+      <circle cx="434" cy="456" r="25" fill="#E7ECF2"/>
+      <circle cx="512" cy="456" r="25" fill="#E7ECF2"/>
+      <circle cx="590" cy="456" r="25" fill="#E7ECF2"/>
+      <circle cx="668" cy="456" r="25" fill="#E7ECF2"/>
+      <circle cx="356" cy="532" r="25" fill="#E7ECF2"/>
+      <circle cx="434" cy="532" r="25" fill="#E7ECF2"/>
+      <circle cx="512" cy="532" r="25" fill="#E7ECF2"/>
+      <circle cx="590" cy="532" r="25" fill="#E7ECF2"/>
+      <circle cx="668" cy="532" r="25" fill="#E7ECF2"/>
+      <rect x="362" y="598" width="300" height="43" rx="21.5" fill="#E7ECF2"/>
+    </g>
+  </g>
+</svg>
