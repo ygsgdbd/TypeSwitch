@@ -43,14 +43,20 @@ let project = Project(
             product: .app,
             bundleId: "top.ygsgdbd.TypeSwitch",
             deploymentTargets: .macOS("14.0"),
-            infoPlist: .extendingDefault(with: [
+            infoPlist: .dictionary([
                 "LSUIElement": true,  // 设置为纯菜单栏应用
+                "CFBundleExecutable": "$(EXECUTABLE_NAME)",
                 "CFBundleDevelopmentRegion": "zh-Hans",  // 设置默认开发区域为简体中文
+                "CFBundleIdentifier": "$(PRODUCT_BUNDLE_IDENTIFIER)",
+                "CFBundleInfoDictionaryVersion": "6.0",
                 "CFBundleLocalizations": ["zh-Hans", "zh-Hant", "en"],  // 支持的语言列表
+                "CFBundleName": "$(PRODUCT_NAME)",
+                "CFBundlePackageType": "APPL",
                 "AppleLanguages": ["zh-Hans"],  // 设置默认语言为简体中文
                 "NSHumanReadableCopyright": "Copyright © 2024 ygsgdbd. All rights reserved.",
                 "LSApplicationCategoryType": "public.app-category.utilities",
                 "LSMinimumSystemVersion": "14.0",
+                "NSPrincipalClass": "NSApplication",
                 "CFBundleShortVersionString": .string(appVersion),  // 市场版本号
                 "CFBundleVersion": .string(buildVersion),  // 构建版本号
                 "SUFeedURL": "https://github.com/ygsgdbd/TypeSwitch/releases/latest/download/appcast.xml",
