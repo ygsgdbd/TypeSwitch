@@ -1,27 +1,27 @@
-# TypeSwitch
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="Design/AppIcon/type-switch-keyboard-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="Design/AppIcon/type-switch-keyboard.svg">
+    <img src="Design/AppIcon/type-switch-keyboard.svg" width="160" alt="TypeSwitch icon">
+  </picture>
+</p>
 
-<div align="center">
+<h1 align="center">TypeSwitch</h1>
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="Design/AppIcon/type-switch-keyboard-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="Design/AppIcon/type-switch-keyboard.svg">
-  <img src="Design/AppIcon/type-switch-keyboard.svg" width="96" alt="TypeSwitch icon">
-</picture>
+<hr>
 
-[![Swift](https://img.shields.io/badge/Swift-5.9-orange.svg)](https://swift.org)
-[![Platform](https://img.shields.io/badge/Platform-macOS%2014.0+-blue.svg)](https://www.apple.com/macos/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Homebrew](https://img.shields.io/badge/homebrew-available-brightgreen.svg)](https://github.com/ygsgdbd/homebrew-tap)
-[![Release](https://img.shields.io/github/v/release/ygsgdbd/TypeSwitch?include_prereleases)](https://github.com/ygsgdbd/TypeSwitch/releases)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/ygsgdbd/TypeSwitch/pulls)
+<p align="center">TypeSwitch is a macOS menu bar utility for switching input methods per app. Choose how each app should behave, set the rule for unconfigured apps, and let TypeSwitch switch to the right input method when the frontmost app changes.</p>
 
-[中文文档](README.zh-CN.md) | [Installation](#installation) | [Usage](#usage)
+<p align="center">
+  <a href="https://swift.org"><img alt="Swift" src="https://img.shields.io/badge/Swift-5.9-orange.svg"></a>
+  <a href="https://www.apple.com/macos/"><img alt="Platform" src="https://img.shields.io/badge/Platform-macOS%2014.0+-blue.svg"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-MIT-green.svg"></a>
+  <a href="https://github.com/ygsgdbd/homebrew-tap"><img alt="Homebrew" src="https://img.shields.io/badge/homebrew-available-brightgreen.svg"></a>
+  <a href="https://github.com/ygsgdbd/TypeSwitch/releases"><img alt="Release" src="https://img.shields.io/github/v/release/ygsgdbd/TypeSwitch?include_prereleases"></a>
+  <a href="https://github.com/ygsgdbd/TypeSwitch/pulls"><img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg"></a>
+</p>
 
-</div>
-
-TypeSwitch is a macOS menu bar utility for switching input methods per app.
-
-It keeps the workflow in the menu bar: choose how each app should behave, set the rule for unconfigured apps, and let TypeSwitch switch to the right input method when the frontmost app changes.
+<p align="center"><a href="README.zh-CN.md">简体中文</a> • <strong>English</strong></p>
 
 ## Screenshots
 
