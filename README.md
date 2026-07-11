@@ -21,10 +21,9 @@ It keeps the workflow in the menu bar: choose how each app should behave, set th
 
 ## Screenshots
 
-<div align="center">
-  <img src="Screenshots/main-20260602-kuxy.png" width="382" alt="TypeSwitch menu bar interface">
-  <p><em>Menu bar interface for app rules, unconfigured apps, unavailable items, and switch statistics.</em></p>
-</div>
+![TypeSwitch light appearance showing the main menu and current-app input method strategy](Documentation/Screenshots/en-light.png#gh-light-mode-only)
+
+![TypeSwitch dark appearance showing the main menu and current-app input method strategy](Documentation/Screenshots/en-dark.png#gh-dark-mode-only)
 
 ## Features
 
@@ -105,6 +104,8 @@ This project uses:
 - Swift 5.9+
 - macOS 14.0+
 - [Tuist](https://github.com/tuist/tuist)
+- [ImageMagick](https://imagemagick.org/)
+- RTK (`rtk`, required by the screenshot generation script)
 
 ### Build Steps
 
@@ -128,6 +129,12 @@ Run tests:
 
 ```bash
 tuist test
+```
+
+To regenerate the deterministic, privacy-safe README screenshots, grant your terminal or Codex Screen Recording and Accessibility permissions, quit other running TypeSwitch instances, and run:
+
+```bash
+./script/generate_readme_screenshots.sh
 ```
 
 ### Release Workflow

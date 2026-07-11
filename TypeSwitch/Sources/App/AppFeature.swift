@@ -40,14 +40,46 @@ struct AppFeature {
             var id: String { bundleId }
         }
 
-        @Shared(.fileStorage(.appRulesStoreURL)) var appRulesStore = AppRulesStore()
-        @Shared(.fileStorage(.appSwitchStatisticsStoreURL)) var appSwitchStatisticsStore = AppSwitchStatisticsStore()
-        @Shared(.fileStorage(.fallbackRuleStoreURL)) var fallbackRuleStore = FallbackRuleStore()
+        @Shared var appRulesStore: AppRulesStore
+        @Shared var appSwitchStatisticsStore: AppSwitchStatisticsStore
+        @Shared var fallbackRuleStore: FallbackRuleStore
         var currentFrontmostBundleId: String?
         var inputMethods: [InputMethod] = []
+        var isReadmeDemo = false
         var launchAtLoginStatus: LaunchAtLoginStatus = .disabled
         var pendingProgrammaticSwitch: PendingProgrammaticSwitch?
         var runningApps: [AppInfo] = []
+
+        init(
+            appRulesStore: Shared<AppRulesStore> = Shared(
+                wrappedValue: AppRulesStore(),
+                .fileStorage(.appRulesStoreURL)
+            ),
+            appSwitchStatisticsStore: Shared<AppSwitchStatisticsStore> = Shared(
+                wrappedValue: AppSwitchStatisticsStore(),
+                .fileStorage(.appSwitchStatisticsStoreURL)
+            ),
+            fallbackRuleStore: Shared<FallbackRuleStore> = Shared(
+                wrappedValue: FallbackRuleStore(),
+                .fileStorage(.fallbackRuleStoreURL)
+            ),
+            currentFrontmostBundleId: String? = nil,
+            inputMethods: [InputMethod] = [],
+            isReadmeDemo: Bool = false,
+            launchAtLoginStatus: LaunchAtLoginStatus = .disabled,
+            pendingProgrammaticSwitch: PendingProgrammaticSwitch? = nil,
+            runningApps: [AppInfo] = []
+        ) {
+            self._appRulesStore = appRulesStore
+            self._appSwitchStatisticsStore = appSwitchStatisticsStore
+            self._fallbackRuleStore = fallbackRuleStore
+            self.currentFrontmostBundleId = currentFrontmostBundleId
+            self.inputMethods = inputMethods
+            self.isReadmeDemo = isReadmeDemo
+            self.launchAtLoginStatus = launchAtLoginStatus
+            self.pendingProgrammaticSwitch = pendingProgrammaticSwitch
+            self.runningApps = runningApps
+        }
     }
 
     enum ViewAction: Equatable, Sendable {
@@ -92,6 +124,7 @@ struct AppFeature {
         Reduce { state, action in
             switch action {
             case .task:
+                guard !state.isReadmeDemo else { return .none }
                 normalizeFallbackRule(in: &state)
                 return .merge(
                     .concatenate(
@@ -127,6 +160,9 @@ struct AppFeature {
                     }
                     .cancellable(id: CancelID.inputMethodSelection, cancelInFlight: true)
                 )
+
+            case .view where state.isReadmeDemo:
+                return .none
 
             case .response(.appRulesStorePrepared(let result)):
                 switch result {

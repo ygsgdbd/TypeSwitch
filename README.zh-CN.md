@@ -21,10 +21,9 @@ TypeSwitch 是一个 macOS 菜单栏工具，用于按 App 自动切换输入法
 
 ## 截图预览
 
-<div align="center">
-  <img src="Screenshots/main-20260602-kuxy.png" width="382" alt="TypeSwitch 菜单栏界面">
-  <p><em>用于管理 App 规则、未配置应用、不可用项和切换统计的菜单栏界面。</em></p>
-</div>
+![TypeSwitch 浅色模式主菜单和当前 App 输入法策略](Documentation/Screenshots/zh-Hans-light.png#gh-light-mode-only)
+
+![TypeSwitch 暗色模式主菜单和当前 App 输入法策略](Documentation/Screenshots/zh-Hans-dark.png#gh-dark-mode-only)
 
 ## 功能特点
 
@@ -105,6 +104,8 @@ brew upgrade typeswitch
 - Swift 5.9+
 - macOS 14.0+
 - [Tuist](https://github.com/tuist/tuist)
+- [ImageMagick](https://imagemagick.org/)
+- RTK（`rtk`，截图生成脚本需要）
 
 ### 构建步骤
 
@@ -128,6 +129,12 @@ open TypeSwitch.xcworkspace
 
 ```bash
 tuist test
+```
+
+如需重新生成内容固定且不包含用户真实规则、输入法或统计信息的 README 截图，请先为终端或 Codex 授予“屏幕与系统音频录制”和“辅助功能”权限，退出其他正在运行的 TypeSwitch 实例，然后执行：
+
+```bash
+./script/generate_readme_screenshots.sh
 ```
 
 ### 发布流程
