@@ -6,7 +6,7 @@ struct SwitchStatisticsView: View {
 
     var body: some View {
         Section {
-            Menu(TypeSwitchStrings.SwitchStatistics.menuTitle(store.totalSuccessfulSwitchCount)) {
+            Menu {
                 if store.switchStatisticsItems.isEmpty {
                     Text(TypeSwitchStrings.SwitchStatistics.empty)
                         .foregroundStyle(.secondary)
@@ -24,7 +24,7 @@ struct SwitchStatisticsView: View {
 
                     Divider()
 
-                    Button(TypeSwitchStrings.SwitchStatistics.clear, role: .destructive) {
+                    Button(role: .destructive) {
                         if MenuConfirmation.confirm(
                             title: TypeSwitchStrings.SwitchStatistics.ClearConfirmation.title,
                             message: TypeSwitchStrings.SwitchStatistics.ClearConfirmation.message,
@@ -32,8 +32,15 @@ struct SwitchStatisticsView: View {
                         ) {
                             store.send(.view(.clearSwitchStatisticsTapped))
                         }
+                    } label: {
+                        Label(TypeSwitchStrings.SwitchStatistics.clear, systemImage: "trash")
                     }
                 }
+            } label: {
+                Label(
+                    TypeSwitchStrings.SwitchStatistics.menuTitle(store.totalSuccessfulSwitchCount),
+                    systemImage: "chart.bar"
+                )
             }
         }
     }

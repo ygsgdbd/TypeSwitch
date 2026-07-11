@@ -27,6 +27,7 @@ struct MenuBarView: View {
 
             AppInfoView()
         }
+        .labelStyle(.titleAndIcon)
     }
 }
 

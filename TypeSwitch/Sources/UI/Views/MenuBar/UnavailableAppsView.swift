@@ -7,8 +7,8 @@ struct UnavailableAppsView: View {
     var body: some View {
         if !store.unavailableApps.isEmpty {
             Section {
-                Menu(TypeSwitchStrings.Apps.Section.unavailableCount(store.unavailableApps.count)) {
-                    Button(TypeSwitchStrings.Apps.clearUnavailable, role: .destructive) {
+                Menu {
+                    Button(role: .destructive) {
                         if MenuConfirmation.confirm(
                             title: TypeSwitchStrings.Apps.ClearUnavailableConfirmation.title,
                             message: TypeSwitchStrings.Apps.ClearUnavailableConfirmation.message,
@@ -16,6 +16,8 @@ struct UnavailableAppsView: View {
                         ) {
                             store.send(.view(.removeUnavailableRulesTapped))
                         }
+                    } label: {
+                        Label(TypeSwitchStrings.Apps.clearUnavailable, systemImage: "trash")
                     }
 
                     Divider()
@@ -28,6 +30,11 @@ struct UnavailableAppsView: View {
                             store.send(.view(.setStrategy(bundleId: item.bundleId, strategy: strategy)))
                         }
                     }
+                } label: {
+                    Label(
+                        TypeSwitchStrings.Apps.Section.unavailableCount(store.unavailableApps.count),
+                        systemImage: "exclamationmark.triangle"
+                    )
                 }
             }
         }
