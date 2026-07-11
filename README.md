@@ -2,7 +2,11 @@
 
 <div align="center">
 
-<img src="TypeSwitch/Resources/Assets.xcassets/AppIcon.appiconset/icon_256x256.png" width="96" alt="TypeSwitch icon">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="Design/AppIcon/type-switch-keyboard-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="Design/AppIcon/type-switch-keyboard.svg">
+  <img src="Design/AppIcon/type-switch-keyboard.svg" width="96" alt="TypeSwitch icon">
+</picture>
 
 [![Swift](https://img.shields.io/badge/Swift-5.9-orange.svg)](https://swift.org)
 [![Platform](https://img.shields.io/badge/Platform-macOS%2014.0+-blue.svg)](https://www.apple.com/macos/)
