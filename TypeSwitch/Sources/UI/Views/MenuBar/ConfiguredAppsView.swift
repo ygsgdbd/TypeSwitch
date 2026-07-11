@@ -8,9 +8,9 @@ struct ConfiguredAppsView: View {
     var body: some View {
         if !store.configuredApps.isEmpty {
             Section {
-                Menu(TypeSwitchStrings.Apps.Section.configuredCount(store.configuredApps.count)) {
+                Menu {
                     if store.hasMissingInputMethodRules {
-                        Button(TypeSwitchStrings.InputMethod.clearMissingConfiguration, role: .destructive) {
+                        Button(role: .destructive) {
                             if MenuConfirmation.confirm(
                                 title: TypeSwitchStrings.InputMethod.ClearMissingConfirmation.title,
                                 message: TypeSwitchStrings.InputMethod.ClearMissingConfirmation.message,
@@ -18,6 +18,11 @@ struct ConfiguredAppsView: View {
                             ) {
                                 store.send(.view(.removeMissingInputMethodRulesTapped))
                             }
+                        } label: {
+                            Label(
+                                TypeSwitchStrings.InputMethod.clearMissingConfiguration,
+                                systemImage: "trash"
+                            )
                         }
 
                         Divider()
@@ -31,6 +36,11 @@ struct ConfiguredAppsView: View {
                             store.send(.view(.setStrategy(bundleId: item.bundleId, strategy: strategy)))
                         }
                     }
+                } label: {
+                    Label(
+                        TypeSwitchStrings.Apps.Section.configuredCount(store.configuredApps.count),
+                        systemImage: "list.bullet.rectangle"
+                    )
                 }
             }
         }

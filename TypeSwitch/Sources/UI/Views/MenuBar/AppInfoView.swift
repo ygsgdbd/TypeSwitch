@@ -9,14 +9,16 @@ struct AppInfoView: View {
             Button {
                 AppInfoService.openGitHubRepository()
             } label: {
-                Text(verbatim: "GitHub")
+                Label("GitHub", systemImage: "link")
             }
 
             Divider()
 
             // 退出应用
-            Button(TypeSwitchStrings.Menu.quit, role: .destructive) {
+            Button(role: .destructive) {
                 NSApplication.shared.terminate(nil)
+            } label: {
+                Label(TypeSwitchStrings.Menu.quit, systemImage: "power")
             }
             .keyboardShortcut("q", modifiers: .command)
         }

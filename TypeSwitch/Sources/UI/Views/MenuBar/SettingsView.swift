@@ -20,7 +20,10 @@ struct SettingsView: View {
                     store.send(.view(.setFallbackStrategy(strategy)))
                 }
             } label: {
-                Text(TypeSwitchStrings.Settings.Fallback.defaultInputMethod)
+                Label(
+                    TypeSwitchStrings.Settings.Fallback.defaultInputMethod,
+                    systemImage: "keyboard"
+                )
                 if let selectedLabel = store.fallbackSelectedLabel {
                     Text(selectedLabel)
                         .foregroundStyle(store.fallbackHasMissingInputMethod ? .secondary : .primary)
@@ -41,13 +44,20 @@ struct SettingsView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
-                Button(TypeSwitchStrings.Settings.General.openLoginItems) {
+                Button {
                     LaunchAtLoginService.openSystemSettingsLoginItems()
+                } label: {
+                    Label(TypeSwitchStrings.Settings.General.openLoginItems, systemImage: "gear")
                 }
             }
 
-            Button(TypeSwitchStrings.Settings.General.checkForUpdates) {
+            Button {
                 updaterController.checkForUpdates(nil)
+            } label: {
+                Label(
+                    TypeSwitchStrings.Settings.General.checkForUpdates,
+                    systemImage: "arrow.triangle.2.circlepath"
+                )
             }
         }
     }
