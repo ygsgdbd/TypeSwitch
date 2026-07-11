@@ -14,6 +14,26 @@ final class LaunchAtLoginServiceTests: XCTestCase {
         XCTAssertEqual(status, .enabled)
     }
 
+    func testStatusRemovesFallbackWhenServiceManagementIsEnabled() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        try fixture.writeLaunchAgent(executablePath: fixture.executableURL.path)
+        var launchctlCalls: [[String]] = []
+
+        let status = LaunchAtLoginService.status(
+            environment: fixture.environment(
+                serviceManagementStatus: { .enabled },
+                runLaunchctl: { arguments in
+                    launchctlCalls.append(arguments)
+                }
+            )
+        )
+
+        XCTAssertEqual(status, .enabled)
+        XCTAssertEqual(launchctlCalls, [["bootout", "gui/501", fixture.plistURL.path]])
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fixture.plistURL.path))
+    }
+
     func testStatusIgnoresFallbackLaunchAgentWithStaleExecutablePath() throws {
         let fixture = try Fixture()
         defer { fixture.cleanUp() }
