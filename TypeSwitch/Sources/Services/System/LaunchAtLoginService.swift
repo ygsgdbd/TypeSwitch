@@ -43,6 +43,9 @@ enum LaunchAtLoginService {
 
         switch environment.serviceManagementStatus() {
         case .enabled:
+            if fallbackEnabled {
+                removeFallbackLaunchAgent(environment: environment)
+            }
             return .enabled
         case .notRegistered:
             return fallbackEnabled ? .enabled : .disabled
