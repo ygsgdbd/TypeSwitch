@@ -6,7 +6,9 @@ name = "TypeSwitch"
 script = ""
 
 [setup.darwin]
-script = "tuist generate"
+script = '''
+tuist generate
+codegraph init'''
 
 [[actions]]
 name = "Generate"
