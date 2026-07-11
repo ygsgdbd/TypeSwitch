@@ -1,5 +1,9 @@
 <p align="center">
-  <img src="TypeSwitch/Resources/Assets.xcassets/AppIcon.appiconset/icon_256x256.png" width="160" alt="TypeSwitch 图标">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="Design/AppIcon/type-switch-keyboard-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="Design/AppIcon/type-switch-keyboard.svg">
+    <img src="Design/AppIcon/type-switch-keyboard.svg" width="160" alt="TypeSwitch 图标">
+  </picture>
 </p>
 
 <h1 align="center">TypeSwitch</h1>

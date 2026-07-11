@@ -1,0 +1,48 @@
+{
+  "fill": {
+    "automatic-gradient": "extended-srgb:0.96500,0.97000,0.98000,1.00000"
+  },
+  "fill-specializations": {
+    "dark": {
+      "automatic-gradient": "extended-srgb:0.03500,0.03800,0.04400,1.00000"
+    }
+  },
+  "groups": [
+    {
+      "layers": [
+        {
+          "image-name": "keyboard-layer.png",
+          "image-name-specializations": {
+            "dark": "keyboard-layer-dark.png"
+          },
+          "name": "TypeSwitch Keyboard"
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.42
+      },
+      "shadow-specializations": {
+        "dark": {
+          "kind": "neutral",
+          "opacity": 0.64
+        }
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.1
+      },
+      "translucency-specializations": {
+        "dark": {
+          "enabled": true,
+          "value": 0.14
+        }
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": [
+      "macOS"
+    ]
+  }
+}
