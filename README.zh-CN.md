@@ -1,8 +1,8 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="Design/AppIcon/type-switch-keyboard-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="Design/AppIcon/type-switch-keyboard.svg">
-    <img src="Design/AppIcon/type-switch-keyboard.svg" width="160" alt="TypeSwitch 图标">
+    <source media="(prefers-color-scheme: dark)" srcset="Design/AppIcon/Previews/typeswitch-icon-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="Design/AppIcon/Previews/typeswitch-icon-default.png">
+    <img src="Design/AppIcon/Previews/typeswitch-icon-default.png" width="160" alt="TypeSwitch 图标">
   </picture>
 </p>
 
