@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.7.1
+
+### 🇨🇳 中文
+
+#### 修复
+
+- 修复系统登录启动已启用后，旧 fallback LaunchAgent 未被清理的问题。
+
+#### 优化
+
+- 完善支持浅色、深色和单色外观的自适应 App 图标。
+- 优化 README 品牌展示。
+
+### 🇺🇸 English
+
+#### Fixes
+
+- Fixed an issue where the legacy fallback LaunchAgent was not removed after system launch-at-login became enabled.
+
+#### Improvements
+
+- Refined the adaptive app icon with light, dark, and monochrome appearances.
+- Improved the README brand presentation.
+
 ## v0.7.0
 
 ### 🇨🇳 中文
