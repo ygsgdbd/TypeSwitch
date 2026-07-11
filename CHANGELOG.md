@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.7.0
+
+### 🇨🇳 中文
+
+#### 功能
+
+- 为已配置应用、失效应用、默认输入法、切换统计、检查更新、GitHub 和退出等菜单项新增图标，信息层级更清晰。
+
+#### 优化
+
+- 更新 App 图标及其深色外观设计资源。
+- 将 Sparkle 更新说明渲染为 HTML，提升更新弹窗中的排版效果。
+- 新增可重复生成且不包含用户隐私数据的 README 截图流程，并更新中英文文档与截图。
+
+### 🇺🇸 English
+
+#### Features
+
+- Added icons to configured apps, unavailable apps, default input method, switch statistics, update checking, GitHub, quit, and other menu items for clearer visual hierarchy.
+
+#### Improvements
+
+- Refreshed the app icon and its dark appearance design assets.
+- Rendered Sparkle release notes as HTML for improved formatting in the update dialog.
+- Added a deterministic, privacy-safe README screenshot workflow and refreshed the English and Chinese documentation and screenshots.
+
 ## v0.6.0
 
 ### 🇨🇳 中文
