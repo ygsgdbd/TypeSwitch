@@ -8,8 +8,6 @@
 
 <h1 align="center">TypeSwitch</h1>
 
-<hr>
-
 <p align="center">TypeSwitch 是一款按 App 自动切换输入法的 macOS 菜单栏工具。为每个 App 选择输入法策略，设置未配置应用规则，并在前台 App 切换时自动切到对应输入法。</p>
 
 <p align="center">
@@ -21,7 +19,7 @@
   <a href="https://github.com/ygsgdbd/TypeSwitch/pulls"><img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg"></a>
 </p>
 
-<p align="center"><strong>简体中文</strong> • <a href="README.md">English</a></p>
+<p align="center">🇨🇳 <strong>简体中文</strong> · 🇺🇸 <a href="README.md">English</a></p>
 
 ## 截图预览
 
