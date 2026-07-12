@@ -13,19 +13,16 @@ struct MenuBarView: View {
             CurrentAppView(store: store)
             RunningAppsView(store: store)
             ConfiguredAppsView(store: store)
-
-            Divider()
-
-            SettingsView(store: store, updaterController: updaterController)
-
-            Divider()
-
             UnavailableAppsView(store: store)
             SwitchStatisticsView(store: store)
 
             Divider()
 
-            AppInfoView()
+            SettingsView(store: store)
+
+            Divider()
+
+            AppInfoView(updaterController: updaterController)
         }
         .labelStyle(.titleAndIcon)
     }

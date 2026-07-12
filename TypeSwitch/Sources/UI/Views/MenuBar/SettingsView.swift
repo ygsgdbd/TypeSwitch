@@ -1,11 +1,9 @@
 import ComposableArchitecture
-import Sparkle
 import SwiftUI
 
 /// 设置视图，包含各种应用设置选项
 struct SettingsView: View {
     @Bindable var store: StoreOf<AppFeature>
-    let updaterController: SPUStandardUpdaterController
 
     var body: some View {
         Section {
@@ -49,15 +47,6 @@ struct SettingsView: View {
                 } label: {
                     Label(TypeSwitchStrings.Settings.General.openLoginItems, systemImage: "gear")
                 }
-            }
-
-            Button {
-                updaterController.checkForUpdates(nil)
-            } label: {
-                Label(
-                    TypeSwitchStrings.Settings.General.checkForUpdates,
-                    systemImage: "arrow.triangle.2.circlepath"
-                )
             }
         }
     }
