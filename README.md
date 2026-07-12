@@ -31,14 +31,14 @@
 
 - **Auto switch per app**: Switch input methods when the active app changes.
 - **Current App**: Configure the frontmost app directly at the top of the menu.
-- **Unconfigured and Running groups**: Review running apps without rules separately from running apps that already have rules.
-- **Configured apps**: Manage saved app rules from the menu bar.
-- **Unconfigured Apps rule**: Set the fallback behavior for apps without their own rule.
+- **Running rule groups**: Review `Running · Unconfigured` apps separately from `Running · Configured` apps.
+- **All Configured Apps**: Manage saved app rules from the menu bar.
+- **Default Rule for Unconfigured Apps**: Set the fallback behavior for apps without their own rule.
 - **Rule strategies**: Choose `Don't Switch`, `Last Switch`, or a `Specific Input Method`.
-- **Unavailable cleanup**: Review rules for missing apps and clear unavailable settings.
+- **Missing Apps cleanup**: Review rules for missing apps and clear stale settings.
 - **Switch statistics**: Track successful input method switches per app and clear the counts.
 - **Launch at Login**: Start TypeSwitch automatically after login, with a Login Items shortcut when macOS requires approval.
-- **Manual update checks**: Use `Check for Updates...` in the menu bar app for manual installs.
+- **Manual update checks**: Use `Check for Updates…` in the menu bar app for manual installs.
 - **Quick project access**: Open the GitHub repository from the menu.
 - **Keyboard shortcut**: Press `Command + Q` to quit TypeSwitch.
 
@@ -67,23 +67,23 @@ brew upgrade typeswitch
 1. Download the latest build from [Releases](https://github.com/ygsgdbd/TypeSwitch/releases).
 2. Drag `TypeSwitch.app` to the Applications folder.
 3. Launch TypeSwitch and grant any system permissions macOS requests.
-4. Use `Check for Updates...` from the menu bar app to check GitHub Releases for future updates.
+4. Use `Check for Updates…` from the menu bar app to check GitHub Releases for future updates.
 
 ## Usage
 
 1. Launch TypeSwitch. Its keyboard icon appears in the menu bar.
 2. Open the menu and use `Current App` to configure the frontmost app.
-3. Use `Unconfigured` to assign rules to running apps that do not have one yet.
-4. Use `Running` and `Configured` to review and change existing app rules.
+3. Use `Running · Unconfigured` to assign rules to running apps that do not have one yet.
+4. Use `Running · Configured` and `All Configured Apps` to review and change existing app rules.
 5. For each app, choose `Default`, `Last Switch`, `Don't Switch`, or a specific input method.
-6. Use `Unconfigured Apps` to set the fallback rule for apps without their own rule.
-7. Check `Unavailable` and `Switches` when you want to clean missing rules or review successful switches.
+6. Use `Default Rule for Unconfigured Apps` to set the fallback behavior for apps without their own rule.
+7. Check `Missing Apps` and `Switches` when you want to clean missing rules or review successful switches.
 
 ## Privacy and Permissions
 
-- App rules, the unconfigured-apps rule, and switch statistics are stored locally.
+- App rules, the Default Rule for Unconfigured Apps, and switch statistics are stored locally.
 - TypeSwitch has no server-side component in this repository.
-- The GitHub link and `Check for Updates...` contact GitHub only when you use them.
+- `GitHub Repository` and `Check for Updates…` contact GitHub only when you use them.
 - Input method switching uses macOS system input sources.
 - Launch at Login uses macOS Login Items, with a LaunchAgent fallback when needed.
 

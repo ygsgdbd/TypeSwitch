@@ -1,5 +1,6 @@
 // Menu
 "menu.quit" = "Quit TypeSwitch";
+"menu.github_repository" = "GitHub Repository";
 
 // Common
 "common.cancel" = "Cancel";
@@ -7,18 +8,18 @@
 // Settings
 "settings.general.auto_launch" = "Launch at Login";
 "settings.general.auto_launch_requires_approval" = "Approve TypeSwitch in System Settings > General > Login Items.";
-"settings.general.open_login_items" = "Open Login Items";
-"settings.general.check_for_updates" = "Check for Updates...";
-"settings.fallback.default_input_method" = "Unconfigured Apps";
+"settings.general.open_login_items" = "Open Login Items Settings";
+"settings.general.check_for_updates" = "Check for Updates…";
+"settings.fallback.default_input_method" = "Default Rule for Unconfigured Apps";
 
 // App List
 "apps.section.current_app" = "Current App";
-"apps.section.running_count" = "Running (%d)";
-"apps.section.unconfigured_count" = "Unconfigured (%d)";
-"apps.section.configured_count" = "Configured (%d)";
-"apps.section.unavailable_count" = "Unavailable (%d)";
-"apps.clear_unavailable" = "Clear unavailable";
-"apps.clear_unavailable_confirmation.title" = "Clear unavailable apps?";
+"apps.section.running_count" = "Running · Configured (%d)";
+"apps.section.unconfigured_count" = "Running · Unconfigured (%d)";
+"apps.section.configured_count" = "All Configured Apps (%d)";
+"apps.section.unavailable_count" = "Missing Apps (%d)";
+"apps.clear_unavailable" = "Clear Missing Apps";
+"apps.clear_unavailable_confirmation.title" = "Clear missing apps?";
 "apps.clear_unavailable_confirmation.message" = "This removes settings for apps that no longer exist.";
 "apps.clear_unavailable_confirmation.confirm" = "Clear";
 
@@ -50,7 +51,7 @@
 "input_method.follow_last_missing_option" = "Last Switch (Unavailable)";
 "input_method.clear_missing_configuration" = "Clear unavailable settings";
 "input_method.clear_missing_confirmation.title" = "Clear unavailable settings?";
-"input_method.clear_missing_confirmation.message" = "Unavailable items will use the Unconfigured Apps rule.";
+"input_method.clear_missing_confirmation.message" = "Unavailable items will use the Default Rule for Unconfigured Apps.";
 "input_method.clear_missing_confirmation.confirm" = "Clear";
 
 // Error Messages

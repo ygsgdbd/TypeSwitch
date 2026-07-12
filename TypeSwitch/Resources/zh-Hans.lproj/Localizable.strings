@@ -1,29 +1,30 @@
 // 菜单
 "menu.quit" = "退出 TypeSwitch";
+"menu.github_repository" = "GitHub 仓库";
 
 // 通用
 "common.cancel" = "取消";
 
 // 设置
-"settings.general.auto_launch" = "开机启动";
-"settings.general.auto_launch_requires_approval" = "请在系统设置 > 通用 > 登录项中批准 TypeSwitch。";
+"settings.general.auto_launch" = "登录时打开";
+"settings.general.auto_launch_requires_approval" = "请前往“系统设置”>“通用”>“登录项”允许 TypeSwitch。";
 "settings.general.open_login_items" = "打开登录项设置";
-"settings.general.check_for_updates" = "检查更新...";
-"settings.fallback.default_input_method" = "未配置应用规则";
+"settings.general.check_for_updates" = "检查更新…";
+"settings.fallback.default_input_method" = "未配置 App 的默认规则";
 
 // 应用列表
 "apps.section.current_app" = "当前应用";
-"apps.section.running_count" = "运行中 (%d)";
-"apps.section.unconfigured_count" = "未配置 (%d)";
-"apps.section.configured_count" = "已配置 (%d)";
-"apps.section.unavailable_count" = "不可用 (%d)";
-"apps.clear_unavailable" = "清理不可用项";
-"apps.clear_unavailable_confirmation.title" = "清理不可用 App？";
+"apps.section.running_count" = "运行中 · 已配置（%d）";
+"apps.section.unconfigured_count" = "运行中 · 未配置（%d）";
+"apps.section.configured_count" = "全部已配置 App（%d）";
+"apps.section.unavailable_count" = "找不到的 App（%d）";
+"apps.clear_unavailable" = "清理找不到的 App";
+"apps.clear_unavailable_confirmation.title" = "清理找不到的 App？";
 "apps.clear_unavailable_confirmation.message" = "会移除不存在 App 的设置。";
 "apps.clear_unavailable_confirmation.confirm" = "清理";
 
 // 切换统计
-"switch_statistics.menu_title" = "切换统计 (%d)";
+"switch_statistics.menu_title" = "切换统计（%d 次）";
 "switch_statistics.app_count" = "%d 次";
 "switch_statistics.empty" = "暂无切换统计";
 "switch_statistics.clear" = "清零统计";
@@ -50,7 +51,7 @@
 "input_method.follow_last_missing_option" = "记住上次切换（不可用）";
 "input_method.clear_missing_configuration" = "清理失效设置";
 "input_method.clear_missing_confirmation.title" = "清理失效设置？";
-"input_method.clear_missing_confirmation.message" = "失效项会改为跟随未配置应用规则。";
+"input_method.clear_missing_confirmation.message" = "失效项会改为跟随未配置 App 的默认规则。";
 "input_method.clear_missing_confirmation.confirm" = "清理";
 
 // 错误信息
