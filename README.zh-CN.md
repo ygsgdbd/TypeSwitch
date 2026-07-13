@@ -8,7 +8,7 @@
 
 <h1 align="center">TypeSwitch</h1>
 
-<p align="center">TypeSwitch 是一款按 App 自动切换输入法的 macOS 菜单栏工具。为每个 App 选择输入法策略，设置未配置 App 的默认规则，并在前台 App 切换时自动切到对应输入法。</p>
+<p align="center">TypeSwitch 是一款按 App 自动切换输入法的原生 macOS 菜单栏工具。为每个 App 选择输入法策略，设置未配置 App 的默认规则，并在前台 App 切换时自动切到对应输入法。</p>
 
 <p align="center">
   <a href="https://swift.org"><img alt="Swift" src="https://img.shields.io/badge/Swift-5.9-orange.svg"></a>
@@ -27,20 +27,20 @@
 
 ![TypeSwitch 暗色模式主菜单和当前 App 输入法策略](Documentation/Screenshots/zh-Hans-dark.png#gh-dark-mode-only)
 
-## 功能特点
+## 功能亮点
 
-- **按 App 自动切换**：当前 App 变化时自动切换输入法。
-- **当前应用**：在菜单顶部直接配置当前前台 App。
-- **运行中规则分组**：将运行中且未配置的 App 与运行中且已配置的 App 分开查看。
-- **全部已配置 App**：在菜单栏中管理已保存的 App 规则。
-- **未配置 App 的默认规则**：设置没有单独规则的 App 应该如何处理。
-- **规则策略**：可选择“不自动切换”、“记住上次切换”或“指定输入法”。
-- **找不到的 App 清理**：查看不存在 App 的规则，并清理失效设置。
-- **切换统计**：按 App 记录成功切换次数，并可清零统计。
-- **登录时打开**：登录后自动运行，macOS 需要批准时可直接打开登录项设置。
-- **手动检查更新**：手动安装版可在菜单栏应用里使用“检查更新…”。
-- **项目入口**：从菜单直接打开 GitHub 仓库。
-- **快捷键**：按 `Command + Q` 退出 TypeSwitch。
+- **为每个 App 自动切换。** TypeSwitch 会监听当前前台 App，在你切换 App 时自动应用已保存的输入法规则。
+- **选择适合自己的切换方式。** 可使用“不自动切换”、“记住上次切换”或“指定输入法”，并为尚未单独配置的 App 设置独立的默认规则。
+- **随时配置遇到的 App。** 可直接设置当前 App，从按配置状态分组的运行中 App 里选择，或在菜单栏中管理全部已保存规则。
+- **保持规则与统计整洁。** 查找不存在 App 的规则、移除失效设置、查看成功切换次数，并按需清零统计。
+- **融入日常工作流程。** 支持登录时打开、通过 Sparkle 检查更新、访问 GitHub 仓库，以及使用 `Command + Q` 退出。
+
+## 原生与轻量
+
+- **真正原生。** TypeSwitch 的 App 业务代码使用 Swift 编写，并采用 SwiftUI 和 The Composable Architecture（TCA）架构。它基于 `MenuBarExtra` 与 `LSUIElement` 构建，不包含 Electron 运行时，也没有嵌入 WebView。
+- **专注且轻量。** TypeSwitch 作为菜单栏工具运行，无需附带浏览器引擎或服务端组件。App 规则、默认规则和切换统计都保存在你的 Mac 上。
+- **自然融入 macOS。** 界面会自动适配浅色与暗色模式。在 macOS 26 上，原生 SwiftUI 控件会在适用位置呈现系统提供的 Liquid Glass 外观；macOS 14 与 macOS 15 则保持各自的原生系统样式。TypeSwitch 不使用自定义视觉效果模拟 Liquid Glass。
+- **同时支持新旧 Mac。** Release workflow 使用 Xcode 26.2，并验证每个发布版本都是同时支持 Apple Silicon 与 Intel Mac 的 Universal Binary。
 
 ## 系统要求
 

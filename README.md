@@ -8,7 +8,7 @@
 
 <h1 align="center">TypeSwitch</h1>
 
-<p align="center">TypeSwitch is a macOS menu bar utility for switching input methods per app. Choose how each app should behave, set the rule for unconfigured apps, and let TypeSwitch switch to the right input method when the frontmost app changes.</p>
+<p align="center">TypeSwitch is a native macOS menu bar utility for switching input methods per app. Choose how each app should behave, set the rule for unconfigured apps, and let TypeSwitch switch to the right input method when the frontmost app changes.</p>
 
 <p align="center">
   <a href="https://swift.org"><img alt="Swift" src="https://img.shields.io/badge/Swift-5.9-orange.svg"></a>
@@ -27,20 +27,20 @@
 
 ![TypeSwitch dark appearance showing the main menu and current-app input method strategy](Documentation/Screenshots/en-dark.png#gh-dark-mode-only)
 
-## Features
+## Highlights
 
-- **Auto switch per app**: Switch input methods when the active app changes.
-- **Current App**: Configure the frontmost app directly at the top of the menu.
-- **Running rule groups**: Review `Running · Unconfigured` apps separately from `Running · Configured` apps.
-- **All Configured Apps**: Manage saved app rules from the menu bar.
-- **Default Rule for Unconfigured Apps**: Set the fallback behavior for apps without their own rule.
-- **Rule strategies**: Choose `Don't Switch`, `Last Switch`, or a `Specific Input Method`.
-- **Missing Apps cleanup**: Review rules for missing apps and clear stale settings.
-- **Switch statistics**: Track successful input method switches per app and clear the counts.
-- **Launch at Login**: Start TypeSwitch automatically after login, with a Login Items shortcut when macOS requires approval.
-- **Manual update checks**: Use `Check for Updates…` in the menu bar app for manual installs.
-- **Quick project access**: Open the GitHub repository from the menu.
-- **Keyboard shortcut**: Press `Command + Q` to quit TypeSwitch.
+- **Switch automatically for every app.** TypeSwitch watches the frontmost app and applies its saved input method rule as you move between apps.
+- **Choose the behavior that fits.** Use `Don't Switch`, `Last Switch`, or a `Specific Input Method`, with a separate default rule for apps you have not configured yet.
+- **Configure apps where you find them.** Set a rule for the current app, review running apps by configuration status, or manage every saved rule without leaving the menu bar.
+- **Keep rules and results tidy.** Find rules for missing apps, remove stale settings, review successful switch counts, and clear statistics when needed.
+- **Fit TypeSwitch into your workflow.** Launch it at login, check for updates through Sparkle, open the GitHub repository, or press `Command + Q` to quit.
+
+## Native and Lightweight
+
+- **Truly native.** TypeSwitch's app business code is written in Swift and built with SwiftUI and The Composable Architecture (TCA). It uses `MenuBarExtra` and `LSUIElement` instead of an Electron runtime or embedded WebView.
+- **Focused and lightweight.** TypeSwitch runs as a menu bar utility without shipping a browser engine or server component. App rules, the default rule, and switch statistics stay on your Mac.
+- **At home on macOS.** The interface follows Light and Dark Mode automatically. On macOS 26, native SwiftUI controls use the system-provided Liquid Glass appearance where appropriate, while macOS 14 and macOS 15 retain their native system styling. TypeSwitch does not simulate Liquid Glass with custom visual effects.
+- **Built for modern Macs.** The release workflow uses Xcode 26.2 and verifies every release as a Universal Binary for both Apple Silicon and Intel Macs.
 
 ## System Requirements
 
