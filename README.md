@@ -21,13 +21,13 @@
 
 <p align="center">🇨🇳 <a href="README.zh-CN.md">简体中文</a> · 🇺🇸 <strong>English</strong></p>
 
-## Screenshots
+## 🖼️ Screenshots
 
 ![TypeSwitch light appearance showing the main menu and current-app input method strategy](Documentation/Screenshots/en-light.png#gh-light-mode-only)
 
 ![TypeSwitch dark appearance showing the main menu and current-app input method strategy](Documentation/Screenshots/en-dark.png#gh-dark-mode-only)
 
-## Highlights
+## ✨ Highlights
 
 - **Switch automatically for every app.** TypeSwitch watches the frontmost app and applies its saved input method rule as you move between apps.
 - **Choose the behavior that fits.** Use `Don't Switch`, `Last Switch`, or a `Specific Input Method`, with a separate default rule for apps you have not configured yet.
@@ -35,20 +35,20 @@
 - **Keep rules and results tidy.** Find rules for missing apps, remove stale settings, review successful switch counts, and clear statistics when needed.
 - **Fit TypeSwitch into your workflow.** Launch it at login, check for updates through Sparkle, open the GitHub repository, or press `Command + Q` to quit.
 
-## Native and Lightweight
+## 🪶 Native and Lightweight
 
 - **Truly native.** TypeSwitch's app business code is written in Swift and built with SwiftUI and The Composable Architecture (TCA). It uses `MenuBarExtra` and `LSUIElement` instead of an Electron runtime or embedded WebView.
 - **Focused and lightweight.** TypeSwitch runs as a menu bar utility without shipping a browser engine or server component. App rules, the default rule, and switch statistics stay on your Mac.
 - **At home on macOS.** The interface follows Light and Dark Mode automatically. On macOS 26, native SwiftUI controls use the system-provided Liquid Glass appearance where appropriate, while macOS 14 and macOS 15 retain their native system styling. TypeSwitch does not simulate Liquid Glass with custom visual effects.
 - **Built for modern Macs.** The release workflow uses Xcode 26.2 and verifies every release as a Universal Binary for both Apple Silicon and Intel Macs.
 
-## System Requirements
+## 💻 System Requirements
 
 - macOS 14.0 or later
 - Enabled macOS keyboard layouts or input methods
 - macOS permissions needed for app activation monitoring, system input method switching, and optional Login Items
 
-## Installation
+## 📦 Installation
 
 ### Homebrew
 
@@ -91,7 +91,7 @@ brew upgrade typeswitch
 3. Launch TypeSwitch and grant any system permissions macOS requests.
 4. Use `Check for Updates…` from the menu bar app to check GitHub Releases for future updates.
 
-## Usage
+## 🧭 Usage
 
 1. Launch TypeSwitch. Its keyboard icon appears in the menu bar.
 2. Open the menu and use `Current App` to configure the frontmost app.
@@ -101,7 +101,7 @@ brew upgrade typeswitch
 6. Use `Default Rule for Unconfigured Apps` to set the fallback behavior for apps without their own rule.
 7. Check `Missing Apps` and `Switches` when you want to clean missing rules or review successful switches.
 
-## Privacy and Permissions
+## 🔒 Privacy and Permissions
 
 - App rules, the Default Rule for Unconfigured Apps, and switch statistics are stored locally.
 - TypeSwitch has no server-side component in this repository.
@@ -109,7 +109,7 @@ brew upgrade typeswitch
 - Input method switching uses macOS system input sources.
 - Launch at Login uses macOS Login Items, with a LaunchAgent fallback when needed.
 
-## Tech Stack
+## 🧰 Tech Stack
 
 This project uses:
 
@@ -120,7 +120,7 @@ This project uses:
 - Point-Free support libraries: CasePaths, Dependencies, and PerceptionCore
 - [Tuist](https://github.com/tuist/tuist) for project generation and build configuration
 
-## Development
+## 🧪 Development
 
 ### Requirements
 
@@ -172,7 +172,7 @@ git push origin v0.6.0
 
 The workflow validates the tag, runs tests, builds a universal macOS app, packages a zip, generates checksums, creates a signed Sparkle `appcast.xml`, publishes a GitHub Release, and updates the Homebrew cask.
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
 TypeSwitch was inspired by:
 

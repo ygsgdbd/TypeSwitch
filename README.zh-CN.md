@@ -21,13 +21,13 @@
 
 <p align="center">🇨🇳 <strong>简体中文</strong> · 🇺🇸 <a href="README.md">English</a></p>
 
-## 截图预览
+## 🖼️ 截图预览
 
 ![TypeSwitch 浅色模式主菜单和当前 App 输入法策略](Documentation/Screenshots/zh-Hans-light.png#gh-light-mode-only)
 
 ![TypeSwitch 暗色模式主菜单和当前 App 输入法策略](Documentation/Screenshots/zh-Hans-dark.png#gh-dark-mode-only)
 
-## 功能亮点
+## ✨ 功能亮点
 
 - **为每个 App 自动切换。** TypeSwitch 会监听当前前台 App，在你切换 App 时自动应用已保存的输入法规则。
 - **选择适合自己的切换方式。** 可使用“不自动切换”、“记住上次切换”或“指定输入法”，并为尚未单独配置的 App 设置独立的默认规则。
@@ -35,20 +35,20 @@
 - **保持规则与统计整洁。** 查找不存在 App 的规则、移除失效设置、查看成功切换次数，并按需清零统计。
 - **融入日常工作流程。** 支持登录时打开、通过 Sparkle 检查更新、访问 GitHub 仓库，以及使用 `Command + Q` 退出。
 
-## 原生与轻量
+## 🪶 原生与轻量
 
 - **真正原生。** TypeSwitch 的 App 业务代码使用 Swift 编写，并采用 SwiftUI 和 The Composable Architecture（TCA）架构。它基于 `MenuBarExtra` 与 `LSUIElement` 构建，不包含 Electron 运行时，也没有嵌入 WebView。
 - **专注且轻量。** TypeSwitch 作为菜单栏工具运行，无需附带浏览器引擎或服务端组件。App 规则、默认规则和切换统计都保存在你的 Mac 上。
 - **自然融入 macOS。** 界面会自动适配浅色与暗色模式。在 macOS 26 上，原生 SwiftUI 控件会在适用位置呈现系统提供的 Liquid Glass 外观；macOS 14 与 macOS 15 则保持各自的原生系统样式。TypeSwitch 不使用自定义视觉效果模拟 Liquid Glass。
 - **同时支持新旧 Mac。** Release workflow 使用 Xcode 26.2，并验证每个发布版本都是同时支持 Apple Silicon 与 Intel Mac 的 Universal Binary。
 
-## 系统要求
+## 💻 系统要求
 
 - macOS 14.0 或更高版本
 - 已启用的 macOS 键盘布局或输入法
 - macOS 对应用激活监听、系统输入法切换和可选登录项所需的权限
 
-## 安装方法
+## 📦 安装方法
 
 ### Homebrew
 
@@ -91,7 +91,7 @@ brew upgrade typeswitch
 3. 启动 TypeSwitch，并授予 macOS 请求的系统权限。
 4. 后续可在菜单栏应用中使用“检查更新…”从 GitHub Releases 检查更新。
 
-## 使用说明
+## 🧭 使用说明
 
 1. 启动 TypeSwitch，键盘图标会出现在菜单栏中。
 2. 打开菜单，用“当前应用”配置当前前台 App。
@@ -101,7 +101,7 @@ brew upgrade typeswitch
 6. 用“未配置 App 的默认规则”设置没有单独规则的 App 的默认行为。
 7. 按需查看“找不到的 App”和“切换统计”，清理缺失规则或查看成功切换次数。
 
-## 隐私与权限
+## 🔒 隐私与权限
 
 - App 规则、未配置 App 的默认规则和切换统计都存储在本地。
 - 本仓库中没有服务端组件。
@@ -109,7 +109,7 @@ brew upgrade typeswitch
 - 输入法切换使用 macOS 系统输入源。
 - “登录时打开”使用 macOS 登录项；必要时会回退到 LaunchAgent。
 
-## 技术栈
+## 🧰 技术栈
 
 本项目使用：
 
@@ -120,7 +120,7 @@ brew upgrade typeswitch
 - Point-Free 支持库：CasePaths、Dependencies、PerceptionCore
 - [Tuist](https://github.com/tuist/tuist)：项目生成和构建配置
 
-## 开发相关
+## 🧪 开发相关
 
 ### 环境要求
 
@@ -172,7 +172,7 @@ git push origin v0.6.0
 
 发布 workflow 会校验标签、运行测试、构建 universal macOS app、打包 zip、生成 checksums、创建已签名的 Sparkle `appcast.xml`、发布 GitHub Release，并更新 Homebrew cask。
 
-## 致谢
+## 🙏 致谢
 
 TypeSwitch 受到以下项目和社区启发：
 
