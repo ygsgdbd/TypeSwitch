@@ -52,15 +52,37 @@
 
 ### Homebrew
 
+The `brew trust` command first shipped with Homebrew 5.1.15 on June 3, 2026. In Homebrew 5.1.15 through 5.x, trust was required only when `HOMEBREW_REQUIRE_TAP_TRUST=1` was set. Starting with Homebrew 6.0.0 on June 11, 2026, casks from non-official taps require explicit trust by default.
+
 ```bash
-brew install ygsgdbd/tap/typeswitch --cask
+brew tap ygsgdbd/tap
+brew trust --cask ygsgdbd/tap/typeswitch
+brew install --cask typeswitch
 ```
+
+This trusts only the `typeswitch` cask, not the entire tap. Homebrew stores the trust entry, so you normally need to run the trust command only once. See Homebrew's [Tap Trust documentation](https://docs.brew.sh/Tap-Trust) for details.
+
+Homebrew 5.1.14 and earlier do not have `brew trust` and do not require it:
+
+```bash
+brew tap ygsgdbd/tap
+brew install --cask typeswitch
+```
+
+If `brew trust` reports `Unknown command: trust`, skip that command or run `brew update` to upgrade Homebrew.
 
 Update Homebrew installations with:
 
 ```bash
 brew upgrade typeswitch
 ```
+
+#### Tap Trust Troubleshooting
+
+- If Homebrew reports `Refusing to load cask ... from untrusted tap`, run `brew trust --cask ygsgdbd/tap/typeswitch`, then retry the installation or upgrade.
+- If `brew doctor` reports that `ygsgdbd/tap` is untrusted, trust only the TypeSwitch cask with the command above; trusting the entire tap is not required.
+- If an existing installation stops upgrading after Homebrew is updated to 6.0.0 or later, trust the cask and retry `brew upgrade typeswitch`.
+- To trust every current and future formula, cask, and external command in the tap, use `brew trust ygsgdbd/tap`. This grants broader access and is not the recommended option.
 
 ### Manual Installation
 
