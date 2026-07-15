@@ -1,8 +1,7 @@
 import AppKit
 import ComposableArchitecture
-import XCTest
-
 @testable import TypeSwitch
+import XCTest
 
 final class ReadmeScreenshotConfigurationTests: XCTestCase {
     func testArgumentsWithoutReadmeDemoDisableScreenshotMode() {
@@ -18,7 +17,7 @@ final class ReadmeScreenshotConfigurationTests: XCTestCase {
                     "--readme-appearance",
                     "dark",
                     "--readme-display-id",
-                    "42"
+                    "42",
                 ]
             )
         )
@@ -40,7 +39,7 @@ final class ReadmeScreenshotConfigurationTests: XCTestCase {
         let displays = [
             ReadmeScreenshotConfiguration.Display(id: 1, pixelWidth: 2560, pixelHeight: 1440),
             ReadmeScreenshotConfiguration.Display(id: 2, pixelWidth: 3840, pixelHeight: 2160),
-            ReadmeScreenshotConfiguration.Display(id: 3, pixelWidth: 3008, pixelHeight: 1692)
+            ReadmeScreenshotConfiguration.Display(id: 3, pixelWidth: 3008, pixelHeight: 1692),
         ]
 
         XCTAssertEqual(
@@ -57,7 +56,7 @@ final class ReadmeScreenshotConfigurationTests: XCTestCase {
                     "TypeSwitch",
                     "--readme-demo",
                     "--readme-appearance",
-                    "dark"
+                    "dark",
                 ]
             )
         )

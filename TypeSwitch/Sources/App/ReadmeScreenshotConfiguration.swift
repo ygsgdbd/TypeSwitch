@@ -39,7 +39,8 @@ struct ReadmeScreenshotConfiguration: Equatable {
 
         if let optionIndex = arguments.firstIndex(of: "--readme-appearance"),
            arguments.indices.contains(optionIndex + 1),
-           let appearance = Appearance(rawValue: arguments[optionIndex + 1]) {
+           let appearance = Appearance(rawValue: arguments[optionIndex + 1])
+        {
             self.appearance = appearance
         } else {
             self.appearance = .light
@@ -47,7 +48,8 @@ struct ReadmeScreenshotConfiguration: Equatable {
 
         if let optionIndex = arguments.firstIndex(of: "--readme-display-id"),
            arguments.indices.contains(optionIndex + 1),
-           let displayID = CGDirectDisplayID(arguments[optionIndex + 1]) {
+           let displayID = CGDirectDisplayID(arguments[optionIndex + 1])
+        {
             self.requestedDisplayID = displayID
         } else {
             self.requestedDisplayID = nil
@@ -73,7 +75,8 @@ struct ReadmeScreenshotConfiguration: Equatable {
             ?? Self.highestResolutionDisplayID(in: Self.onlineDisplays())
         let screen = NSScreen.screens.first { screen in
             guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")]
-                as? NSNumber else {
+                as? NSNumber
+            else {
                 return false
             }
             return number.uint32Value == targetDisplayID
@@ -153,7 +156,7 @@ struct ReadmeScreenshotConfiguration: Equatable {
                 strategy: .fixed(inputMethodId: "com.example.missing-input-method"),
                 createdAt: now,
                 updatedAt: now
-            )
+            ),
         ]
 
         return AppFeature.State(
@@ -162,7 +165,7 @@ struct ReadmeScreenshotConfiguration: Equatable {
                 value: AppSwitchStatisticsStore(
                     counts: [
                         safari.bundleId: 18,
-                        terminal.bundleId: 33
+                        terminal.bundleId: 33,
                     ]
                 )
             ),
@@ -172,7 +175,7 @@ struct ReadmeScreenshotConfiguration: Equatable {
             currentFrontmostBundleId: safari.bundleId,
             inputMethods: [
                 InputMethod(id: abcID, name: "ABC"),
-                InputMethod(id: pinyinID, name: "Pinyin")
+                InputMethod(id: pinyinID, name: "Pinyin"),
             ],
             isReadmeDemo: true,
             launchAtLoginStatus: .enabled,
@@ -183,7 +186,8 @@ struct ReadmeScreenshotConfiguration: Equatable {
     private static func onlineDisplays() -> [Display] {
         var displayCount: UInt32 = 0
         guard CGGetOnlineDisplayList(0, nil, &displayCount) == .success,
-              displayCount > 0 else {
+              displayCount > 0
+        else {
             return []
         }
 

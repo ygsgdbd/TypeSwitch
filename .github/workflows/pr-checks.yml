@@ -1,0 +1,63 @@
+name: PR Checks
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  format:
+    name: Format
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install just
+        run: brew install just
+
+      - name: Install pinned SwiftFormat
+        run: |
+          SWIFTFORMAT_VERSION="$(tr -d '[:space:]' < .swiftformat-version)"
+          SWIFTFORMAT_DIR="$RUNNER_TEMP/swiftformat"
+          mkdir -p "$SWIFTFORMAT_DIR"
+          curl -fsSL \
+            "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat.zip" \
+            -o "$RUNNER_TEMP/swiftformat.zip"
+          EXPECTED_SHA256="$(tr -d '[:space:]' < .swiftformat-checksum)"
+          ACTUAL_SHA256="$(shasum -a 256 "$RUNNER_TEMP/swiftformat.zip" | awk '{print $1}')"
+          if [[ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]]; then
+            echo "::error title=SwiftFormat checksum mismatch::Expected ${EXPECTED_SHA256}, got ${ACTUAL_SHA256}."
+            exit 1
+          fi
+          unzip -q "$RUNNER_TEMP/swiftformat.zip" -d "$SWIFTFORMAT_DIR"
+          chmod +x "$SWIFTFORMAT_DIR/swiftformat"
+          echo "$SWIFTFORMAT_DIR" >> "$GITHUB_PATH"
+
+      - name: Check formatting
+        run: just lint-ci
+
+  tests:
+    name: Tests
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.2'
+
+      - name: Install tools
+        run: brew install just tuist
+
+      - name: Run tests
+        run: just test

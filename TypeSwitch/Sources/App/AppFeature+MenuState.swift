@@ -80,7 +80,8 @@ extension AppFeature.State {
 
     var currentAppMenuItem: AppMenuItem? {
         guard let currentFrontmostBundleId,
-              let appInfo = knownAppInfo(for: currentFrontmostBundleId) else {
+              let appInfo = knownAppInfo(for: currentFrontmostBundleId)
+        else {
             return nil
         }
 

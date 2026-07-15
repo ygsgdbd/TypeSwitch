@@ -1,6 +1,6 @@
 import Foundation
-import XCTest
 @testable import TypeSwitch
+import XCTest
 
 final class AppRulesStoreMigrationTests: XCTestCase {
     func testAppRulesStoreEncodingIncludesVersion() throws {
@@ -14,7 +14,7 @@ final class AppRulesStoreMigrationTests: XCTestCase {
                     strategy: .fixed(inputMethodId: "ime.zh"),
                     createdAt: Date(timeIntervalSince1970: 10),
                     updatedAt: Date(timeIntervalSince1970: 20)
-                )
+                ),
             ]
         )
 
@@ -48,7 +48,7 @@ final class AppRulesStoreMigrationTests: XCTestCase {
 
         let store = AppSwitchStatisticsStore(counts: [
             "com.test.notes": 2,
-            "com.test.browser": 5
+            "com.test.browser": 5,
         ])
         let data = try JSONEncoder().encode(store)
 
@@ -151,7 +151,7 @@ final class AppRulesStoreMigrationTests: XCTestCase {
                     strategy: .none,
                     createdAt: Date(timeIntervalSince1970: 50),
                     updatedAt: Date(timeIntervalSince1970: 60)
-                )
+                ),
             ]
         )
         try fileManager.createDirectory(

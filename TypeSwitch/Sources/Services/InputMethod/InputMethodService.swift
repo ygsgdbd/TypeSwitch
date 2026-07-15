@@ -6,7 +6,6 @@ import OSLog
 /// 负责获取、切换和管理系统输入法
 @MainActor
 enum InputMethodService {
-
     /// 输入法相关错误
     enum InputMethodError: Error, LocalizedError {
         case failedToFetchInputMethods

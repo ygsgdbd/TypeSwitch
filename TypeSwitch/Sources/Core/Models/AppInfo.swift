@@ -27,7 +27,8 @@ struct AppInfo: Identifiable, Sendable, Hashable {
     init?(bundleURL: URL) {
         guard let bundle = Bundle(url: bundleURL),
               let bundleId = bundle.bundleIdentifier,
-              let name = Self.bundleName(from: bundle) else {
+              let name = Self.bundleName(from: bundle)
+        else {
             return nil
         }
 

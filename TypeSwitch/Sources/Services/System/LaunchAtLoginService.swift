@@ -172,7 +172,7 @@ private extension LaunchAtLoginService {
         let plist: [String: Any] = [
             "Label": launchAgentIdentifier,
             "ProgramArguments": [executableURL.path],
-            "RunAtLoad": true
+            "RunAtLoad": true,
         ]
         let data = try PropertyListSerialization.data(
             fromPropertyList: plist,

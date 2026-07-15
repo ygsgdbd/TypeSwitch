@@ -54,7 +54,7 @@ final class LocalizationStringsTests: XCTestCase {
                 "apps.clear_unavailable": "清理找不到的 App",
                 "apps.clear_unavailable_confirmation.title": "清理找不到的 App？",
                 "switch_statistics.menu_title": "切换统计（%d 次）",
-                "input_method.clear_missing_confirmation.message": "失效项会改为跟随未配置 App 的默认规则。"
+                "input_method.clear_missing_confirmation.message": "失效项会改为跟随未配置 App 的默认规则。",
             ],
             "zh-Hans": [
                 "menu.github_repository": "GitHub 仓库",
@@ -70,7 +70,7 @@ final class LocalizationStringsTests: XCTestCase {
                 "apps.clear_unavailable": "清理找不到的 App",
                 "apps.clear_unavailable_confirmation.title": "清理找不到的 App？",
                 "switch_statistics.menu_title": "切换统计（%d 次）",
-                "input_method.clear_missing_confirmation.message": "失效项会改为跟随未配置 App 的默认规则。"
+                "input_method.clear_missing_confirmation.message": "失效项会改为跟随未配置 App 的默认规则。",
             ],
             "zh-Hant": [
                 "menu.github_repository": "GitHub 儲存庫",
@@ -86,7 +86,7 @@ final class LocalizationStringsTests: XCTestCase {
                 "apps.clear_unavailable": "清理找不到的 App",
                 "apps.clear_unavailable_confirmation.title": "清理找不到的 App？",
                 "switch_statistics.menu_title": "切換統計（%d 次）",
-                "input_method.clear_missing_confirmation.message": "失效項會改為跟隨未設定 App 的預設規則。"
+                "input_method.clear_missing_confirmation.message": "失效項會改為跟隨未設定 App 的預設規則。",
             ],
             "en": [
                 "menu.github_repository": "GitHub Repository",
@@ -102,8 +102,8 @@ final class LocalizationStringsTests: XCTestCase {
                 "apps.clear_unavailable": "Clear Missing Apps",
                 "apps.clear_unavailable_confirmation.title": "Clear missing apps?",
                 "switch_statistics.menu_title": "Switches (%d)",
-                "input_method.clear_missing_confirmation.message": "Unavailable items will use the Default Rule for Unconfigured Apps."
-            ]
+                "input_method.clear_missing_confirmation.message": "Unavailable items will use the Default Rule for Unconfigured Apps.",
+            ],
         ]
 
         for localization in Self.localizations {
@@ -141,7 +141,7 @@ final class LocalizationStringsTests: XCTestCase {
         let content = try String(contentsOf: fileURL, encoding: .utf8)
         let keyPattern = #"^\s*"([^"]+)"\s*="#
         let regex = try NSRegularExpression(pattern: keyPattern, options: [.anchorsMatchLines])
-        let range = NSRange(content.startIndex..<content.endIndex, in: content)
+        let range = NSRange(content.startIndex ..< content.endIndex, in: content)
 
         return Set(regex.matches(in: content, range: range).compactMap { match in
             guard let keyRange = Range(match.range(at: 1), in: content) else {
@@ -154,7 +154,7 @@ final class LocalizationStringsTests: XCTestCase {
     private static func placeholders(in value: String) throws -> [String] {
         let pattern = #"%[@d]"#
         let regex = try NSRegularExpression(pattern: pattern)
-        let range = NSRange(value.startIndex..<value.endIndex, in: value)
+        let range = NSRange(value.startIndex ..< value.endIndex, in: value)
 
         return regex.matches(in: value, range: range).compactMap { match in
             guard let placeholderRange = Range(match.range, in: value) else {

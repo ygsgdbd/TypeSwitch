@@ -156,8 +156,8 @@ private func writePNG(context: CGContext, output: URL) throws {
     }
     CGImageDestinationAddImage(destination, image, [
         kCGImagePropertyPNGDictionary: [
-            kCGImagePropertyPNGInterlaceType: 0
-        ]
+            kCGImagePropertyPNGInterlaceType: 0,
+        ],
     ] as CFDictionary)
     if !CGImageDestinationFinalize(destination) {
         fatalError("Unable to write \(output.path).")

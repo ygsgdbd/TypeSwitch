@@ -12,7 +12,7 @@ struct TypeSwitchApp: App {
     let updaterController: SPUStandardUpdaterController
 
     init() {
-#if DEBUG
+        #if DEBUG
         let readmeConfiguration = ReadmeScreenshotConfiguration(
             arguments: ProcessInfo.processInfo.arguments
         )
@@ -22,13 +22,13 @@ struct TypeSwitchApp: App {
         self.readmeColorScheme = readmeConfiguration?.colorScheme
         let initialState = readmeConfiguration?.initialState(now: Date()) ?? AppFeature.State()
         let startsLiveServices = readmeConfiguration == nil
-#else
+        #else
         let readmeMenuAppearance: NSAppearance? = nil
         self.readmeBackdropWindow = nil
         self.readmeColorScheme = nil
         let initialState = AppFeature.State()
         let startsLiveServices = true
-#endif
+        #endif
         let store = Store(initialState: initialState) {
             AppFeature()
         }
@@ -52,7 +52,7 @@ struct TypeSwitchApp: App {
                             item.submenu?.appearance = readmeMenuAppearance
                         }
                     }
-                }
+                },
             ]
         } else {
             self.menuTrackingObservers = []

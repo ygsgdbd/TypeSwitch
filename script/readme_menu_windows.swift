@@ -12,7 +12,8 @@ enum Command: String {
 }
 
 guard CommandLine.arguments.count >= 2,
-      let command = Command(rawValue: CommandLine.arguments[1]) else {
+      let command = Command(rawValue: CommandLine.arguments[1])
+else {
     fputs("usage: readme_menu_windows snapshot | content <pid> <display-id> <x> <y> <width> <height> <pixel-width> <pixel-height> <output-path> | display | point <x> <y> | windows <snapshot-file> <display-id> <pid>\n", stderr)
     exit(2)
 }
@@ -20,7 +21,8 @@ guard CommandLine.arguments.count >= 2,
 func onlineDisplayIDs() -> [CGDirectDisplayID] {
     var displayCount: UInt32 = 0
     guard CGGetOnlineDisplayList(0, nil, &displayCount) == .success,
-          displayCount > 0 else {
+          displayCount > 0
+    else {
         return []
     }
 
@@ -42,7 +44,8 @@ func displayIDsWithMenuBar() -> Set<CGDirectDisplayID> {
     let displayIDs = NSScreen.screens.compactMap { screen -> CGDirectDisplayID? in
         guard screen.frame.maxY - screen.visibleFrame.maxY > 0.5,
               let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")]
-                as? NSNumber else {
+              as? NSNumber
+        else {
             return nil
         }
         return number.uint32Value
@@ -69,7 +72,8 @@ func captureContent() async throws {
           let width = Double(CommandLine.arguments[6]),
           let height = Double(CommandLine.arguments[7]),
           let pixelWidth = Int(CommandLine.arguments[8]),
-          let pixelHeight = Int(CommandLine.arguments[9]) else {
+          let pixelHeight = Int(CommandLine.arguments[9])
+    else {
         throw NSError(
             domain: "ReadmeMenuWindows",
             code: 2,
@@ -84,7 +88,8 @@ func captureContent() async throws {
     guard let display = shareableContent.displays.first(where: { $0.displayID == displayID }),
           let application = shareableContent.applications.first(where: {
               $0.processID == processID
-          }) else {
+          })
+    else {
         throw NSError(
             domain: "ReadmeMenuWindows",
             code: 1,
@@ -176,7 +181,8 @@ case .point:
           let y = Double(CommandLine.arguments[3]),
           let displayID = onlineDisplayIDs().first(where: {
               CGDisplayBounds($0).contains(CGPoint(x: x, y: y))
-          }) else {
+          })
+    else {
         fputs("point requires coordinates inside an online display.\n", stderr)
         exit(2)
     }
@@ -185,7 +191,8 @@ case .point:
 case .windows:
     guard CommandLine.arguments.count == 5,
           let displayID = CGDirectDisplayID(CommandLine.arguments[3]),
-          let processID = pid_t(CommandLine.arguments[4]) else {
+          let processID = pid_t(CommandLine.arguments[4])
+    else {
         fputs("windows requires a snapshot file, display ID, and process ID.\n", stderr)
         exit(2)
     }
@@ -220,7 +227,8 @@ case .windows:
               let bounds = CGRect(dictionaryRepresentation: boundsDictionary),
               displayBounds.contains(CGPoint(x: bounds.midX, y: bounds.midY)),
               bounds.width >= 100,
-              bounds.height >= 40 else {
+              bounds.height >= 40
+        else {
             return nil
         }
         return (windowNumber.uint32Value, bounds)

@@ -1,7 +1,7 @@
 import ComposableArchitecture
 import Foundation
-import XCTest
 @testable import TypeSwitch
+import XCTest
 
 @MainActor
 final class AppFeatureTests: XCTestCase {
@@ -301,7 +301,7 @@ final class AppFeatureTests: XCTestCase {
         var initialState = AppFeature.State()
         initialState.inputMethods = [
             InputMethod(id: appInputMethod, name: "App"),
-            InputMethod(id: fallbackInputMethod, name: "Fallback")
+            InputMethod(id: fallbackInputMethod, name: "Fallback"),
         ]
         initialState.$fallbackRuleStore.withLock {
             $0.strategy = .fixed(inputMethodId: fallbackInputMethod)
@@ -724,11 +724,11 @@ final class AppFeatureTests: XCTestCase {
 
         XCTAssertEqual(state.runningConfiguredMenuItems.map(\.bundleId), [
             browser.bundleId,
-            terminal.bundleId
+            terminal.bundleId,
         ])
         XCTAssertEqual(state.runningUnconfiguredMenuItems.map(\.bundleId), [
             chat.bundleId,
-            notes.bundleId
+            notes.bundleId,
         ])
     }
 
@@ -1250,7 +1250,7 @@ final class AppFeatureTests: XCTestCase {
     func testSwitchStatisticsItemsSortByCountThenName() {
         var state = AppFeature.State()
         state.runningApps = [
-            AppInfo(bundleId: "com.test.runner", name: "Runner", path: "/Applications/Runner.app")
+            AppInfo(bundleId: "com.test.runner", name: "Runner", path: "/Applications/Runner.app"),
         ]
         state.$appRulesStore.withLock {
             $0.rules["com.test.alpha"] = AppRuleRecord(
@@ -1284,7 +1284,7 @@ final class AppFeatureTests: XCTestCase {
                 "com.test.runner",
                 "com.test.alpha",
                 "com.test.browser",
-                "com.test.unknown"
+                "com.test.unknown",
             ]
         )
         XCTAssertEqual(state.switchStatisticsItems.map(\.count), [4, 3, 3, 2])
@@ -1312,7 +1312,7 @@ final class AppFeatureTests: XCTestCase {
                     strategy: .fixed(inputMethodId: "ime.zh"),
                     createdAt: migrationDate,
                     updatedAt: migrationDate
-                )
+                ),
             ]
         }
 
@@ -1325,7 +1325,7 @@ final class AppFeatureTests: XCTestCase {
                 strategy: .fixed(inputMethodId: "ime.zh"),
                 createdAt: migrationDate,
                 updatedAt: migrationDate
-            )
+            ),
         ]))) {
             $0.$appRulesStore.withLock {
                 $0.rules["com.test.notes"] = AppRuleRecord(

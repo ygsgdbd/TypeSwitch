@@ -1,6 +1,6 @@
 import Foundation
-import XCTest
 @testable import TypeSwitch
+import XCTest
 
 final class LegacyDefaultsMigrationTests: XCTestCase {
     func testMakeRulesMigratesOnlyMatchedApplications() {
@@ -10,13 +10,13 @@ final class LegacyDefaultsMigrationTests: XCTestCase {
                 bundleId: "com.test.notes",
                 name: "Notes",
                 path: "/Applications/Notes.app"
-            )
+            ),
         ]
 
         let rules = LegacyDefaultsMigration.makeRules(
             legacyMappings: [
                 "com.test.notes": "ime.zh",
-                "com.test.missing": "ime.en"
+                "com.test.missing": "ime.en",
             ],
             matchedApplications: matchedApplications,
             migrationDate: migrationDate
@@ -32,7 +32,7 @@ final class LegacyDefaultsMigrationTests: XCTestCase {
                     strategy: .fixed(inputMethodId: "ime.zh"),
                     createdAt: migrationDate,
                     updatedAt: migrationDate
-                )
+                ),
             ]
         )
     }
