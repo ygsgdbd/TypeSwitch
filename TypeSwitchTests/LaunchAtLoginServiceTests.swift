@@ -1,7 +1,7 @@
 import Foundation
 import ServiceManagement
-import XCTest
 @testable import TypeSwitch
+import XCTest
 
 final class LaunchAtLoginServiceTests: XCTestCase {
     func testStatusUsesFallbackLaunchAgentWhenExecutableMatches() throws {
@@ -64,7 +64,7 @@ final class LaunchAtLoginServiceTests: XCTestCase {
             launchctlCalls,
             [
                 ["bootout", "gui/501", fixture.plistURL.path],
-                ["bootstrap", "gui/501", fixture.plistURL.path]
+                ["bootstrap", "gui/501", fixture.plistURL.path],
             ]
         )
         XCTAssertEqual(try fixture.programArguments(), [fixture.executableURL.path])
@@ -155,7 +155,7 @@ private struct Fixture {
         let plist: [String: Any] = [
             "Label": "top.ygsgdbd.TypeSwitch",
             "ProgramArguments": [executablePath],
-            "RunAtLoad": true
+            "RunAtLoad": true,
         ]
         let data = try PropertyListSerialization.data(
             fromPropertyList: plist,

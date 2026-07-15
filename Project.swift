@@ -1,6 +1,7 @@
 import ProjectDescription
 
 // MARK: - Version
+
 let appVersion = Environment.appVersion.getString(default: "0.0.0")
 let buildVersion = Environment.buildVersion.getString(default: "0")
 
@@ -17,7 +18,7 @@ let project = Project(
         .remote(url: "https://github.com/pointfreeco/swift-perception", requirement: .upToNextMajor(from: "2.0.10")),
         .remote(url: "https://github.com/pointfreeco/swift-sharing", requirement: .upToNextMajor(from: "2.9.1")),
         .remote(url: "https://github.com/sparkle-project/Sparkle", requirement: .upToNextMajor(from: "2.9.4")),
-        .remote(url: "https://github.com/SwifterSwift/SwifterSwift", requirement: .upToNextMajor(from: "8.0.0"))
+        .remote(url: "https://github.com/SwifterSwift/SwifterSwift", requirement: .upToNextMajor(from: "8.0.0")),
     ],
     settings: .settings(
         base: [
@@ -29,11 +30,11 @@ let project = Project(
             // 宏定义支持
             "SWIFT_STRICT_CONCURRENCY": SettingValue(stringLiteral: "complete"),
             "ENABLE_MACROS": SettingValue(stringLiteral: "YES"),
-            "SWIFT_MACRO_DEBUGGING": SettingValue(stringLiteral: "YES")
+            "SWIFT_MACRO_DEBUGGING": SettingValue(stringLiteral: "YES"),
         ],
         configurations: [
             .debug(name: "Debug"),
-            .release(name: "Release")
+            .release(name: "Release"),
         ]
     ),
     targets: [
@@ -44,24 +45,24 @@ let project = Project(
             bundleId: "top.ygsgdbd.TypeSwitch",
             deploymentTargets: .macOS("14.0"),
             infoPlist: .dictionary([
-                "LSUIElement": true,  // 设置为纯菜单栏应用
+                "LSUIElement": true, // 设置为纯菜单栏应用
                 "CFBundleExecutable": "$(EXECUTABLE_NAME)",
-                "CFBundleDevelopmentRegion": "zh-Hans",  // 设置默认开发区域为简体中文
+                "CFBundleDevelopmentRegion": "zh-Hans", // 设置默认开发区域为简体中文
                 "CFBundleIdentifier": "$(PRODUCT_BUNDLE_IDENTIFIER)",
                 "CFBundleInfoDictionaryVersion": "6.0",
-                "CFBundleLocalizations": ["zh-Hans", "zh-Hant", "en"],  // 支持的语言列表
+                "CFBundleLocalizations": ["zh-Hans", "zh-Hant", "en"], // 支持的语言列表
                 "CFBundleName": "$(PRODUCT_NAME)",
                 "CFBundlePackageType": "APPL",
-                "AppleLanguages": ["zh-Hans"],  // 设置默认语言为简体中文
+                "AppleLanguages": ["zh-Hans"], // 设置默认语言为简体中文
                 "NSHumanReadableCopyright": "Copyright © 2024 ygsgdbd. All rights reserved.",
                 "LSApplicationCategoryType": "public.app-category.utilities",
                 "LSMinimumSystemVersion": "14.0",
                 "NSPrincipalClass": "NSApplication",
-                "CFBundleShortVersionString": .string(appVersion),  // 市场版本号
-                "CFBundleVersion": .string(buildVersion),  // 构建版本号
+                "CFBundleShortVersionString": .string(appVersion), // 市场版本号
+                "CFBundleVersion": .string(buildVersion), // 构建版本号
                 "SUFeedURL": "https://github.com/ygsgdbd/TypeSwitch/releases/latest/download/appcast.xml",
                 "SUPublicEDKey": "tzapCS0NiXBf0Alm3T2veTCaauxr2dmMCnIFYaK+lOs=",
-                "SUEnableAutomaticChecks": false
+                "SUEnableAutomaticChecks": false,
             ]),
             sources: ["TypeSwitch/Sources/**"],
             resources: ["TypeSwitch/Resources/**"],
@@ -73,7 +74,7 @@ let project = Project(
                 .package(product: "PerceptionCore"),
                 .package(product: "Sharing"),
                 .package(product: "Sparkle"),
-                .package(product: "SwifterSwift")
+                .package(product: "SwifterSwift"),
             ],
             settings: .settings(
                 base: [
@@ -82,11 +83,11 @@ let project = Project(
                     "SWIFT_STRICT_CONCURRENCY": "complete",
                     "ENABLE_MACROS": "YES",
                     "SWIFT_MACRO_DEBUGGING": "YES",
-                    "SWIFT_MACRO_EXPANSION": "YES"
+                    "SWIFT_MACRO_EXPANSION": "YES",
                 ],
                 configurations: [
                     .debug(name: "Debug"),
-                    .release(name: "Release")
+                    .release(name: "Release"),
                 ]
             )
         ),
@@ -103,20 +104,20 @@ let project = Project(
                 .target(name: "TypeSwitch"),
                 .package(product: "ComposableArchitecture"),
                 .package(product: "Dependencies"),
-                .package(product: "Sharing")
+                .package(product: "Sharing"),
             ],
             settings: .settings(
                 base: [
                     "BUNDLE_LOADER": "$(TEST_HOST)",
                     "SWIFT_VERSION": "5.9",
                     "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/TypeSwitch.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TypeSwitch",
-                    "TEST_TARGET_NAME": "TypeSwitch"
+                    "TEST_TARGET_NAME": "TypeSwitch",
                 ],
                 configurations: [
                     .debug(name: "Debug"),
-                    .release(name: "Release")
+                    .release(name: "Release"),
                 ]
             )
-        )
+        ),
     ]
 )

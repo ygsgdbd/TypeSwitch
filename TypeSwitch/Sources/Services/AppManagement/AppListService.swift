@@ -1,5 +1,5 @@
-import Foundation
 import AppKit
+import Foundation
 import SwifterSwift
 
 /// 应用列表服务类
@@ -8,9 +8,9 @@ enum AppListService {
     /// 应用搜索目录列表
     /// 按优先级排序：用户应用目录 > 系统应用目录
     static let applicationDirs = [
-        "/Applications",        // 用户安装的应用
-        "~/Applications",       // 用户主目录下的应用
-        "/System/Applications"  // 系统应用
+        "/Applications", // 用户安装的应用
+        "~/Applications", // 用户主目录下的应用
+        "/System/Applications", // 系统应用
     ].map { NSString(string: $0).expandingTildeInPath }
 
     @MainActor
@@ -93,7 +93,8 @@ enum AppListService {
         let fileManager = FileManager.default
 
         guard fileManager.fileExists(atPath: dir),
-              fileManager.isReadableFile(atPath: dir) else {
+              fileManager.isReadableFile(atPath: dir)
+        else {
             print("⚠️ 无法访问目录: \(dir)")
             return [:]
         }
@@ -119,7 +120,8 @@ enum AppListService {
 
                 if let app = AppInfo(bundleURL: fileURL),
                    bundleIds.contains(app.bundleId),
-                   app.bundleId != Bundle.main.bundleIdentifier {
+                   app.bundleId != Bundle.main.bundleIdentifier
+                {
                     matchedApps[app.bundleId] = app
                     if matchedApps.count == bundleIds.count {
                         break

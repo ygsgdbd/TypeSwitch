@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
-import XCTest
 @testable import TypeSwitch
+import XCTest
 
 final class AppListServiceTests: XCTestCase {
     func testAppInfoBundleURLUsesLocalizedBundleDisplayName() throws {
@@ -109,7 +109,7 @@ final class AppListServiceTests: XCTestCase {
             "CFBundleDisplayName": displayName,
             "CFBundleIdentifier": identifier,
             "CFBundleName": displayName,
-            "CFBundlePackageType": "APPL"
+            "CFBundlePackageType": "APPL",
         ]
         let infoPlistData = try PropertyListSerialization.data(
             fromPropertyList: infoPlist,

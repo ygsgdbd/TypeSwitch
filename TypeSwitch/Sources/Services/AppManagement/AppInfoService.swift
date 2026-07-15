@@ -1,5 +1,5 @@
-import Foundation
 import AppKit
+import Foundation
 
 /// 应用信息服务类，负责管理应用相关链接
 enum AppInfoService {
