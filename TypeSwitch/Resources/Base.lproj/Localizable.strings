@@ -10,6 +10,7 @@
 "settings.general.auto_launch_requires_approval" = "请前往“系统设置”>“通用”>“登录项”允许 TypeSwitch。";
 "settings.general.open_login_items" = "打开登录项设置";
 "settings.general.check_for_updates" = "检查更新…";
+"settings.general.update_available" = "发现新版本…";
 "settings.fallback.default_input_method" = "未配置 App 的默认规则";
 
 // 应用列表

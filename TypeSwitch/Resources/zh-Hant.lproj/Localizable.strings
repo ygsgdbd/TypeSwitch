@@ -10,6 +10,7 @@
 "settings.general.auto_launch_requires_approval" = "請前往「系統設定」>「一般」>「登入項目」允許 TypeSwitch。";
 "settings.general.open_login_items" = "開啟登入項目設定";
 "settings.general.check_for_updates" = "檢查更新…";
+"settings.general.update_available" = "發現新版本…";
 "settings.fallback.default_input_method" = "未設定 App 的預設規則";
 
 // 應用程式列表
