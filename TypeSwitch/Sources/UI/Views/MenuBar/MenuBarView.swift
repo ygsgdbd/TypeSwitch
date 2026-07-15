@@ -6,6 +6,7 @@ import SwiftUI
 /// 菜单栏主视图
 struct MenuBarView: View {
     let store: StoreOf<AppFeature>
+    let updateMonitor: SparkleUpdateMonitor
     let updaterController: SPUStandardUpdaterController
 
     var body: some View {
@@ -22,7 +23,10 @@ struct MenuBarView: View {
 
             Divider()
 
-            AppInfoView(updaterController: updaterController)
+            AppInfoView(
+                updateMonitor: updateMonitor,
+                updaterController: updaterController
+            )
         }
         .labelStyle(.titleAndIcon)
     }
@@ -50,6 +54,7 @@ private struct CurrentAppView: View {
         store: Store(initialState: AppFeature.State()) {
             AppFeature()
         },
+        updateMonitor: SparkleUpdateMonitor(),
         updaterController: SPUStandardUpdaterController(
             startingUpdater: false,
             updaterDelegate: nil,

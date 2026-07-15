@@ -9,6 +9,7 @@ struct TypeSwitchApp: App {
     let readmeBackdropWindow: NSWindow?
     let readmeColorScheme: ColorScheme?
     let store: StoreOf<AppFeature>
+    let updateMonitor: SparkleUpdateMonitor
     let updaterController: SPUStandardUpdaterController
 
     init() {
@@ -32,12 +33,16 @@ struct TypeSwitchApp: App {
         let store = Store(initialState: initialState) {
             AppFeature()
         }
-        self.store = store
-        self.updaterController = SPUStandardUpdaterController(
-            startingUpdater: startsLiveServices,
-            updaterDelegate: nil,
+        let startsUpdater = startsLiveServices && !isTesting
+        let updateMonitor = SparkleUpdateMonitor()
+        let updaterController = SPUStandardUpdaterController(
+            startingUpdater: startsUpdater,
+            updaterDelegate: updateMonitor,
             userDriverDelegate: nil
         )
+        self.store = store
+        self.updateMonitor = updateMonitor
+        self.updaterController = updaterController
         if let readmeMenuAppearance {
             self.menuTrackingObservers = [
                 NotificationCenter.default.addObserver(
@@ -60,12 +65,19 @@ struct TypeSwitchApp: App {
         if startsLiveServices {
             store.send(.task)
         }
+        if startsUpdater {
+            updateMonitor.startSilentCheck(using: updaterController.updater)
+        }
     }
 
     var body: some Scene {
         MenuBarExtra {
-            MenuBarView(store: store, updaterController: updaterController)
-                .preferredColorScheme(readmeColorScheme)
+            MenuBarView(
+                store: store,
+                updateMonitor: updateMonitor,
+                updaterController: updaterController
+            )
+            .preferredColorScheme(readmeColorScheme)
         } label: {
             MenuBarIconView(store: store)
         }
