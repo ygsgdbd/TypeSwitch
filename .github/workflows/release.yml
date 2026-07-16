@@ -46,7 +46,7 @@ jobs:
           TUIST_APP_VERSION: ${{ steps.release_tag.outputs.version }}
         run: |
           # 生成基于时间戳的构建号（格式：YYYYMMDDHHmm）
-          TUIST_BUILD_VERSION=$(date "+%Y%m%d%H%M")
+          TUIST_BUILD_VERSION=$(date -u "+%Y%m%d%H%M")
           export TUIST_BUILD_VERSION
           echo "App version set to: $TUIST_APP_VERSION"
           echo "Build number set to: $TUIST_BUILD_VERSION"
