@@ -24,6 +24,10 @@ struct AppFeature {
             let hasMissingInputMethod: Bool
 
             var id: String { bundleId }
+
+            var appInfo: AppInfo {
+                AppInfo(bundleId: bundleId, name: name, path: path)
+            }
         }
 
         struct PendingProgrammaticSwitch: Equatable {
@@ -45,8 +49,10 @@ struct AppFeature {
         @Shared var fallbackRuleStore: FallbackRuleStore
         var currentFrontmostBundleId: String?
         var inputMethods: [InputMethod] = []
+        var isMenuPresented = false
         var isReadmeDemo = false
         var launchAtLoginStatus: LaunchAtLoginStatus = .disabled
+        var menuStrategiesAtPresentation: [String: InputMethodStrategy] = [:]
         var pendingProgrammaticSwitch: PendingProgrammaticSwitch?
         var runningApps: [AppInfo] = []
 
@@ -65,8 +71,10 @@ struct AppFeature {
             ),
             currentFrontmostBundleId: String? = nil,
             inputMethods: [InputMethod] = [],
+            isMenuPresented: Bool = false,
             isReadmeDemo: Bool = false,
             launchAtLoginStatus: LaunchAtLoginStatus = .disabled,
+            menuStrategiesAtPresentation: [String: InputMethodStrategy] = [:],
             pendingProgrammaticSwitch: PendingProgrammaticSwitch? = nil,
             runningApps: [AppInfo] = []
         ) {
@@ -75,8 +83,10 @@ struct AppFeature {
             self._fallbackRuleStore = fallbackRuleStore
             self.currentFrontmostBundleId = currentFrontmostBundleId
             self.inputMethods = inputMethods
+            self.isMenuPresented = isMenuPresented
             self.isReadmeDemo = isReadmeDemo
             self.launchAtLoginStatus = launchAtLoginStatus
+            self.menuStrategiesAtPresentation = menuStrategiesAtPresentation
             self.pendingProgrammaticSwitch = pendingProgrammaticSwitch
             self.runningApps = runningApps
         }
@@ -84,8 +94,11 @@ struct AppFeature {
 
     enum ViewAction: Equatable, Sendable {
         case clearSwitchStatisticsTapped
+        case ignoreAppTapped(AppInfo)
         case removeMissingInputMethodRulesTapped
         case removeUnavailableRulesTapped
+        case restoreAllIgnoredAppsTapped
+        case restoreIgnoredAppTapped(bundleId: String)
         case setFallbackStrategy(InputMethodStrategy)
         case setLaunchAtLogin(Bool)
         case setStrategy(bundleId: String, strategy: InputMethodStrategy)
@@ -108,6 +121,8 @@ struct AppFeature {
     }
 
     enum Action: Equatable, Sendable {
+        case menuDismissed
+        case menuPresented
         case task
         case view(ViewAction)
         case response(ResponseAction)
@@ -123,6 +138,17 @@ struct AppFeature {
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
+            case .menuPresented:
+                guard !state.isMenuPresented else { return .none }
+                state.isMenuPresented = true
+                state.menuStrategiesAtPresentation = state.appRules.mapValues(\.strategy)
+                return .none
+
+            case .menuDismissed:
+                state.isMenuPresented = false
+                state.menuStrategiesAtPresentation = [:]
+                return .none
+
             case .task:
                 guard !state.isReadmeDemo else { return .none }
                 normalizeFallbackRule(in: &state)
@@ -240,6 +266,28 @@ struct AppFeature {
                 }
                 return .none
 
+            case .view(.ignoreAppTapped(let appInfo)):
+                let updateDate = now
+                state.$appRulesStore.withLock { store in
+                    let currentRule = store.rules[appInfo.bundleId] ?? AppRuleRecord(
+                        bundleId: appInfo.bundleId,
+                        lastKnownPath: appInfo.path,
+                        lastKnownName: appInfo.name,
+                        strategy: .none,
+                        createdAt: updateDate,
+                        updatedAt: updateDate
+                    )
+                    guard currentRule.strategy != .ignored else { return }
+
+                    var updatedRule = currentRule
+                    updatedRule.lastKnownPath = appInfo.path ?? currentRule.lastKnownPath
+                    updatedRule.lastKnownName = appInfo.name
+                    updatedRule.strategy = .ignored
+                    updatedRule.updatedAt = updateDate
+                    store.rules[appInfo.bundleId] = updatedRule
+                }
+                return .none
+
             case .view(.removeMissingInputMethodRulesTapped):
                 let updateDate = now
                 let missingBundleIds = state.appRules.values
@@ -258,7 +306,35 @@ struct AppFeature {
 
             case .view(.removeUnavailableRulesTapped):
                 state.$appRulesStore.withLock { store in
-                    store.rules = store.rules.filter { $0.value.isAvailable }
+                    store.rules = store.rules.filter {
+                        $0.value.isAvailable || $0.value.strategy == .ignored
+                    }
+                }
+                return .none
+
+            case .view(.restoreAllIgnoredAppsTapped):
+                let updateDate = now
+                state.$appRulesStore.withLock { store in
+                    for bundleId in Array(store.rules.keys) {
+                        guard var rule = store.rules[bundleId], rule.strategy == .ignored else {
+                            continue
+                        }
+                        rule.strategy = .none
+                        rule.updatedAt = updateDate
+                        store.rules[bundleId] = rule
+                    }
+                }
+                return .none
+
+            case .view(.restoreIgnoredAppTapped(let bundleId)):
+                let updateDate = now
+                state.$appRulesStore.withLock { store in
+                    guard var rule = store.rules[bundleId], rule.strategy == .ignored else {
+                        return
+                    }
+                    rule.strategy = .none
+                    rule.updatedAt = updateDate
+                    store.rules[bundleId] = rule
                 }
                 return .none
 
@@ -389,7 +465,7 @@ struct AppFeature {
         let candidateId: String?
 
         switch strategy {
-        case .none:
+        case .ignored, .none:
             return nil
         case .fixed(let inputMethodId):
             candidateId = inputMethodId
@@ -404,10 +480,12 @@ struct AppFeature {
     }
 
     private func fallbackSupportedStrategy(_ strategy: InputMethodStrategy) -> InputMethodStrategy {
-        if case .followLast = strategy {
+        switch strategy {
+        case .followLast, .ignored:
             return .none
+        case .none, .fixed:
+            return strategy
         }
-        return strategy
     }
 
     private func normalizeFallbackRule(in state: inout State) {

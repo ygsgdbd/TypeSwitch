@@ -132,6 +132,11 @@ struct ReadmeScreenshotConfiguration: Equatable {
             name: "Terminal",
             path: "/System/Applications/Utilities/Terminal.app"
         )
+        let messages = AppInfo(
+            bundleId: "com.apple.MobileSMS",
+            name: "Messages",
+            path: "/System/Applications/Messages.app"
+        )
         let rules = [
             safari.bundleId: AppRuleRecord(
                 bundleId: safari.bundleId,
@@ -146,6 +151,14 @@ struct ReadmeScreenshotConfiguration: Equatable {
                 lastKnownPath: terminal.path,
                 lastKnownName: terminal.name,
                 strategy: .fixed(inputMethodId: abcID),
+                createdAt: now,
+                updatedAt: now
+            ),
+            messages.bundleId: AppRuleRecord(
+                bundleId: messages.bundleId,
+                lastKnownPath: messages.path,
+                lastKnownName: messages.name,
+                strategy: .ignored,
                 createdAt: now,
                 updatedAt: now
             ),

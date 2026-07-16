@@ -19,6 +19,10 @@
 "apps.section.unconfigured_count" = "运行中 · 未配置（%d）";
 "apps.section.configured_count" = "全部已配置 App（%d）";
 "apps.section.unavailable_count" = "找不到的 App（%d）";
+"apps.ignore" = "忽略此 App";
+"apps.ignored.menu_title" = "已忽略 App（%d）";
+"apps.ignored.restore_hint" = "选择 App 以恢复";
+"apps.ignored.restore_all" = "恢复全部";
 "apps.clear_unavailable" = "清理找不到的 App";
 "apps.clear_unavailable_confirmation.title" = "清理找不到的 App？";
 "apps.clear_unavailable_confirmation.message" = "会移除不存在 App 的设置。";

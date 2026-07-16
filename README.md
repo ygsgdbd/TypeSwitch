@@ -29,8 +29,8 @@
 
 ## ✨ Highlights
 
-- **Switch automatically for every app.** TypeSwitch watches the frontmost app and applies its saved input method rule as you move between apps.
-- **Choose the behavior that fits.** Use `Don't Switch`, `Last Switch`, or a `Specific Input Method`, with a separate default rule for apps you have not configured yet.
+- **Switch automatically by app.** TypeSwitch watches the frontmost app and applies its saved input method rule as you move between apps, except for apps you choose to ignore.
+- **Choose the behavior that fits.** Let an app inherit the default rule, remember its `Last Switch`, select a `Specific Input Method`, or ignore apps you do not want TypeSwitch to manage.
 - **Configure apps where you find them.** Set a rule for the current app, review running apps by configuration status, or manage every saved rule without leaving the menu bar.
 - **Keep rules and results tidy.** Find rules for missing apps, remove stale settings, review successful switch counts, and clear statistics when needed.
 - **Fit TypeSwitch into your workflow.** Launch it at login, check for updates through Sparkle, open the GitHub repository, or press `Command + Q` to quit.
@@ -97,9 +97,10 @@ brew upgrade typeswitch
 2. Open the menu and use `Current App` to configure the frontmost app.
 3. Use `Running · Unconfigured` to assign rules to running apps that do not have one yet.
 4. Use `Running · Configured` and `All Configured Apps` to review and change existing app rules.
-5. For each app, choose `Default`, `Last Switch`, `Don't Switch`, or a specific input method.
-6. Use `Default Rule for Unconfigured Apps` to set the fallback behavior for apps without their own rule.
-7. Check `Missing Apps` and `Switches` when you want to clean missing rules or review successful switches.
+5. For each app, choose `Default` to inherit the fallback, `Last Switch`, or a specific input method.
+6. Choose `Ignore This App` to stop automatic switching and hide the app from the regular lists. Restore one or all apps from `Ignored Apps`.
+7. Use `Default Rule for Unconfigured Apps` to set the fallback behavior for apps without their own rule.
+8. Check `Missing Apps` and `Switches` when you want to clean missing rules or review successful switches.
 
 ## 🔒 Privacy and Permissions
 

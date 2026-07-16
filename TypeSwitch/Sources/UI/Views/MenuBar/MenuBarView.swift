@@ -15,6 +15,7 @@ struct MenuBarView: View {
             RunningAppsView(store: store)
             ConfiguredAppsView(store: store)
             UnavailableAppsView(store: store)
+            IgnoredAppsView(store: store)
             SwitchStatisticsView(store: store)
 
             Divider()
@@ -30,6 +31,13 @@ struct MenuBarView: View {
         }
         .labelStyle(.titleAndIcon)
     }
+
+    static func isRootMenuTrackingNotification(_ notification: Notification) -> Bool {
+        guard let menu = notification.object as? NSMenu else {
+            return false
+        }
+        return menu.supermenu == nil && menu !== NSApp.mainMenu
+    }
 }
 
 private struct CurrentAppView: View {
@@ -40,7 +48,10 @@ private struct CurrentAppView: View {
             Section(TypeSwitchStrings.Apps.Section.currentApp) {
                 AppRowView(
                     item: item,
-                    inputMethods: store.inputMethods
+                    inputMethods: store.inputMethods,
+                    onIgnore: {
+                        store.send(.view(.ignoreAppTapped(item.appInfo)))
+                    }
                 ) { strategy in
                     store.send(.view(.setStrategy(bundleId: item.bundleId, strategy: strategy)))
                 }

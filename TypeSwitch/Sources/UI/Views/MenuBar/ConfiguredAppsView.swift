@@ -31,7 +31,10 @@ struct ConfiguredAppsView: View {
                     ForEach(store.configuredApps) { item in
                         AppRowView(
                             item: item,
-                            inputMethods: store.inputMethods
+                            inputMethods: store.inputMethods,
+                            onIgnore: {
+                                store.send(.view(.ignoreAppTapped(item.appInfo)))
+                            }
                         ) { strategy in
                             store.send(.view(.setStrategy(bundleId: item.bundleId, strategy: strategy)))
                         }

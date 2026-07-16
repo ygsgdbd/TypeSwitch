@@ -43,25 +43,36 @@ struct TypeSwitchApp: App {
         self.store = store
         self.updateMonitor = updateMonitor
         self.updaterController = updaterController
-        if let readmeMenuAppearance {
-            self.menuTrackingObservers = [
-                NotificationCenter.default.addObserver(
-                    forName: NSMenu.didBeginTrackingNotification,
-                    object: nil,
-                    queue: .main
-                ) { notification in
-                    MainActor.assumeIsolated {
-                        guard let menu = notification.object as? NSMenu else { return }
+        self.menuTrackingObservers = [
+            NotificationCenter.default.addObserver(
+                forName: NSMenu.didBeginTrackingNotification,
+                object: nil,
+                queue: .main
+            ) { notification in
+                MainActor.assumeIsolated {
+                    if let menu = notification.object as? NSMenu,
+                       let readmeMenuAppearance
+                    {
                         menu.appearance = readmeMenuAppearance
                         for item in menu.items {
                             item.submenu?.appearance = readmeMenuAppearance
                         }
                     }
-                },
-            ]
-        } else {
-            self.menuTrackingObservers = []
-        }
+                    guard MenuBarView.isRootMenuTrackingNotification(notification) else { return }
+                    store.send(.menuPresented)
+                }
+            },
+            NotificationCenter.default.addObserver(
+                forName: NSMenu.didEndTrackingNotification,
+                object: nil,
+                queue: .main
+            ) { notification in
+                MainActor.assumeIsolated {
+                    guard MenuBarView.isRootMenuTrackingNotification(notification) else { return }
+                    store.send(.menuDismissed)
+                }
+            },
+        ]
         if startsLiveServices {
             store.send(.task)
         }

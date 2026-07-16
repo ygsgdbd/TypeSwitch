@@ -19,6 +19,10 @@
 "apps.section.unconfigured_count" = "Running · Unconfigured (%d)";
 "apps.section.configured_count" = "All Configured Apps (%d)";
 "apps.section.unavailable_count" = "Missing Apps (%d)";
+"apps.ignore" = "Ignore This App";
+"apps.ignored.menu_title" = "Ignored Apps (%d)";
+"apps.ignored.restore_hint" = "Select an app to restore";
+"apps.ignored.restore_all" = "Restore All";
 "apps.clear_unavailable" = "Clear Missing Apps";
 "apps.clear_unavailable_confirmation.title" = "Clear missing apps?";
 "apps.clear_unavailable_confirmation.message" = "This removes settings for apps that no longer exist.";

@@ -84,6 +84,7 @@ final class ReadmeScreenshotConfigurationTests: XCTestCase {
         XCTAssertEqual(state.runningConfiguredMenuItems.map(\.name), ["Terminal"])
         XCTAssertEqual(state.configuredApps.map(\.name), ["Safari", "Terminal"])
         XCTAssertEqual(state.unavailableApps.map(\.name), ["Legacy Editor"])
+        XCTAssertEqual(state.ignoredAppsForMenu.map(\.name), ["Messages"])
         XCTAssertEqual(state.fallbackSelectedLabel, "ABC")
         XCTAssertEqual(state.totalSuccessfulSwitchCount, 51)
         XCTAssertTrue(state.launchAtLoginEnabled)

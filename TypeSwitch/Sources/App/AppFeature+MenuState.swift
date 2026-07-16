@@ -24,10 +24,12 @@ extension AppFeature.State {
     }
 
     var fallbackStrategy: InputMethodStrategy {
-        if case .followLast = fallbackRuleStore.strategy {
+        switch fallbackRuleStore.strategy {
+        case .followLast, .ignored:
             return .none
+        case .none, .fixed:
+            return fallbackRuleStore.strategy
         }
-        return fallbackRuleStore.strategy
     }
 
     var fallbackSelectedLabel: String? {
@@ -42,14 +44,15 @@ extension AppFeature.State {
     }
 
     var totalSuccessfulSwitchCount: Int {
-        appSwitchStatisticsStore.counts.values
-            .filter { $0 > 0 }
+        appSwitchStatisticsStore.counts
+            .filter { !ignoredAppBundleIdsForMenu.contains($0.key) && $0.value > 0 }
+            .values
             .reduce(0, +)
     }
 
     var switchStatisticsItems: [SwitchStatisticsItem] {
         appSwitchStatisticsStore.counts.compactMap { bundleId, count in
-            guard count > 0 else { return nil }
+            guard count > 0, !ignoredAppBundleIdsForMenu.contains(bundleId) else { return nil }
             let appInfo = appInfo(for: bundleId)
             return SwitchStatisticsItem(
                 bundleId: bundleId,
@@ -74,12 +77,16 @@ extension AppFeature.State {
 
     var configuredApps: [AppMenuItem] {
         sortedRules
-            .filter { $0.strategy != .none && $0.isAvailable }
-            .map(menuItem(from:))
+            .filter {
+                let strategy = strategyForMenu(bundleId: $0.bundleId)
+                return strategy != .none && strategy != .ignored && $0.isAvailable
+            }
+            .map { menuItem(from: $0, strategy: strategyForMenu(bundleId: $0.bundleId)) }
     }
 
     var currentAppMenuItem: AppMenuItem? {
         guard let currentFrontmostBundleId,
+              strategyForMenu(bundleId: currentFrontmostBundleId) != .ignored,
               let appInfo = knownAppInfo(for: currentFrontmostBundleId)
         else {
             return nil
@@ -89,12 +96,12 @@ extension AppFeature.State {
             bundleId: appInfo.bundleId,
             name: appInfo.name,
             path: appInfo.path,
-            strategy: appRules[appInfo.bundleId]?.strategy ?? .none
+            strategy: strategyForMenu(bundleId: appInfo.bundleId)
         )
     }
 
     var runningConfiguredMenuItems: [AppMenuItem] {
-        runningMenuItems { $0 != .none }
+        runningMenuItems { $0 != .none && $0 != .ignored }
     }
 
     var runningUnconfiguredMenuItems: [AppMenuItem] {
@@ -103,19 +110,30 @@ extension AppFeature.State {
 
     var unavailableApps: [AppMenuItem] {
         sortedRules
-            .filter { !$0.isAvailable }
+            .filter {
+                !$0.isAvailable && strategyForMenu(bundleId: $0.bundleId) != .ignored
+            }
             .map {
                 menuItem(
                     bundleId: $0.bundleId,
                     name: $0.lastKnownName,
                     path: nil,
-                    strategy: $0.strategy
+                    strategy: strategyForMenu(bundleId: $0.bundleId)
                 )
             }
     }
 
+    var ignoredAppsForMenu: [AppInfo] {
+        sortedRules.compactMap { rule in
+            guard ignoredAppBundleIdsForMenu.contains(rule.bundleId) else { return nil }
+            return appInfo(for: rule.bundleId)
+        }
+    }
+
     var hasMissingInputMethodRules: Bool {
-        appRules.values.contains { hasMissingInputMethod(in: $0.strategy) }
+        appRules.keys.contains {
+            hasMissingInputMethod(in: strategyForMenu(bundleId: $0))
+        }
     }
 
     func strategy(for bundleId: String) -> InputMethodStrategy {
@@ -124,7 +142,7 @@ extension AppFeature.State {
 
     func hasMissingInputMethod(in strategy: InputMethodStrategy) -> Bool {
         switch strategy {
-        case .none:
+        case .ignored, .none:
             return false
         case .fixed(let inputMethodId):
             return inputMethodName(for: inputMethodId) == nil
@@ -140,12 +158,15 @@ extension AppFeature.State {
         }
     }
 
-    private func menuItem(from rule: AppRuleRecord) -> AppMenuItem {
+    private func menuItem(
+        from rule: AppRuleRecord,
+        strategy: InputMethodStrategy
+    ) -> AppMenuItem {
         menuItem(
             bundleId: rule.bundleId,
             name: rule.lastKnownName,
             path: rule.isAvailable ? rule.lastKnownPath : nil,
-            strategy: rule.strategy
+            strategy: strategy
         )
     }
 
@@ -157,7 +178,7 @@ extension AppFeature.State {
                 return nil
             }
 
-            let strategy = appRules[app.bundleId]?.strategy ?? .none
+            let strategy = strategyForMenu(bundleId: app.bundleId)
             guard isIncluded(strategy) else {
                 return nil
             }
@@ -211,7 +232,7 @@ extension AppFeature.State {
 
     private var appDefaultOptionLabel: String {
         switch fallbackStrategy {
-        case .none:
+        case .ignored, .none:
             return TypeSwitchStrings.InputMethod.appDefaultFallbackNoneOption
         case .fixed(let inputMethodId):
             guard let inputMethodName = inputMethodName(for: inputMethodId) else {
@@ -226,6 +247,8 @@ extension AppFeature.State {
     private func selectedLabel(for strategy: InputMethodStrategy) -> String? {
         switch strategy {
         case .none:
+            return nil
+        case .ignored:
             return nil
         case .fixed(let inputMethodId):
             return inputMethodName(for: inputMethodId) ?? TypeSwitchStrings.InputMethod.deletedOption
@@ -258,5 +281,18 @@ extension AppFeature.State {
 
     private func inputMethodName(for inputMethodId: String) -> String? {
         inputMethods.first(where: { $0.id == inputMethodId })?.name
+    }
+
+    private var ignoredAppBundleIdsForMenu: Set<String> {
+        Set(appRules.keys.filter {
+            strategyForMenu(bundleId: $0) == .ignored
+        })
+    }
+
+    private func strategyForMenu(bundleId: String) -> InputMethodStrategy {
+        if isMenuPresented {
+            return menuStrategiesAtPresentation[bundleId] ?? .none
+        }
+        return strategy(for: bundleId)
     }
 }
