@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.8.0
+
+### 🇨🇳 中文
+
+#### 功能
+
+- 新增启动时静默检查更新；发现新版本后，菜单项会显示“发现新版本…”，仅在用户点击后才显示 Sparkle 更新窗口，不会自动弹窗、下载或安装。
+
+#### 优化
+
+- 统一运行中应用、已配置应用、失效应用、默认规则和切换统计等菜单文案，并重新整理菜单分组，使规则和常用操作更容易浏览。
+- 更新中英文 README、菜单截图和 Homebrew tap trust 安装说明。
+
+#### 工程
+
+- 新增固定版本的 SwiftFormat、仓库管理的 pre-commit hook，以及 PR 的格式和测试质量门禁。
+
+### 🇺🇸 English
+
+#### Features
+
+- Added a silent update check at startup. When a new release is found, the menu item changes to “New Version Available…”. The standard Sparkle update window appears only after the user clicks it; TypeSwitch does not automatically present UI, download, or install updates.
+
+#### Improvements
+
+- Unified menu wording for running, configured, and unavailable apps, the default rule, and switch statistics, and reorganized menu sections so rules and common actions are easier to scan.
+- Updated the English and Chinese READMEs, menu screenshots, and Homebrew tap trust installation guidance.
+
+#### Engineering
+
+- Added a pinned SwiftFormat setup, a repository-managed pre-commit hook, and required pull-request formatting and test gates.
+
 ## v0.7.1
 
 ### 🇨🇳 中文
