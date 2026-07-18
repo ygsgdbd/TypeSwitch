@@ -27,6 +27,42 @@ final class AppRulesStoreMigrationTests: XCTestCase {
         XCTAssertEqual(try JSONDecoder().decode(AppRulesStore.self, from: data), store)
     }
 
+    func testAppRulesStoreRoundTripsIgnoredStrategy() throws {
+        let store = AppRulesStore(
+            rules: [
+                "com.test.passwords": AppRuleRecord(
+                    bundleId: "com.test.passwords",
+                    lastKnownPath: "/Applications/Passwords.app",
+                    lastKnownName: "Passwords",
+                    strategy: .ignored,
+                    createdAt: Date(timeIntervalSince1970: 10),
+                    updatedAt: Date(timeIntervalSince1970: 20)
+                ),
+            ]
+        )
+
+        let data = try JSONEncoder().encode(store)
+
+        XCTAssertEqual(try JSONDecoder().decode(AppRulesStore.self, from: data), store)
+    }
+
+    func testExistingInputMethodStrategiesStillDecode() throws {
+        let decoder = JSONDecoder()
+
+        XCTAssertEqual(
+            try decoder.decode(InputMethodStrategy.self, from: Data(#"{"none":{}}"#.utf8)),
+            .none
+        )
+        XCTAssertEqual(
+            try decoder.decode(InputMethodStrategy.self, from: Data(#"{"fixed":{"inputMethodId":"ime.zh"}}"#.utf8)),
+            .fixed(inputMethodId: "ime.zh")
+        )
+        XCTAssertEqual(
+            try decoder.decode(InputMethodStrategy.self, from: Data(#"{"followLast":{"lastInputMethodId":"ime.jp"}}"#.utf8)),
+            .followLast(lastInputMethodId: "ime.jp")
+        )
+    }
+
     func testFallbackRuleStoreDefaultsAndEncodingIncludeVersion() throws {
         let defaultStore = FallbackRuleStore()
         XCTAssertEqual(defaultStore.v, MigrationVersion.current)

@@ -1,3 +1,4 @@
+import AppKit
 import ComposableArchitecture
 import Foundation
 @testable import TypeSwitch
@@ -149,6 +150,25 @@ final class AppFeatureTests: XCTestCase {
         }
 
         await store.send(.view(.setFallbackStrategy(.followLast(lastInputMethodId: "ime.jp")))) {
+            $0.$fallbackRuleStore.withLock {
+                $0.strategy = .none
+            }
+        }
+
+        XCTAssertEqual(store.state.fallbackStrategy, .none)
+    }
+
+    func testSetFallbackStrategyCoercesIgnoredToNone() async {
+        var initialState = AppFeature.State()
+        initialState.$fallbackRuleStore.withLock {
+            $0.strategy = .fixed(inputMethodId: "ime.en")
+        }
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+
+        await store.send(.view(.setFallbackStrategy(.ignored))) {
             $0.$fallbackRuleStore.withLock {
                 $0.strategy = .none
             }
@@ -392,6 +412,44 @@ final class AppFeatureTests: XCTestCase {
 
         let switchedInputMethods = await recorder.values
         XCTAssertEqual(switchedInputMethods, [fallbackInputMethod])
+    }
+
+    func testActivatedIgnoredAppOverridesFixedFallback() async {
+        let app = AppInfo(bundleId: "com.test.passwords", name: "Passwords", path: "/Applications/Passwords.app")
+
+        var initialState = AppFeature.State()
+        initialState.inputMethods = [InputMethod(id: "ime.fallback", name: "Fallback")]
+        initialState.$fallbackRuleStore.withLock {
+            $0.strategy = .fixed(inputMethodId: "ime.fallback")
+        }
+        initialState.$appRulesStore.withLock {
+            $0.rules[app.bundleId] = AppRuleRecord(
+                bundleId: app.bundleId,
+                lastKnownPath: app.path,
+                lastKnownName: app.name,
+                strategy: .ignored,
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+        }
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(Date(timeIntervalSince1970: 10))
+        store.dependencies.inputMethodClient.currentInputMethodId = {
+            XCTFail("Ignored apps must not query the current input method")
+            return "ime.other"
+        }
+        store.dependencies.inputMethodClient.switchToInputMethod = { _ in
+            XCTFail("Ignored apps must not switch input methods")
+        }
+
+        await store.send(.system(.workspaceEvent(.activated(app)))) {
+            $0.currentFrontmostBundleId = app.bundleId
+        }
+
+        XCTAssertTrue(store.state.appSwitchStatisticsStore.counts.isEmpty)
     }
 
     func testActivatedAppUsesFallbackRuleWhenAppRuleIsMissing() async {
@@ -730,6 +788,260 @@ final class AppFeatureTests: XCTestCase {
             chat.bundleId,
             notes.bundleId,
         ])
+    }
+
+    func testIgnoredAppOnlyAppearsInIgnoredMenu() {
+        let app = AppInfo(bundleId: "com.test.passwords", name: "Passwords", path: "/Applications/Passwords.app")
+
+        var state = AppFeature.State()
+        state.currentFrontmostBundleId = app.bundleId
+        state.runningApps = [app]
+        state.$appSwitchStatisticsStore.withLock {
+            $0.counts[app.bundleId] = 4
+        }
+        state.$appRulesStore.withLock {
+            $0.rules[app.bundleId] = AppRuleRecord(
+                bundleId: app.bundleId,
+                lastKnownPath: nil,
+                lastKnownName: app.name,
+                strategy: .ignored,
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+        }
+
+        XCTAssertNil(state.currentAppMenuItem)
+        XCTAssertTrue(state.runningConfiguredMenuItems.isEmpty)
+        XCTAssertTrue(state.runningUnconfiguredMenuItems.isEmpty)
+        XCTAssertTrue(state.configuredApps.isEmpty)
+        XCTAssertTrue(state.unavailableApps.isEmpty)
+        XCTAssertTrue(state.switchStatisticsItems.isEmpty)
+        XCTAssertEqual(state.totalSuccessfulSwitchCount, 0)
+        XCTAssertEqual(state.ignoredAppsForMenu.map(\.bundleId), [app.bundleId])
+        XCTAssertEqual(state.appSwitchStatisticsStore.counts[app.bundleId], 4)
+    }
+
+    func testIgnoreAndRestoreAppUseIgnoredAndDefaultStrategies() async {
+        let app = AppInfo(bundleId: "com.test.passwords", name: "Passwords", path: "/Applications/Passwords.app")
+
+        var initialState = AppFeature.State()
+        initialState.runningApps = [app]
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(Date(timeIntervalSince1970: 20))
+
+        await store.send(.view(.ignoreAppTapped(app))) {
+            $0.$appRulesStore.withLock {
+                $0.rules[app.bundleId] = AppRuleRecord(
+                    bundleId: app.bundleId,
+                    lastKnownPath: app.path,
+                    lastKnownName: app.name,
+                    strategy: .ignored,
+                    createdAt: Date(timeIntervalSince1970: 20),
+                    updatedAt: Date(timeIntervalSince1970: 20)
+                )
+            }
+        }
+
+        await store.send(.view(.restoreIgnoredAppTapped(bundleId: app.bundleId))) {
+            $0.$appRulesStore.withLock {
+                guard var rule = $0.rules[app.bundleId] else { return }
+                rule.strategy = .none
+                rule.updatedAt = Date(timeIntervalSince1970: 20)
+                $0.rules[app.bundleId] = rule
+            }
+        }
+
+        XCTAssertEqual(store.state.runningUnconfiguredMenuItems.map(\.bundleId), [app.bundleId])
+    }
+
+    func testIgnoringUnavailableAppPreservesLastKnownPath() async {
+        let bundleId = "com.test.missing"
+        let lastKnownPath = "/Applications/Missing.app"
+
+        var initialState = AppFeature.State()
+        initialState.$appRulesStore.withLock {
+            $0.rules[bundleId] = AppRuleRecord(
+                bundleId: bundleId,
+                lastKnownPath: lastKnownPath,
+                lastKnownName: "Missing",
+                strategy: .fixed(inputMethodId: "ime.en"),
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+        }
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(Date(timeIntervalSince1970: 20))
+
+        await store.send(.view(.ignoreAppTapped(
+            AppInfo(bundleId: bundleId, name: "Missing", path: nil)
+        ))) {
+            $0.$appRulesStore.withLock {
+                guard var rule = $0.rules[bundleId] else { return }
+                rule.strategy = .ignored
+                rule.updatedAt = Date(timeIntervalSince1970: 20)
+                $0.rules[bundleId] = rule
+            }
+        }
+
+        XCTAssertEqual(store.state.appRules[bundleId]?.lastKnownPath, lastKnownPath)
+    }
+
+    func testRestoreAllIgnoredAppsUsesDefaultStrategy() async {
+        var initialState = AppFeature.State()
+        initialState.$appRulesStore.withLock {
+            for bundleId in ["com.test.alpha", "com.test.beta"] {
+                $0.rules[bundleId] = AppRuleRecord(
+                    bundleId: bundleId,
+                    lastKnownPath: nil,
+                    lastKnownName: bundleId,
+                    strategy: .ignored,
+                    createdAt: Date(timeIntervalSince1970: 10),
+                    updatedAt: Date(timeIntervalSince1970: 10)
+                )
+            }
+        }
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(Date(timeIntervalSince1970: 20))
+
+        await store.send(.view(.restoreAllIgnoredAppsTapped)) {
+            $0.$appRulesStore.withLock {
+                for bundleId in ["com.test.alpha", "com.test.beta"] {
+                    guard var rule = $0.rules[bundleId] else { continue }
+                    rule.strategy = .none
+                    rule.updatedAt = Date(timeIntervalSince1970: 20)
+                    $0.rules[bundleId] = rule
+                }
+            }
+        }
+    }
+
+    func testMenuPresentationFreezesIgnoredVisibilityUntilDismissed() async {
+        let app = AppInfo(bundleId: "com.test.passwords", name: "Passwords", path: "/Applications/Passwords.app")
+
+        var initialState = AppFeature.State()
+        initialState.runningApps = [app]
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(Date(timeIntervalSince1970: 20))
+
+        await store.send(.menuPresented) {
+            $0.isMenuPresented = true
+            $0.menuStrategiesAtPresentation = [:]
+        }
+        await store.send(.view(.ignoreAppTapped(app))) {
+            $0.$appRulesStore.withLock {
+                $0.rules[app.bundleId] = AppRuleRecord(
+                    bundleId: app.bundleId,
+                    lastKnownPath: app.path,
+                    lastKnownName: app.name,
+                    strategy: .ignored,
+                    createdAt: Date(timeIntervalSince1970: 20),
+                    updatedAt: Date(timeIntervalSince1970: 20)
+                )
+            }
+        }
+
+        XCTAssertEqual(store.state.runningUnconfiguredMenuItems.map(\.bundleId), [app.bundleId])
+        XCTAssertTrue(store.state.ignoredAppsForMenu.isEmpty)
+
+        await store.send(.menuDismissed) {
+            $0.isMenuPresented = false
+            $0.menuStrategiesAtPresentation = [:]
+        }
+
+        XCTAssertTrue(store.state.runningUnconfiguredMenuItems.isEmpty)
+        XCTAssertEqual(store.state.ignoredAppsForMenu.map(\.bundleId), [app.bundleId])
+
+        await store.send(.menuPresented) {
+            $0.isMenuPresented = true
+            $0.menuStrategiesAtPresentation = [app.bundleId: .ignored]
+        }
+        await store.send(.view(.restoreIgnoredAppTapped(bundleId: app.bundleId))) {
+            $0.$appRulesStore.withLock {
+                guard var rule = $0.rules[app.bundleId] else { return }
+                rule.strategy = .none
+                rule.updatedAt = Date(timeIntervalSince1970: 20)
+                $0.rules[app.bundleId] = rule
+            }
+        }
+
+        XCTAssertEqual(store.state.ignoredAppsForMenu.map(\.bundleId), [app.bundleId])
+        XCTAssertTrue(store.state.runningUnconfiguredMenuItems.isEmpty)
+
+        await store.send(.menuDismissed) {
+            $0.isMenuPresented = false
+            $0.menuStrategiesAtPresentation = [:]
+        }
+
+        XCTAssertTrue(store.state.ignoredAppsForMenu.isEmpty)
+        XCTAssertEqual(store.state.runningUnconfiguredMenuItems.map(\.bundleId), [app.bundleId])
+    }
+
+    func testRemoveUnavailableRulesPreservesIgnoredApps() async {
+        var initialState = AppFeature.State()
+        initialState.$appRulesStore.withLock {
+            $0.rules["ignored"] = AppRuleRecord(
+                bundleId: "ignored",
+                lastKnownPath: nil,
+                lastKnownName: "Ignored",
+                strategy: .ignored,
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+            $0.rules["missing"] = AppRuleRecord(
+                bundleId: "missing",
+                lastKnownPath: nil,
+                lastKnownName: "Missing",
+                strategy: .fixed(inputMethodId: "ime.en"),
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+        }
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+
+        await store.send(.view(.removeUnavailableRulesTapped)) {
+            $0.$appRulesStore.withLock {
+                $0.rules = ["ignored": $0.rules["ignored"]!]
+            }
+        }
+    }
+
+    func testMenuTrackingNotificationOnlyAcceptsRootMenu() {
+        let rootMenu = NSMenu()
+        let submenu = NSMenu()
+        let submenuItem = NSMenuItem(title: "Submenu", action: nil, keyEquivalent: "")
+        rootMenu.addItem(submenuItem)
+        rootMenu.setSubmenu(submenu, for: submenuItem)
+
+        XCTAssertTrue(
+            MenuBarView.isRootMenuTrackingNotification(
+                Notification(name: NSMenu.didBeginTrackingNotification, object: rootMenu)
+            )
+        )
+        XCTAssertFalse(
+            MenuBarView.isRootMenuTrackingNotification(
+                Notification(name: NSMenu.didEndTrackingNotification, object: submenu)
+            )
+        )
+        XCTAssertFalse(
+            MenuBarView.isRootMenuTrackingNotification(
+                Notification(name: NSMenu.didEndTrackingNotification, object: NSObject())
+            )
+        )
     }
 
     func testCurrentAppMenuItemIsSeparatedFromRunningApps() {

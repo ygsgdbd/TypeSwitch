@@ -5,6 +5,7 @@ import SwiftUI
 struct AppRowView: View {
     let item: AppFeature.State.AppMenuItem
     let inputMethods: [InputMethod]
+    let onIgnore: () -> Void
     let onSelectStrategy: (InputMethodStrategy) -> Void
 
     var body: some View {
@@ -17,6 +18,12 @@ struct AppRowView: View {
                 followLastOptionLabel: item.followLastOptionLabel,
                 onSelectStrategy: onSelectStrategy
             )
+
+            Divider()
+
+            Button(action: onIgnore) {
+                Label(TypeSwitchStrings.Apps.ignore, systemImage: "eye.slash")
+            }
         } label: {
             if item.path != nil {
                 AppInfo(bundleId: item.bundleId, name: item.name, path: item.path).icon
