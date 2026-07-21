@@ -1,23 +1,27 @@
 import ComposableArchitecture
 import Foundation
 
-// Migration: v0 -> v1
-// Added: 2026-05-25
+// Migration: legacy defaults -> app rules store
 enum LegacyDefaultsMigration {
+    static let currentVersion = 2
+    static let versionKey = "legacyAppRulesMigrationVersion"
+
+    static func completedVersion(in defaults: UserDefaults) -> Int {
+        defaults.integer(forKey: versionKey)
+    }
+
     static func makeRules(
         legacyMappings: [String: String],
         matchedApplications: [String: AppInfo],
         migrationDate: Date
     ) -> [String: AppRuleRecord] {
         legacyMappings.reduce(into: [String: AppRuleRecord]()) { result, entry in
-            guard let appInfo = matchedApplications[entry.key] else {
-                return
-            }
+            let appInfo = matchedApplications[entry.key]
 
             result[entry.key] = AppRuleRecord(
                 bundleId: entry.key,
-                lastKnownPath: appInfo.path,
-                lastKnownName: appInfo.name,
+                lastKnownPath: appInfo?.path,
+                lastKnownName: appInfo?.name ?? entry.key,
                 strategy: .fixed(inputMethodId: entry.value),
                 createdAt: migrationDate,
                 updatedAt: migrationDate
@@ -27,23 +31,20 @@ enum LegacyDefaultsMigration {
 }
 
 struct LegacyDefaultsMigrationClient {
-    var didCompleteMigration: @Sendable () async -> Bool
-    var migrateRules: @Sendable (_ migrationDate: Date) async -> [String: AppRuleRecord]
+    var completedVersion: @Sendable () async -> Int
+    var loadRules: @Sendable (_ migrationDate: Date) async -> [String: AppRuleRecord]
+    var markCompleted: @Sendable (_ version: Int) async -> Void
 }
 
 extension LegacyDefaultsMigrationClient: DependencyKey {
     static let liveValue = Self(
-        didCompleteMigration: {
-            UserDefaults.standard.bool(forKey: "didMigrateLegacyAppRules")
+        completedVersion: {
+            LegacyDefaultsMigration.completedVersion(in: .standard)
         },
-        migrateRules: { migrationDate in
+        loadRules: { migrationDate in
             let defaults = UserDefaults(suiteName: "group.top.ygsgdbd.TypeSwitch") ?? .standard
             let legacyMappings = defaults.dictionary(forKey: "appInputMethodSettings")?
                 .compactMapValues { $0 as? String } ?? [:]
-
-            defer {
-                UserDefaults.standard.set(true, forKey: "didMigrateLegacyAppRules")
-            }
 
             guard !legacyMappings.isEmpty else {
                 return [:]
@@ -55,12 +56,16 @@ extension LegacyDefaultsMigrationClient: DependencyKey {
                 matchedApplications: matchedApplications,
                 migrationDate: migrationDate
             )
+        },
+        markCompleted: { version in
+            UserDefaults.standard.set(version, forKey: LegacyDefaultsMigration.versionKey)
         }
     )
 
     static let testValue = Self(
-        didCompleteMigration: { true },
-        migrateRules: { _ in [:] }
+        completedVersion: { LegacyDefaultsMigration.currentVersion },
+        loadRules: { _ in [:] },
+        markCompleted: { _ in }
     )
 }
 

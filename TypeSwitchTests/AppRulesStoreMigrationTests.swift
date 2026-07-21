@@ -153,57 +153,76 @@ final class AppRulesStoreMigrationTests: XCTestCase {
         ))
     }
 
-    func testPrepareStoreCreatesBundleDirectoryWhenStoreMissing() throws {
-        let fileManager = FileManager.default
-        let rootDirectory = fileManager.temporaryDirectory.appending(path: UUID().uuidString, directoryHint: .isDirectory)
-        try fileManager.createDirectory(at: rootDirectory, withIntermediateDirectories: true, attributes: nil)
-        defer { try? fileManager.removeItem(at: rootDirectory) }
+    func testMergeRestoresMissingAndNoneRulesWithoutOverwritingExplicitStrategies() {
+        let currentDate = Date(timeIntervalSince1970: 100)
+        let legacyDate = Date(timeIntervalSince1970: 200)
+        let currentRules = [
+            "none": makeRule(bundleId: "none", strategy: .none, date: currentDate),
+            "fixed": makeRule(bundleId: "fixed", strategy: .fixed(inputMethodId: "current.fixed"), date: currentDate),
+            "followLast": makeRule(
+                bundleId: "followLast",
+                strategy: .followLast(lastInputMethodId: "current.last"),
+                date: currentDate
+            ),
+            "ignored": makeRule(bundleId: "ignored", strategy: .ignored, date: currentDate),
+        ]
+        let legacyRules = [
+            "missing": makeRule(bundleId: "missing", strategy: .fixed(inputMethodId: "legacy.missing"), date: legacyDate),
+            "none": makeRule(bundleId: "none", strategy: .fixed(inputMethodId: "legacy.none"), date: legacyDate),
+            "fixed": makeRule(bundleId: "fixed", strategy: .fixed(inputMethodId: "legacy.fixed"), date: legacyDate),
+            "followLast": makeRule(bundleId: "followLast", strategy: .fixed(inputMethodId: "legacy.last"), date: legacyDate),
+            "ignored": makeRule(bundleId: "ignored", strategy: .fixed(inputMethodId: "legacy.ignored"), date: legacyDate),
+        ]
 
-        let currentStoreURL = URL.appRulesStoreFileURL(applicationSupportDirectory: rootDirectory)
-
-        let result = try AppRulesStoreMigration.prepareStore(
-            currentStoreURL: currentStoreURL,
-            fileManager: fileManager
+        let mergedRules = AppRulesStoreMigration.merge(
+            currentRules: currentRules,
+            legacyRules: legacyRules
         )
 
-        XCTAssertEqual(result, .noStoreFound)
-        XCTAssertFalse(fileManager.fileExists(atPath: currentStoreURL.path))
-        XCTAssertTrue(fileManager.fileExists(atPath: currentStoreURL.deletingLastPathComponent().path))
+        XCTAssertEqual(mergedRules["missing"], legacyRules["missing"])
+        XCTAssertEqual(mergedRules["none"], legacyRules["none"])
+        XCTAssertEqual(mergedRules["fixed"], currentRules["fixed"])
+        XCTAssertEqual(mergedRules["followLast"], currentRules["followLast"])
+        XCTAssertEqual(mergedRules["ignored"], currentRules["ignored"])
     }
 
-    func testPrepareStoreReportsCurrentStorePresentWhenFileExists() throws {
-        let fileManager = FileManager.default
-        let rootDirectory = fileManager.temporaryDirectory.appending(path: UUID().uuidString, directoryHint: .isDirectory)
-        try fileManager.createDirectory(at: rootDirectory, withIntermediateDirectories: true, attributes: nil)
-        defer { try? fileManager.removeItem(at: rootDirectory) }
+    func testMergeIsIdempotent() {
+        let currentDate = Date(timeIntervalSince1970: 100)
+        let legacyDate = Date(timeIntervalSince1970: 200)
+        let currentRules = [
+            "none": makeRule(bundleId: "none", strategy: .none, date: currentDate),
+            "fixed": makeRule(bundleId: "fixed", strategy: .fixed(inputMethodId: "current.fixed"), date: currentDate),
+        ]
+        let legacyRules = [
+            "none": makeRule(bundleId: "none", strategy: .fixed(inputMethodId: "legacy.none"), date: legacyDate),
+            "fixed": makeRule(bundleId: "fixed", strategy: .fixed(inputMethodId: "legacy.fixed"), date: legacyDate),
+        ]
 
-        let currentStoreURL = URL.appRulesStoreFileURL(applicationSupportDirectory: rootDirectory)
-        let currentStore = AppRulesStore(
-            rules: [
-                "current": AppRuleRecord(
-                    bundleId: "current",
-                    lastKnownPath: "/Applications/Current.app",
-                    lastKnownName: "Current",
-                    strategy: .none,
-                    createdAt: Date(timeIntervalSince1970: 50),
-                    updatedAt: Date(timeIntervalSince1970: 60)
-                ),
-            ]
+        let firstMerge = AppRulesStoreMigration.merge(
+            currentRules: currentRules,
+            legacyRules: legacyRules
         )
-        try fileManager.createDirectory(
-            at: currentStoreURL.deletingLastPathComponent(),
-            withIntermediateDirectories: true,
-            attributes: nil
-        )
-        let currentData = try JSONEncoder().encode(currentStore)
-        try currentData.write(to: currentStoreURL, options: [.atomic])
-
-        let result = try AppRulesStoreMigration.prepareStore(
-            currentStoreURL: currentStoreURL,
-            fileManager: fileManager
+        let secondMerge = AppRulesStoreMigration.merge(
+            currentRules: firstMerge,
+            legacyRules: legacyRules
         )
 
-        XCTAssertEqual(result, .currentStorePresent)
-        XCTAssertEqual(try Data(contentsOf: currentStoreURL), currentData)
+        XCTAssertEqual(secondMerge, firstMerge)
+        XCTAssertEqual(secondMerge["fixed"]?.updatedAt, currentDate)
+    }
+
+    private func makeRule(
+        bundleId: String,
+        strategy: InputMethodStrategy,
+        date: Date
+    ) -> AppRuleRecord {
+        AppRuleRecord(
+            bundleId: bundleId,
+            lastKnownPath: "/Applications/\(bundleId).app",
+            lastKnownName: bundleId,
+            strategy: strategy,
+            createdAt: date,
+            updatedAt: date
+        )
     }
 }

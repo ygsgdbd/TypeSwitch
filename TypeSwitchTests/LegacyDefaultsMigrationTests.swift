@@ -3,7 +3,17 @@ import Foundation
 import XCTest
 
 final class LegacyDefaultsMigrationTests: XCTestCase {
-    func testMakeRulesMigratesOnlyMatchedApplications() {
+    func testV2CompletionIgnoresLegacyBooleanMarker() throws {
+        let suiteName = "LegacyDefaultsMigrationTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        defaults.set(true, forKey: "didMigrateLegacyAppRules")
+
+        XCTAssertEqual(LegacyDefaultsMigration.completedVersion(in: defaults), 0)
+    }
+
+    func testMakeRulesPreservesMatchedAndUnavailableApplications() {
         let migrationDate = Date(timeIntervalSince1970: 777)
         let matchedApplications = [
             "com.test.notes": AppInfo(
@@ -30,6 +40,14 @@ final class LegacyDefaultsMigrationTests: XCTestCase {
                     lastKnownPath: "/Applications/Notes.app",
                     lastKnownName: "Notes",
                     strategy: .fixed(inputMethodId: "ime.zh"),
+                    createdAt: migrationDate,
+                    updatedAt: migrationDate
+                ),
+                "com.test.missing": AppRuleRecord(
+                    bundleId: "com.test.missing",
+                    lastKnownPath: nil,
+                    lastKnownName: "com.test.missing",
+                    strategy: .fixed(inputMethodId: "ime.en"),
                     createdAt: migrationDate,
                     updatedAt: migrationDate
                 ),
