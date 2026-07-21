@@ -1604,18 +1604,39 @@ final class AppFeatureTests: XCTestCase {
     }
 
     func testLegacyRulesLoadedSavesBeforeMarkingMigrationCompleted() async {
+        let currentDate = Date(timeIntervalSince1970: 100)
         let migrationDate = Date(timeIntervalSince1970: 777)
         let migrationTracker = MigrationTracker()
-        let legacyRule = AppRuleRecord(
+        let currentRule = AppRuleRecord(
             bundleId: "com.test.notes",
             lastKnownPath: "/Applications/Notes.app",
             lastKnownName: "Notes",
+            strategy: .none,
+            createdAt: currentDate,
+            updatedAt: currentDate
+        )
+        let legacyRule = AppRuleRecord(
+            bundleId: currentRule.bundleId,
+            lastKnownPath: nil,
+            lastKnownName: currentRule.bundleId,
             strategy: .fixed(inputMethodId: "ime.zh"),
             createdAt: migrationDate,
             updatedAt: migrationDate
         )
+        let expectedRule = AppRuleRecord(
+            bundleId: currentRule.bundleId,
+            lastKnownPath: currentRule.lastKnownPath,
+            lastKnownName: currentRule.lastKnownName,
+            strategy: legacyRule.strategy,
+            createdAt: currentDate,
+            updatedAt: migrationDate
+        )
+        var initialState = makeMigrationTestState()
+        initialState.$appRulesStore.withLock {
+            $0.rules[currentRule.bundleId] = currentRule
+        }
 
-        let store = TestStore(initialState: makeMigrationTestState()) {
+        let store = TestStore(initialState: initialState) {
             AppFeature()
         }
         store.dependencies.appRulesStoreMigrationClient.save = { _ in
@@ -1627,7 +1648,7 @@ final class AppFeatureTests: XCTestCase {
 
         await store.send(.response(.legacyRulesLoaded([legacyRule.bundleId: legacyRule]))) {
             $0.$appRulesStore.withLock {
-                $0.rules[legacyRule.bundleId] = legacyRule
+                $0.rules[legacyRule.bundleId] = expectedRule
             }
         }
         await store.finish()
