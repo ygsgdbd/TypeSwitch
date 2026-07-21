@@ -452,6 +452,250 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertTrue(store.state.appSwitchStatisticsStore.counts.isEmpty)
     }
 
+    func testIgnoringCurrentAppCancelsPendingProgrammaticSwitch() async {
+        let app = AppInfo(bundleId: "com.test.browser", name: "Browser", path: "/Applications/Browser.app")
+        let targetInputMethod = "ime.en"
+        let updateDate = Date(timeIntervalSince1970: 20)
+        let lookupGate = InputMethodLookupGate(firstValue: "ime.other")
+        let recorder = SwitchRecorder()
+
+        var initialState = AppFeature.State()
+        initialState.inputMethods = [InputMethod(id: targetInputMethod, name: "English")]
+        initialState.$appRulesStore.withLock {
+            $0.rules[app.bundleId] = AppRuleRecord(
+                bundleId: app.bundleId,
+                lastKnownPath: app.path,
+                lastKnownName: app.name,
+                strategy: .fixed(inputMethodId: targetInputMethod),
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+        }
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(updateDate)
+        store.dependencies.inputMethodClient.currentInputMethodId = {
+            await lookupGate.value()
+        }
+        store.dependencies.inputMethodClient.switchToInputMethod = { inputMethodId in
+            await recorder.record(inputMethodId)
+        }
+
+        await store.send(.system(.workspaceEvent(.activated(app)))) {
+            $0.currentFrontmostBundleId = app.bundleId
+            $0.pendingProgrammaticSwitch = .init(bundleId: app.bundleId, inputMethodId: targetInputMethod)
+        }
+        await lookupGate.waitForFirstCall()
+
+        await store.send(.view(.ignoreAppTapped(app))) {
+            $0.pendingProgrammaticSwitch = nil
+            $0.$appRulesStore.withLock {
+                guard var rule = $0.rules[app.bundleId] else { return }
+                rule.strategy = .ignored
+                rule.updatedAt = updateDate
+                $0.rules[app.bundleId] = rule
+            }
+        }
+
+        await lookupGate.resumeFirst()
+        await store.finish()
+
+        let switchedInputMethods = await recorder.values
+        XCTAssertTrue(switchedInputMethods.isEmpty)
+        XCTAssertTrue(store.state.appSwitchStatisticsStore.counts.isEmpty)
+    }
+
+    func testActivatingIgnoredAppCancelsPreviousProgrammaticSwitch() async {
+        let firstApp = AppInfo(bundleId: "com.test.first", name: "First", path: "/Applications/First.app")
+        let ignoredApp = AppInfo(bundleId: "com.test.ignored", name: "Ignored", path: "/Applications/Ignored.app")
+        let targetInputMethod = "ime.en"
+        let lookupGate = InputMethodLookupGate(firstValue: "ime.other")
+        let recorder = SwitchRecorder()
+
+        var initialState = AppFeature.State()
+        initialState.inputMethods = [InputMethod(id: targetInputMethod, name: "English")]
+        initialState.$appRulesStore.withLock {
+            $0.rules[firstApp.bundleId] = AppRuleRecord(
+                bundleId: firstApp.bundleId,
+                lastKnownPath: firstApp.path,
+                lastKnownName: firstApp.name,
+                strategy: .fixed(inputMethodId: targetInputMethod),
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+            $0.rules[ignoredApp.bundleId] = AppRuleRecord(
+                bundleId: ignoredApp.bundleId,
+                lastKnownPath: ignoredApp.path,
+                lastKnownName: ignoredApp.name,
+                strategy: .ignored,
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+        }
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(Date(timeIntervalSince1970: 10))
+        store.dependencies.inputMethodClient.currentInputMethodId = {
+            await lookupGate.value()
+        }
+        store.dependencies.inputMethodClient.switchToInputMethod = { inputMethodId in
+            await recorder.record(inputMethodId)
+        }
+
+        await store.send(.system(.workspaceEvent(.activated(firstApp)))) {
+            $0.currentFrontmostBundleId = firstApp.bundleId
+            $0.pendingProgrammaticSwitch = .init(bundleId: firstApp.bundleId, inputMethodId: targetInputMethod)
+        }
+        await lookupGate.waitForFirstCall()
+
+        await store.send(.system(.workspaceEvent(.activated(ignoredApp)))) {
+            $0.currentFrontmostBundleId = ignoredApp.bundleId
+            $0.pendingProgrammaticSwitch = nil
+        }
+
+        await lookupGate.resumeFirst()
+        await store.finish()
+
+        let switchedInputMethods = await recorder.values
+        XCTAssertTrue(switchedInputMethods.isEmpty)
+        XCTAssertTrue(store.state.appSwitchStatisticsStore.counts.isEmpty)
+    }
+
+    func testConsecutiveActivationsOnlyCompleteLatestProgrammaticSwitch() async {
+        let firstApp = AppInfo(bundleId: "com.test.first", name: "First", path: "/Applications/First.app")
+        let secondApp = AppInfo(bundleId: "com.test.second", name: "Second", path: "/Applications/Second.app")
+        let firstInputMethod = "ime.first"
+        let secondInputMethod = "ime.second"
+        let lookupGate = InputMethodLookupGate(
+            firstValue: "ime.other",
+            subsequentValue: "ime.other"
+        )
+        let recorder = SwitchRecorder()
+
+        var initialState = AppFeature.State()
+        initialState.inputMethods = [
+            InputMethod(id: firstInputMethod, name: "First"),
+            InputMethod(id: secondInputMethod, name: "Second"),
+        ]
+        initialState.$appRulesStore.withLock {
+            $0.rules[firstApp.bundleId] = AppRuleRecord(
+                bundleId: firstApp.bundleId,
+                lastKnownPath: firstApp.path,
+                lastKnownName: firstApp.name,
+                strategy: .fixed(inputMethodId: firstInputMethod),
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+            $0.rules[secondApp.bundleId] = AppRuleRecord(
+                bundleId: secondApp.bundleId,
+                lastKnownPath: secondApp.path,
+                lastKnownName: secondApp.name,
+                strategy: .fixed(inputMethodId: secondInputMethod),
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+        }
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(Date(timeIntervalSince1970: 10))
+        store.dependencies.inputMethodClient.currentInputMethodId = {
+            await lookupGate.value()
+        }
+        store.dependencies.inputMethodClient.switchToInputMethod = { inputMethodId in
+            await recorder.record(inputMethodId)
+        }
+
+        await store.send(.system(.workspaceEvent(.activated(firstApp)))) {
+            $0.currentFrontmostBundleId = firstApp.bundleId
+            $0.pendingProgrammaticSwitch = .init(bundleId: firstApp.bundleId, inputMethodId: firstInputMethod)
+        }
+        await lookupGate.waitForFirstCall()
+
+        await store.send(.system(.workspaceEvent(.activated(secondApp)))) {
+            $0.currentFrontmostBundleId = secondApp.bundleId
+            $0.pendingProgrammaticSwitch = .init(bundleId: secondApp.bundleId, inputMethodId: secondInputMethod)
+        }
+        await store.receive(.response(.programmaticSwitchFinished(
+            bundleId: secondApp.bundleId,
+            inputMethodId: secondInputMethod,
+            didSwitch: true
+        ))) {
+            $0.pendingProgrammaticSwitch = nil
+            $0.$appSwitchStatisticsStore.withLock {
+                $0.counts[secondApp.bundleId] = 1
+            }
+        }
+
+        await lookupGate.resumeFirst()
+        await store.finish()
+
+        let switchedInputMethods = await recorder.values
+        XCTAssertEqual(switchedInputMethods, [secondInputMethod])
+        XCTAssertNil(store.state.appSwitchStatisticsStore.counts[firstApp.bundleId])
+        XCTAssertEqual(store.state.appSwitchStatisticsStore.counts[secondApp.bundleId], 1)
+    }
+
+    func testTerminatingCurrentAppCancelsSwitchAfterSelectionNotificationClearsPending() async {
+        let app = AppInfo(bundleId: "com.test.browser", name: "Browser", path: "/Applications/Browser.app")
+        let targetInputMethod = "ime.en"
+        let switchGate = InputMethodSwitchGate()
+        let recorder = SwitchRecorder()
+
+        var initialState = AppFeature.State()
+        initialState.inputMethods = [InputMethod(id: targetInputMethod, name: "English")]
+        initialState.runningApps = [app]
+        initialState.$appRulesStore.withLock {
+            $0.rules[app.bundleId] = AppRuleRecord(
+                bundleId: app.bundleId,
+                lastKnownPath: app.path,
+                lastKnownName: app.name,
+                strategy: .fixed(inputMethodId: targetInputMethod),
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+        }
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(Date(timeIntervalSince1970: 10))
+        store.dependencies.inputMethodClient.currentInputMethodId = { "ime.other" }
+        store.dependencies.inputMethodClient.switchToInputMethod = { inputMethodId in
+            await recorder.record(inputMethodId)
+            await switchGate.wait()
+        }
+        store.dependencies.workspaceClient.runningApplications = { [] }
+
+        await store.send(.system(.workspaceEvent(.activated(app)))) {
+            $0.currentFrontmostBundleId = app.bundleId
+            $0.pendingProgrammaticSwitch = .init(bundleId: app.bundleId, inputMethodId: targetInputMethod)
+        }
+        await switchGate.waitUntilStarted()
+
+        await store.send(.system(.inputMethodSelectedChanged(targetInputMethod))) {
+            $0.pendingProgrammaticSwitch = nil
+        }
+        await store.send(.system(.workspaceEvent(.terminated(bundleId: app.bundleId)))) {
+            $0.currentFrontmostBundleId = nil
+        }
+        await store.receive(.response(.runningApps([]))) {
+            $0.runningApps = []
+        }
+
+        await switchGate.resume()
+        await store.finish()
+
+        let switchedInputMethods = await recorder.values
+        XCTAssertEqual(switchedInputMethods, [targetInputMethod])
+        XCTAssertTrue(store.state.appSwitchStatisticsStore.counts.isEmpty)
+    }
+
     func testActivatedAppUsesFallbackRuleWhenAppRuleIsMissing() async {
         let now = Date(timeIntervalSince1970: 10)
         let app = AppInfo(bundleId: "com.test.browser", name: "Browser", path: "/Applications/Browser.app")
@@ -1646,7 +1890,10 @@ final class AppFeatureTests: XCTestCase {
             await migrationTracker.record(.markCompleted(version))
         }
 
-        await store.send(.response(.legacyRulesLoaded([legacyRule.bundleId: legacyRule]))) {
+        await store.send(.response(.legacyRulesLoaded(
+            [legacyRule.bundleId: legacyRule],
+            didCompleteLegacyMigration: false
+        ))) {
             $0.$appRulesStore.withLock {
                 $0.rules[legacyRule.bundleId] = expectedRule
             }
@@ -1679,7 +1926,10 @@ final class AppFeatureTests: XCTestCase {
             await migrationTracker.record(.markCompleted(version))
         }
 
-        await store.send(.response(.legacyRulesLoaded([legacyRule.bundleId: legacyRule]))) {
+        await store.send(.response(.legacyRulesLoaded(
+            [legacyRule.bundleId: legacyRule],
+            didCompleteLegacyMigration: false
+        ))) {
             $0.$appRulesStore.withLock {
                 $0.rules[legacyRule.bundleId] = legacyRule
             }
@@ -1715,7 +1965,10 @@ final class AppFeatureTests: XCTestCase {
             await migrationTracker.record(.markCompleted(version))
         }
 
-        await store.send(.response(.legacyRulesLoaded([:])))
+        await store.send(.response(.legacyRulesLoaded(
+            [:],
+            didCompleteLegacyMigration: true
+        )))
         await store.finish()
 
         let events = await migrationTracker.events
@@ -1762,6 +2015,7 @@ final class AppFeatureTests: XCTestCase {
         store.dependencies.legacyDefaultsMigrationClient.completedVersion = {
             await migrationTracker.completedVersion
         }
+        store.dependencies.legacyDefaultsMigrationClient.didCompleteLegacyMigration = { true }
         store.dependencies.legacyDefaultsMigrationClient.loadRules = { receivedDate in
             await migrationTracker.record(.loadRules(receivedDate))
             return [legacyRule.bundleId: legacyRule]
@@ -1781,7 +2035,10 @@ final class AppFeatureTests: XCTestCase {
         store.dependencies.inputMethodClient.selectionChanges = finishedStream
 
         await store.send(.task)
-        await store.receive(.response(.legacyRulesLoaded([legacyRule.bundleId: legacyRule]))) {
+        await store.receive(.response(.legacyRulesLoaded(
+            [legacyRule.bundleId: legacyRule],
+            didCompleteLegacyMigration: true
+        ))) {
             $0.$appRulesStore.withLock {
                 $0.rules[legacyRule.bundleId] = legacyRule
             }
@@ -1839,6 +2096,71 @@ private actor SwitchRecorder {
 
     func record(_ inputMethodId: String) {
         values.append(inputMethodId)
+    }
+}
+
+private actor InputMethodLookupGate {
+    private let firstValue: String
+    private let subsequentValue: String
+    private var callCount = 0
+    private var firstContinuation: CheckedContinuation<String, Never>?
+    private var firstStartedContinuation: CheckedContinuation<Void, Never>?
+    private var hasStartedFirstCall = false
+
+    init(firstValue: String, subsequentValue: String = "") {
+        self.firstValue = firstValue
+        self.subsequentValue = subsequentValue
+    }
+
+    func value() async -> String {
+        callCount += 1
+        guard callCount == 1 else { return subsequentValue }
+
+        return await withCheckedContinuation { continuation in
+            firstContinuation = continuation
+            hasStartedFirstCall = true
+            firstStartedContinuation?.resume()
+            firstStartedContinuation = nil
+        }
+    }
+
+    func waitForFirstCall() async {
+        guard !hasStartedFirstCall else { return }
+        await withCheckedContinuation { continuation in
+            firstStartedContinuation = continuation
+        }
+    }
+
+    func resumeFirst() {
+        firstContinuation?.resume(returning: firstValue)
+        firstContinuation = nil
+    }
+}
+
+private actor InputMethodSwitchGate {
+    private var continuation: CheckedContinuation<Void, Never>?
+    private var startedContinuation: CheckedContinuation<Void, Never>?
+    private var hasStarted = false
+
+    func wait() async {
+        await withCheckedContinuation { continuation in
+            self.continuation = continuation
+            hasStarted = true
+            startedContinuation?.resume()
+            startedContinuation = nil
+        }
+    }
+
+    func waitUntilStarted() async {
+        guard !hasStarted else { return }
+        await withCheckedContinuation { continuation in
+            startedContinuation = continuation
+        }
+    }
+
+    func resume() {
+        continuation?.resume()
+        continuation = nil
     }
 }
 

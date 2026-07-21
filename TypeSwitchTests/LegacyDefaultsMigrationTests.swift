@@ -8,9 +8,10 @@ final class LegacyDefaultsMigrationTests: XCTestCase {
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
 
-        defaults.set(true, forKey: "didMigrateLegacyAppRules")
+        defaults.set(true, forKey: LegacyDefaultsMigration.legacyCompletionKey)
 
         XCTAssertEqual(LegacyDefaultsMigration.completedVersion(in: defaults), 0)
+        XCTAssertTrue(LegacyDefaultsMigration.didCompleteLegacyMigration(in: defaults))
     }
 
     func testMakeRulesPreservesMatchedAndUnavailableApplications() {

@@ -4,21 +4,37 @@ import Sharing
 enum AppRulesStoreMigration {
     static func merge(
         currentRules: [String: AppRuleRecord],
-        legacyRules: [String: AppRuleRecord]
+        legacyRules: [String: AppRuleRecord],
+        didCompleteLegacyMigration: Bool
     ) -> [String: AppRuleRecord] {
-        currentRules.merging(legacyRules) { currentRule, legacyRule in
-            guard currentRule.strategy == .none else {
-                return currentRule
+        guard !didCompleteLegacyMigration || currentRules.isEmpty else {
+            return currentRules
+        }
+
+        return legacyRules.reduce(into: currentRules) { rules, entry in
+            guard let currentRule = rules[entry.key] else {
+                rules[entry.key] = entry.value
+                return
+            }
+
+            guard currentRule.strategy == .none,
+                  currentRule.createdAt == currentRule.updatedAt
+            else {
+                return
             }
 
             var recoveredRule = currentRule
-            if legacyRule.lastKnownPath != nil {
-                recoveredRule.lastKnownPath = legacyRule.lastKnownPath
-                recoveredRule.lastKnownName = legacyRule.lastKnownName
+            recoveredRule.strategy = entry.value.strategy
+            recoveredRule.updatedAt = entry.value.updatedAt
+            if recoveredRule.lastKnownPath == nil {
+                recoveredRule.lastKnownPath = entry.value.lastKnownPath
             }
-            recoveredRule.strategy = legacyRule.strategy
-            recoveredRule.updatedAt = legacyRule.updatedAt
-            return recoveredRule
+            if recoveredRule.lastKnownName == recoveredRule.bundleId,
+               entry.value.lastKnownName != entry.value.bundleId
+            {
+                recoveredRule.lastKnownName = entry.value.lastKnownName
+            }
+            rules[entry.key] = recoveredRule
         }
     }
 }
