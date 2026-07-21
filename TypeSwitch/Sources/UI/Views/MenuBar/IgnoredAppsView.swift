@@ -6,40 +6,38 @@ struct IgnoredAppsView: View {
 
     var body: some View {
         if !store.ignoredAppsForMenu.isEmpty {
-            Section {
-                Menu {
-                    Section {
-                        ForEach(store.ignoredAppsForMenu) { app in
-                            Button {
-                                store.send(.view(.restoreIgnoredAppTapped(bundleId: app.bundleId)))
-                            } label: {
-                                Label {
-                                    Text(app.name)
-                                } icon: {
-                                    app.icon
-                                }
+            Menu {
+                Section {
+                    ForEach(store.ignoredAppsForMenu) { app in
+                        Button {
+                            store.send(.view(.restoreIgnoredAppTapped(bundleId: app.bundleId)))
+                        } label: {
+                            Label {
+                                Text(app.name)
+                            } icon: {
+                                app.icon
                             }
                         }
-                    } header: {
-                        Text(TypeSwitchStrings.Apps.Ignored.restoreHint)
                     }
+                } header: {
+                    Text(TypeSwitchStrings.Apps.Ignored.restoreHint)
+                }
 
-                    Divider()
+                Divider()
 
-                    Button {
-                        store.send(.view(.restoreAllIgnoredAppsTapped))
-                    } label: {
-                        Label(
-                            TypeSwitchStrings.Apps.Ignored.restoreAll,
-                            systemImage: "arrow.uturn.backward"
-                        )
-                    }
+                Button {
+                    store.send(.view(.restoreAllIgnoredAppsTapped))
                 } label: {
                     Label(
-                        TypeSwitchStrings.Apps.Ignored.menuTitle(store.ignoredAppsForMenu.count),
-                        systemImage: "eye.slash"
+                        TypeSwitchStrings.Apps.Ignored.restoreAll,
+                        systemImage: "arrow.uturn.backward"
                     )
                 }
+            } label: {
+                Label(
+                    TypeSwitchStrings.Apps.Ignored.menuTitle(store.ignoredAppsForMenu.count),
+                    systemImage: "eye.slash"
+                )
             }
         }
     }

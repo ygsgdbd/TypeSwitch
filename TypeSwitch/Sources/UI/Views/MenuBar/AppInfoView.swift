@@ -9,34 +9,30 @@ struct AppInfoView: View {
 
     var body: some View {
         Group {
-            Section {
-                Button {
-                    updateMonitor.showUpdate(using: updaterController.updater)
-                } label: {
-                    Label(
-                        updateMonitor.menuTitle,
-                        systemImage: "arrow.triangle.2.circlepath"
-                    )
-                }
-                .disabled(!updateMonitor.isMenuActionEnabled)
+            Button {
+                updateMonitor.showUpdate(using: updaterController.updater)
+            } label: {
+                Label(
+                    updateMonitor.menuTitle,
+                    systemImage: "arrow.triangle.2.circlepath"
+                )
+            }
+            .disabled(!updateMonitor.isMenuActionEnabled)
 
-                Button {
-                    AppInfoService.openGitHubRepository()
-                } label: {
-                    Label(TypeSwitchStrings.Menu.githubRepository, systemImage: "link")
-                }
+            Button {
+                AppInfoService.openGitHubRepository()
+            } label: {
+                Label(TypeSwitchStrings.Menu.githubRepository, systemImage: "link")
             }
 
             Divider()
 
-            Section {
-                Button(role: .destructive) {
-                    NSApplication.shared.terminate(nil)
-                } label: {
-                    Label(TypeSwitchStrings.Menu.quit, systemImage: "power")
-                }
-                .keyboardShortcut("q", modifiers: .command)
+            Button(role: .destructive) {
+                NSApplication.shared.terminate(nil)
+            } label: {
+                Label(TypeSwitchStrings.Menu.quit, systemImage: "power")
             }
+            .keyboardShortcut("q", modifiers: .command)
         }
     }
 }

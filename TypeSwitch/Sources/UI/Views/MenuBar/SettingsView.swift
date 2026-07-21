@@ -6,47 +6,45 @@ struct SettingsView: View {
     @Bindable var store: StoreOf<AppFeature>
 
     var body: some View {
-        Section {
-            Menu {
-                InputMethodStrategyMenuContent(
-                    context: .fallbackRule,
-                    strategy: store.fallbackStrategy,
-                    inputMethods: store.inputMethods,
-                    defaultOptionLabel: TypeSwitchStrings.InputMethod.fallbackDefaultOption,
-                    followLastOptionLabel: TypeSwitchStrings.InputMethod.followLastEmptyOption
-                ) { strategy in
-                    store.send(.view(.setFallbackStrategy(strategy)))
-                }
-            } label: {
-                Label(
-                    TypeSwitchStrings.Settings.Fallback.defaultInputMethod,
-                    systemImage: "keyboard"
-                )
-                if let selectedLabel = store.fallbackSelectedLabel {
-                    Text(selectedLabel)
-                        .foregroundStyle(store.fallbackHasMissingInputMethod ? .secondary : .primary)
-                }
+        Menu {
+            InputMethodStrategyMenuContent(
+                context: .fallbackRule,
+                strategy: store.fallbackStrategy,
+                inputMethods: store.inputMethods,
+                defaultOptionLabel: TypeSwitchStrings.InputMethod.fallbackDefaultOption,
+                followLastOptionLabel: TypeSwitchStrings.InputMethod.followLastEmptyOption
+            ) { strategy in
+                store.send(.view(.setFallbackStrategy(strategy)))
             }
-
-            Toggle(
-                TypeSwitchStrings.Settings.General.autoLaunch,
-                isOn: Binding(
-                    get: { store.launchAtLoginEnabled },
-                    set: { store.send(.view(.setLaunchAtLogin($0))) }
-                )
+        } label: {
+            Label(
+                TypeSwitchStrings.Settings.Fallback.defaultInputMethod,
+                systemImage: "keyboard"
             )
-            .toggleStyle(.checkbox)
+            if let selectedLabel = store.fallbackSelectedLabel {
+                Text(selectedLabel)
+                    .foregroundStyle(store.fallbackHasMissingInputMethod ? .secondary : .primary)
+            }
+        }
 
-            if store.launchAtLoginRequiresApproval {
-                Text(TypeSwitchStrings.Settings.General.autoLaunchRequiresApproval)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+        Toggle(
+            TypeSwitchStrings.Settings.General.autoLaunch,
+            isOn: Binding(
+                get: { store.launchAtLoginEnabled },
+                set: { store.send(.view(.setLaunchAtLogin($0))) }
+            )
+        )
+        .toggleStyle(.checkbox)
 
-                Button {
-                    LaunchAtLoginService.openSystemSettingsLoginItems()
-                } label: {
-                    Label(TypeSwitchStrings.Settings.General.openLoginItems, systemImage: "gear")
-                }
+        if store.launchAtLoginRequiresApproval {
+            Text(TypeSwitchStrings.Settings.General.autoLaunchRequiresApproval)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+            Button {
+                LaunchAtLoginService.openSystemSettingsLoginItems()
+            } label: {
+                Label(TypeSwitchStrings.Settings.General.openLoginItems, systemImage: "gear")
             }
         }
     }
