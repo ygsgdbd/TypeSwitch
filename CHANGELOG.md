@@ -1,5 +1,49 @@
 # Changelog
 
+## v0.9.0
+
+### 🇨🇳 中文
+
+#### 功能
+
+- 新增“忽略此 App”：可让指定 App 完全跳过自动输入法切换，并从普通应用列表和切换统计中隐藏。
+- 新增“已忽略 App”菜单，支持单独恢复或恢复全部；恢复后 App 会重新继承未配置 App 的默认规则。
+
+#### 优化
+
+- 重新整理应用管理、设置和常用操作的菜单分组，减少不必要的分隔线，使菜单层级更清晰。
+- 更新中英文 README 以及浅色、深色界面截图。
+
+#### 修复
+
+- 修复部分旧版本应用规则可能在升级迁移时被跳过的问题，并在恢复旧规则时保留用户当前选择、应用名称和路径等数据。
+- 修复快速切换 App、退出 App 或忽略当前 App 时，旧的自动切换任务仍可能继续执行，导致输入法错误切换或切换统计不准确的问题。
+
+#### 工程
+
+- 发布构建号统一使用 UTC 生成，避免运行环境时区变化导致构建号回退。
+
+### 🇺🇸 English
+
+#### Features
+
+- Added Ignore This App so selected apps can completely skip automatic input method switching and stay hidden from regular app lists and switch statistics.
+- Added an Ignored Apps menu with individual and restore-all actions. Restored apps inherit the default rule for unconfigured apps again.
+
+#### Improvements
+
+- Regrouped application management, settings, and common actions with fewer unnecessary separators for a clearer menu hierarchy.
+- Updated the English and Chinese READMEs and refreshed the light and dark interface screenshots.
+
+#### Fixes
+
+- Fixed an upgrade migration issue that could skip some legacy application rules, while preserving current choices, application names, paths, and other existing data during recovery.
+- Fixed stale automatic switching tasks that could continue after quickly changing, quitting, or ignoring apps, causing an incorrect input method switch or inaccurate switch statistics.
+
+#### Engineering
+
+- Standardized release build-number generation on UTC to prevent build numbers from moving backward when the runner time zone changes.
+
 ## v0.8.0
 
 ### 🇨🇳 中文
