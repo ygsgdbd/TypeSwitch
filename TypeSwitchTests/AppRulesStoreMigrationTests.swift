@@ -153,11 +153,10 @@ final class AppRulesStoreMigrationTests: XCTestCase {
         ))
     }
 
-    func testMergeRestoresMissingAndNoneRulesWithoutOverwritingExplicitStrategies() {
+    func testMergeAddsMissingLegacyRulesWithoutOverwritingExplicitStrategies() {
         let currentDate = Date(timeIntervalSince1970: 100)
         let legacyDate = Date(timeIntervalSince1970: 200)
         let currentRules = [
-            "none": makeRule(bundleId: "none", strategy: .none, date: currentDate),
             "fixed": makeRule(bundleId: "fixed", strategy: .fixed(inputMethodId: "current.fixed"), date: currentDate),
             "followLast": makeRule(
                 bundleId: "followLast",
@@ -168,7 +167,6 @@ final class AppRulesStoreMigrationTests: XCTestCase {
         ]
         let legacyRules = [
             "missing": makeRule(bundleId: "missing", strategy: .fixed(inputMethodId: "legacy.missing"), date: legacyDate),
-            "none": makeRule(bundleId: "none", strategy: .fixed(inputMethodId: "legacy.none"), date: legacyDate),
             "fixed": makeRule(bundleId: "fixed", strategy: .fixed(inputMethodId: "legacy.fixed"), date: legacyDate),
             "followLast": makeRule(bundleId: "followLast", strategy: .fixed(inputMethodId: "legacy.last"), date: legacyDate),
             "ignored": makeRule(bundleId: "ignored", strategy: .fixed(inputMethodId: "legacy.ignored"), date: legacyDate),
@@ -180,10 +178,92 @@ final class AppRulesStoreMigrationTests: XCTestCase {
         )
 
         XCTAssertEqual(mergedRules["missing"], legacyRules["missing"])
-        XCTAssertEqual(mergedRules["none"], legacyRules["none"])
         XCTAssertEqual(mergedRules["fixed"], currentRules["fixed"])
         XCTAssertEqual(mergedRules["followLast"], currentRules["followLast"])
         XCTAssertEqual(mergedRules["ignored"], currentRules["ignored"])
+    }
+
+    func testMergeRestoresNoneRuleUsingMatchedLegacyMetadata() {
+        let currentDate = Date(timeIntervalSince1970: 100)
+        let legacyDate = Date(timeIntervalSince1970: 200)
+        let currentRule = AppRuleRecord(
+            bundleId: "com.test.editor",
+            lastKnownPath: "/Applications/Old Editor.app",
+            lastKnownName: "Old Editor",
+            strategy: .none,
+            createdAt: currentDate,
+            updatedAt: currentDate
+        )
+        let legacyRule = AppRuleRecord(
+            bundleId: currentRule.bundleId,
+            lastKnownPath: "/Applications/Editor.app",
+            lastKnownName: "Editor",
+            strategy: .fixed(inputMethodId: "legacy.fixed"),
+            createdAt: legacyDate,
+            updatedAt: legacyDate
+        )
+
+        let mergedRules = AppRulesStoreMigration.merge(
+            currentRules: [currentRule.bundleId: currentRule],
+            legacyRules: [legacyRule.bundleId: legacyRule]
+        )
+
+        XCTAssertEqual(
+            mergedRules[currentRule.bundleId],
+            AppRuleRecord(
+                bundleId: currentRule.bundleId,
+                lastKnownPath: legacyRule.lastKnownPath,
+                lastKnownName: legacyRule.lastKnownName,
+                strategy: legacyRule.strategy,
+                createdAt: currentDate,
+                updatedAt: legacyDate
+            )
+        )
+    }
+
+    func testMergeRestoresNoneRuleWithoutDiscardingCurrentMetadataWhenLegacyAppIsUnmatched() throws {
+        let currentDate = Date(timeIntervalSince1970: 100)
+        let legacyDate = Date(timeIntervalSince1970: 200)
+        let appURL = FileManager.default.temporaryDirectory
+            .appending(path: "Editor-\(UUID().uuidString).app", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: appURL, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: appURL) }
+
+        let currentRule = AppRuleRecord(
+            bundleId: "com.test.editor",
+            lastKnownPath: appURL.path,
+            lastKnownName: "Editor",
+            strategy: .none,
+            createdAt: currentDate,
+            updatedAt: currentDate
+        )
+        let legacyRule = AppRuleRecord(
+            bundleId: currentRule.bundleId,
+            lastKnownPath: nil,
+            lastKnownName: currentRule.bundleId,
+            strategy: .fixed(inputMethodId: "legacy.fixed"),
+            createdAt: legacyDate,
+            updatedAt: legacyDate
+        )
+
+        let mergedRules = AppRulesStoreMigration.merge(
+            currentRules: [currentRule.bundleId: currentRule],
+            legacyRules: [legacyRule.bundleId: legacyRule]
+        )
+        let mergedRule = try XCTUnwrap(mergedRules[currentRule.bundleId])
+
+        XCTAssertEqual(
+            mergedRule,
+            AppRuleRecord(
+                bundleId: currentRule.bundleId,
+                lastKnownPath: currentRule.lastKnownPath,
+                lastKnownName: currentRule.lastKnownName,
+                strategy: legacyRule.strategy,
+                createdAt: currentDate,
+                updatedAt: legacyDate
+            )
+        )
+        XCTAssertTrue(mergedRule.isAvailable)
     }
 
     func testMergeIsIdempotent() {

@@ -7,7 +7,18 @@ enum AppRulesStoreMigration {
         legacyRules: [String: AppRuleRecord]
     ) -> [String: AppRuleRecord] {
         currentRules.merging(legacyRules) { currentRule, legacyRule in
-            currentRule.strategy == .none ? legacyRule : currentRule
+            guard currentRule.strategy == .none else {
+                return currentRule
+            }
+
+            var recoveredRule = currentRule
+            if legacyRule.lastKnownPath != nil {
+                recoveredRule.lastKnownPath = legacyRule.lastKnownPath
+                recoveredRule.lastKnownName = legacyRule.lastKnownName
+            }
+            recoveredRule.strategy = legacyRule.strategy
+            recoveredRule.updatedAt = legacyRule.updatedAt
+            return recoveredRule
         }
     }
 }
