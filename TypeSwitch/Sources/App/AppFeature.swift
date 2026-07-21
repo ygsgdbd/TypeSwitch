@@ -108,7 +108,10 @@ struct AppFeature {
         case frontmostApplicationLoaded(AppInfo?)
         case inputMethods([InputMethod])
         case launchAtLoginLoaded(LaunchAtLoginStatus)
-        case legacyRulesLoaded([String: AppRuleRecord])
+        case legacyRulesLoaded(
+            [String: AppRuleRecord],
+            didCompleteLegacyMigration: Bool
+        )
         case programmaticSwitchFinished(bundleId: String, inputMethodId: String, didSwitch: Bool)
         case runningApps([AppInfo])
     }
@@ -131,6 +134,7 @@ struct AppFeature {
     private enum CancelID {
         case inputMethodAvailability
         case inputMethodSelection
+        case programmaticSwitch
         case workspaceEvents
     }
 
@@ -234,10 +238,11 @@ struct AppFeature {
                 state.launchAtLoginStatus = status
                 return .none
 
-            case .response(.legacyRulesLoaded(let legacyRules)):
+            case let .response(.legacyRulesLoaded(legacyRules, didCompleteLegacyMigration)):
                 let mergedRules = AppRulesStoreMigration.merge(
                     currentRules: state.appRules,
-                    legacyRules: legacyRules
+                    legacyRules: legacyRules,
+                    didCompleteLegacyMigration: didCompleteLegacyMigration
                 )
                 guard mergedRules != state.appRules else {
                     return markLegacyMigrationCompletedEffect()
@@ -266,6 +271,8 @@ struct AppFeature {
                 return .none
 
             case .view(.ignoreAppTapped(let appInfo)):
+                let shouldCancelProgrammaticSwitch = state.currentFrontmostBundleId == appInfo.bundleId
+                    || state.pendingProgrammaticSwitch?.bundleId == appInfo.bundleId
                 let updateDate = now
                 state.$appRulesStore.withLock { store in
                     let currentRule = store.rules[appInfo.bundleId] ?? AppRuleRecord(
@@ -285,7 +292,9 @@ struct AppFeature {
                     updatedRule.updatedAt = updateDate
                     store.rules[appInfo.bundleId] = updatedRule
                 }
-                return .none
+                guard shouldCancelProgrammaticSwitch else { return .none }
+                state.pendingProgrammaticSwitch = nil
+                return .cancel(id: CancelID.programmaticSwitch)
 
             case .view(.removeMissingInputMethodRulesTapped):
                 let updateDate = now
@@ -389,10 +398,20 @@ struct AppFeature {
                 return refreshRunningAppsEffect()
 
             case .system(.workspaceEvent(.terminated(let bundleId))):
-                if state.currentFrontmostBundleId == bundleId {
+                let wasCurrentApp = state.currentFrontmostBundleId == bundleId
+                if wasCurrentApp {
                     state.currentFrontmostBundleId = nil
                 }
-                return refreshRunningAppsEffect()
+                let shouldCancelProgrammaticSwitch = wasCurrentApp
+                    || state.pendingProgrammaticSwitch?.bundleId == bundleId
+                guard shouldCancelProgrammaticSwitch else {
+                    return refreshRunningAppsEffect()
+                }
+                state.pendingProgrammaticSwitch = nil
+                return .merge(
+                    .cancel(id: CancelID.programmaticSwitch),
+                    refreshRunningAppsEffect()
+                )
 
             case .system(.workspaceEvent(.activated(let appInfo))):
                 state.currentFrontmostBundleId = appInfo.bundleId
@@ -400,7 +419,7 @@ struct AppFeature {
 
                 guard let inputMethodId = targetInputMethodId(for: appInfo.bundleId, state: state) else {
                     state.pendingProgrammaticSwitch = nil
-                    return .none
+                    return .cancel(id: CancelID.programmaticSwitch)
                 }
 
                 state.pendingProgrammaticSwitch = .init(
@@ -411,19 +430,23 @@ struct AppFeature {
                 return .run { send in
                     var didSwitch = false
                     if (try? await inputMethodClient.currentInputMethodId()) != inputMethodId {
+                        guard !Task.isCancelled else { return }
                         do {
                             try await inputMethodClient.switchToInputMethod(inputMethodId)
                             didSwitch = true
                         } catch {
+                            guard !Task.isCancelled else { return }
                             didSwitch = false
                         }
                     }
+                    guard !Task.isCancelled else { return }
                     await send(.response(.programmaticSwitchFinished(
                         bundleId: appInfo.bundleId,
                         inputMethodId: inputMethodId,
                         didSwitch: didSwitch
                     )))
                 }
+                .cancellable(id: CancelID.programmaticSwitch, cancelInFlight: true)
             }
         }
     }
@@ -435,7 +458,11 @@ struct AppFeature {
             }
 
             let legacyRules = await legacyDefaultsMigrationClient.loadRules(now)
-            await send(.response(.legacyRulesLoaded(legacyRules)))
+            let didCompleteLegacyMigration = await legacyDefaultsMigrationClient.didCompleteLegacyMigration()
+            await send(.response(.legacyRulesLoaded(
+                legacyRules,
+                didCompleteLegacyMigration: didCompleteLegacyMigration
+            )))
         }
     }
 

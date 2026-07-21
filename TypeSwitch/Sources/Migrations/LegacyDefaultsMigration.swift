@@ -4,10 +4,15 @@ import Foundation
 // Migration: legacy defaults -> app rules store
 enum LegacyDefaultsMigration {
     static let currentVersion = 2
+    static let legacyCompletionKey = "didMigrateLegacyAppRules"
     static let versionKey = "legacyAppRulesMigrationVersion"
 
     static func completedVersion(in defaults: UserDefaults) -> Int {
         defaults.integer(forKey: versionKey)
+    }
+
+    static func didCompleteLegacyMigration(in defaults: UserDefaults) -> Bool {
+        defaults.bool(forKey: legacyCompletionKey)
     }
 
     static func makeRules(
@@ -32,6 +37,7 @@ enum LegacyDefaultsMigration {
 
 struct LegacyDefaultsMigrationClient {
     var completedVersion: @Sendable () async -> Int
+    var didCompleteLegacyMigration: @Sendable () async -> Bool
     var loadRules: @Sendable (_ migrationDate: Date) async -> [String: AppRuleRecord]
     var markCompleted: @Sendable (_ version: Int) async -> Void
 }
@@ -40,6 +46,9 @@ extension LegacyDefaultsMigrationClient: DependencyKey {
     static let liveValue = Self(
         completedVersion: {
             LegacyDefaultsMigration.completedVersion(in: .standard)
+        },
+        didCompleteLegacyMigration: {
+            LegacyDefaultsMigration.didCompleteLegacyMigration(in: .standard)
         },
         loadRules: { migrationDate in
             let defaults = UserDefaults(suiteName: "group.top.ygsgdbd.TypeSwitch") ?? .standard
@@ -64,6 +73,7 @@ extension LegacyDefaultsMigrationClient: DependencyKey {
 
     static let testValue = Self(
         completedVersion: { LegacyDefaultsMigration.currentVersion },
+        didCompleteLegacyMigration: { false },
         loadRules: { _ in [:] },
         markCompleted: { _ in }
     )
