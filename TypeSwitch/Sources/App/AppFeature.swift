@@ -105,11 +105,10 @@ struct AppFeature {
     }
 
     enum ResponseAction: Equatable, Sendable {
-        case appRulesStorePrepared(AppRulesStoreMigration.PrepareResult)
         case frontmostApplicationLoaded(AppInfo?)
         case inputMethods([InputMethod])
         case launchAtLoginLoaded(LaunchAtLoginStatus)
-        case legacyRulesMigrated([String: AppRuleRecord])
+        case legacyRulesLoaded([String: AppRuleRecord])
         case programmaticSwitchFinished(bundleId: String, inputMethodId: String, didSwitch: Bool)
         case runningApps([AppInfo])
     }
@@ -154,7 +153,7 @@ struct AppFeature {
                 normalizeFallbackRule(in: &state)
                 return .merge(
                     .concatenate(
-                        prepareAppRulesStoreMigrationEffect(),
+                        migrateLegacyRulesEffect(),
                         .run { send in
                             await send(.response(.launchAtLoginLoaded(await launchAtLoginClient.status())))
                         },
@@ -189,14 +188,6 @@ struct AppFeature {
 
             case .view where state.isReadmeDemo:
                 return .none
-
-            case .response(.appRulesStorePrepared(let result)):
-                switch result {
-                case .currentStorePresent:
-                    return .none
-                case .noStoreFound:
-                    return migrateLegacyRulesEffect()
-                }
 
             case .response(.frontmostApplicationLoaded(let appInfo)):
                 state.currentFrontmostBundleId = appInfo?.bundleId
@@ -243,11 +234,19 @@ struct AppFeature {
                 state.launchAtLoginStatus = status
                 return .none
 
-            case .response(.legacyRulesMigrated(let migratedRules)):
-                state.$appRulesStore.withLock { store in
-                    store.rules.merge(migratedRules) { _, newValue in newValue }
+            case .response(.legacyRulesLoaded(let legacyRules)):
+                let mergedRules = AppRulesStoreMigration.merge(
+                    currentRules: state.appRules,
+                    legacyRules: legacyRules
+                )
+                guard mergedRules != state.appRules else {
+                    return markLegacyMigrationCompletedEffect()
                 }
-                return .none
+
+                state.$appRulesStore.withLock { store in
+                    store.rules = mergedRules
+                }
+                return saveLegacyMigrationEffect(store: state.$appRulesStore)
 
             case let .response(.programmaticSwitchFinished(bundleId, inputMethodId, didSwitch)):
                 if state.pendingProgrammaticSwitch == .init(bundleId: bundleId, inputMethodId: inputMethodId) {
@@ -429,20 +428,31 @@ struct AppFeature {
         }
     }
 
-    private func prepareAppRulesStoreMigrationEffect() -> Effect<Action> {
-        .run { send in
-            await send(.response(.appRulesStorePrepared(await appRulesStoreMigrationClient.prepareStore())))
-        }
-    }
-
     private func migrateLegacyRulesEffect() -> Effect<Action> {
         .run { send in
-            guard !(await legacyDefaultsMigrationClient.didCompleteMigration()) else {
+            guard await legacyDefaultsMigrationClient.completedVersion() < LegacyDefaultsMigration.currentVersion else {
                 return
             }
 
-            let migratedRules = await legacyDefaultsMigrationClient.migrateRules(now)
-            await send(.response(.legacyRulesMigrated(migratedRules)))
+            let legacyRules = await legacyDefaultsMigrationClient.loadRules(now)
+            await send(.response(.legacyRulesLoaded(legacyRules)))
+        }
+    }
+
+    private func saveLegacyMigrationEffect(store: Shared<AppRulesStore>) -> Effect<Action> {
+        .run { _ in
+            do {
+                try await appRulesStoreMigrationClient.save(store)
+                await legacyDefaultsMigrationClient.markCompleted(LegacyDefaultsMigration.currentVersion)
+            } catch {
+                print("⚠️ 规则存储迁移保存失败: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func markLegacyMigrationCompletedEffect() -> Effect<Action> {
+        .run { _ in
+            await legacyDefaultsMigrationClient.markCompleted(LegacyDefaultsMigration.currentVersion)
         }
     }
 

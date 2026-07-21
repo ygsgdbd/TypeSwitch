@@ -1603,58 +1603,213 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertEqual(state.totalSuccessfulSwitchCount, 12)
     }
 
-    func testLegacyMigrationMigratesOnlyMatchedRules() async {
+    func testLegacyRulesLoadedSavesBeforeMarkingMigrationCompleted() async {
         let migrationDate = Date(timeIntervalSince1970: 777)
         let migrationTracker = MigrationTracker()
-        let matchedApp = AppInfo(bundleId: "com.test.notes", name: "Notes", path: "/Applications/Notes.app")
+        let legacyRule = AppRuleRecord(
+            bundleId: "com.test.notes",
+            lastKnownPath: "/Applications/Notes.app",
+            lastKnownName: "Notes",
+            strategy: .fixed(inputMethodId: "ime.zh"),
+            createdAt: migrationDate,
+            updatedAt: migrationDate
+        )
 
-        let store = TestStore(initialState: AppFeature.State()) {
+        let store = TestStore(initialState: makeMigrationTestState()) {
+            AppFeature()
+        }
+        store.dependencies.appRulesStoreMigrationClient.save = { _ in
+            await migrationTracker.record(.save)
+        }
+        store.dependencies.legacyDefaultsMigrationClient.markCompleted = { version in
+            await migrationTracker.record(.markCompleted(version))
+        }
+
+        await store.send(.response(.legacyRulesLoaded([legacyRule.bundleId: legacyRule]))) {
+            $0.$appRulesStore.withLock {
+                $0.rules[legacyRule.bundleId] = legacyRule
+            }
+        }
+        await store.finish()
+
+        let events = await migrationTracker.events
+        XCTAssertEqual(events, [.save, .markCompleted(2)])
+    }
+
+    func testLegacyRulesLoadedDoesNotMarkMigrationCompletedWhenSaveFails() async {
+        let migrationTracker = MigrationTracker()
+        let legacyRule = AppRuleRecord(
+            bundleId: "com.test.notes",
+            lastKnownPath: "/Applications/Notes.app",
+            lastKnownName: "Notes",
+            strategy: .fixed(inputMethodId: "ime.zh"),
+            createdAt: Date(timeIntervalSince1970: 777),
+            updatedAt: Date(timeIntervalSince1970: 777)
+        )
+
+        let store = TestStore(initialState: makeMigrationTestState()) {
+            AppFeature()
+        }
+        store.dependencies.appRulesStoreMigrationClient.save = { _ in
+            await migrationTracker.record(.save)
+            throw TestError.failed
+        }
+        store.dependencies.legacyDefaultsMigrationClient.markCompleted = { version in
+            await migrationTracker.record(.markCompleted(version))
+        }
+
+        await store.send(.response(.legacyRulesLoaded([legacyRule.bundleId: legacyRule]))) {
+            $0.$appRulesStore.withLock {
+                $0.rules[legacyRule.bundleId] = legacyRule
+            }
+        }
+        await store.finish()
+
+        let events = await migrationTracker.events
+        XCTAssertEqual(events, [.save])
+    }
+
+    func testLegacyRulesLoadedWithoutLegacyMappingsKeepsCurrentRulesAndMarksCompleted() async {
+        let migrationTracker = MigrationTracker()
+        let currentRule = AppRuleRecord(
+            bundleId: "com.test.notes",
+            lastKnownPath: "/Applications/Notes.app",
+            lastKnownName: "Notes",
+            strategy: .ignored,
+            createdAt: Date(timeIntervalSince1970: 100),
+            updatedAt: Date(timeIntervalSince1970: 200)
+        )
+        var initialState = makeMigrationTestState()
+        initialState.$appRulesStore.withLock {
+            $0.rules[currentRule.bundleId] = currentRule
+        }
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.appRulesStoreMigrationClient.save = { _ in
+            await migrationTracker.record(.save)
+        }
+        store.dependencies.legacyDefaultsMigrationClient.markCompleted = { version in
+            await migrationTracker.record(.markCompleted(version))
+        }
+
+        await store.send(.response(.legacyRulesLoaded([:])))
+        await store.finish()
+
+        let events = await migrationTracker.events
+        XCTAssertEqual(events, [.markCompleted(2)])
+        XCTAssertEqual(store.state.appRules[currentRule.bundleId], currentRule)
+    }
+
+    func testTaskMigratesWithExistingEmptyStoreBeforeScanningRunningAppsAndDoesNotRepeatV2Migration() async throws {
+        let migrationDate = Date(timeIntervalSince1970: 777)
+        let migrationTracker = MigrationTracker()
+        let rootDirectory = FileManager.default.temporaryDirectory
+            .appending(path: UUID().uuidString, directoryHint: .isDirectory)
+        let storeURL = rootDirectory.appending(path: AppStorageConfiguration.appRulesFilename)
+        try FileManager.default.createDirectory(
+            at: rootDirectory,
+            withIntermediateDirectories: true
+        )
+        try JSONEncoder().encode(AppRulesStore()).write(to: storeURL)
+        defer { try? FileManager.default.removeItem(at: rootDirectory) }
+
+        let legacyRule = AppRuleRecord(
+            bundleId: "com.test.notes",
+            lastKnownPath: "/Applications/Notes.app",
+            lastKnownName: "Notes",
+            strategy: .fixed(inputMethodId: "ime.zh"),
+            createdAt: migrationDate,
+            updatedAt: migrationDate
+        )
+
+        let initialState = AppFeature.State(
+            appRulesStore: Shared(
+                wrappedValue: AppRulesStore(),
+                .fileStorage(storeURL)
+            ),
+            appSwitchStatisticsStore: Shared(value: AppSwitchStatisticsStore()),
+            fallbackRuleStore: Shared(value: FallbackRuleStore())
+        )
+        XCTAssertTrue(FileManager.default.fileExists(atPath: storeURL.path))
+
+        let store = TestStore(initialState: initialState) {
             AppFeature()
         }
         store.dependencies.date = .constant(migrationDate)
-        store.dependencies.legacyDefaultsMigrationClient.didCompleteMigration = { false }
-        store.dependencies.legacyDefaultsMigrationClient.migrateRules = { receivedDate in
-            XCTAssertEqual(receivedDate, migrationDate)
-            await migrationTracker.markMigrated()
-            return [
-                "com.test.notes": AppRuleRecord(
-                    bundleId: "com.test.notes",
-                    lastKnownPath: matchedApp.path,
-                    lastKnownName: matchedApp.name,
-                    strategy: .fixed(inputMethodId: "ime.zh"),
-                    createdAt: migrationDate,
-                    updatedAt: migrationDate
-                ),
-            ]
+        store.dependencies.legacyDefaultsMigrationClient.completedVersion = {
+            await migrationTracker.completedVersion
         }
+        store.dependencies.legacyDefaultsMigrationClient.loadRules = { receivedDate in
+            await migrationTracker.record(.loadRules(receivedDate))
+            return [legacyRule.bundleId: legacyRule]
+        }
+        store.dependencies.legacyDefaultsMigrationClient.markCompleted = { version in
+            await migrationTracker.markCompleted(version)
+        }
+        store.dependencies.appRulesStoreMigrationClient.save = { _ in
+            await migrationTracker.record(.save)
+        }
+        store.dependencies.workspaceClient.runningApplications = {
+            await migrationTracker.record(.runningApplications)
+            return []
+        }
+        store.dependencies.workspaceClient.events = finishedStream
+        store.dependencies.inputMethodClient.availabilityChanges = finishedStream
+        store.dependencies.inputMethodClient.selectionChanges = finishedStream
 
-        await store.send(.response(.appRulesStorePrepared(.noStoreFound)))
-        await store.receive(.response(.legacyRulesMigrated([
-            "com.test.notes": AppRuleRecord(
-                bundleId: "com.test.notes",
-                lastKnownPath: matchedApp.path,
-                lastKnownName: matchedApp.name,
-                strategy: .fixed(inputMethodId: "ime.zh"),
-                createdAt: migrationDate,
-                updatedAt: migrationDate
-            ),
-        ]))) {
+        await store.send(.task)
+        await store.receive(.response(.legacyRulesLoaded([legacyRule.bundleId: legacyRule]))) {
             $0.$appRulesStore.withLock {
-                $0.rules["com.test.notes"] = AppRuleRecord(
-                    bundleId: "com.test.notes",
-                    lastKnownPath: matchedApp.path,
-                    lastKnownName: matchedApp.name,
-                    strategy: .fixed(inputMethodId: "ime.zh"),
-                    createdAt: migrationDate,
-                    updatedAt: migrationDate
-                )
+                $0.rules[legacyRule.bundleId] = legacyRule
             }
         }
+        await receiveStartupResponses(from: store)
+        await store.finish()
 
-        let didMigrate = await migrationTracker.didMigrate
-        XCTAssertTrue(didMigrate)
-        XCTAssertNil(store.state.appRules["com.test.missing"])
-        XCTAssertEqual(store.state.appRulesStore.v, MigrationVersion.current)
+        let migratedRule = store.state.appRules[legacyRule.bundleId]
+        let firstRunEvents = await migrationTracker.events
+        XCTAssertLessThan(
+            try XCTUnwrap(firstRunEvents.firstIndex(of: .loadRules(migrationDate))),
+            try XCTUnwrap(firstRunEvents.firstIndex(of: .runningApplications))
+        )
+        XCTAssertEqual(firstRunEvents.filter { $0 == .save }.count, 1)
+        XCTAssertEqual(firstRunEvents.filter { $0 == .markCompleted(2) }.count, 1)
+
+        await store.send(.task)
+        await receiveStartupResponses(from: store)
+        await store.finish()
+
+        let secondRunEvents = await migrationTracker.events
+        XCTAssertEqual(secondRunEvents.filter {
+            if case .loadRules = $0 { return true }
+            return false
+        }.count, 1)
+        XCTAssertEqual(secondRunEvents.filter { $0 == .save }.count, 1)
+        XCTAssertEqual(secondRunEvents.filter { $0 == .markCompleted(2) }.count, 1)
+        XCTAssertEqual(store.state.appRules[legacyRule.bundleId], migratedRule)
+    }
+
+    private func makeMigrationTestState() -> AppFeature.State {
+        AppFeature.State(
+            appRulesStore: Shared(value: AppRulesStore()),
+            appSwitchStatisticsStore: Shared(value: AppSwitchStatisticsStore()),
+            fallbackRuleStore: Shared(value: FallbackRuleStore())
+        )
+    }
+
+    private func receiveStartupResponses(from store: TestStoreOf<AppFeature>) async {
+        await store.receive(.response(.launchAtLoginLoaded(.disabled)))
+        await store.receive(.response(.frontmostApplicationLoaded(nil)))
+        await store.receive(.response(.inputMethods([])))
+        await store.receive(.response(.runningApps([])))
+    }
+
+    private func finishedStream<Element>() -> AsyncStream<Element> {
+        AsyncStream { continuation in
+            continuation.finish()
+        }
     }
 }
 
@@ -1671,9 +1826,22 @@ private enum TestError: Error {
 }
 
 private actor MigrationTracker {
-    private(set) var didMigrate = false
+    enum Event: Equatable {
+        case loadRules(Date)
+        case markCompleted(Int)
+        case runningApplications
+        case save
+    }
 
-    func markMigrated() {
-        didMigrate = true
+    private(set) var completedVersion = 0
+    private(set) var events: [Event] = []
+
+    func record(_ event: Event) {
+        events.append(event)
+    }
+
+    func markCompleted(_ version: Int) {
+        completedVersion = version
+        events.append(.markCompleted(version))
     }
 }

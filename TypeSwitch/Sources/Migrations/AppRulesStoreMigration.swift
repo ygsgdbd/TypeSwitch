@@ -1,50 +1,30 @@
 import ComposableArchitecture
-import Foundation
+import Sharing
 
-// Migration: v0 -> v1
-// Added: 2026-05-25
 enum AppRulesStoreMigration {
-    enum PrepareResult: Equatable, Sendable {
-        case currentStorePresent
-        case noStoreFound
-    }
-
-    static func prepareStore(
-        currentStoreURL: URL = .appRulesStoreURL,
-        fileManager: FileManager = .default
-    ) throws -> PrepareResult {
-        try fileManager.createDirectory(
-            at: currentStoreURL.deletingLastPathComponent(),
-            withIntermediateDirectories: true,
-            attributes: nil
-        )
-
-        if fileManager.fileExists(atPath: currentStoreURL.path) {
-            return .currentStorePresent
+    static func merge(
+        currentRules: [String: AppRuleRecord],
+        legacyRules: [String: AppRuleRecord]
+    ) -> [String: AppRuleRecord] {
+        currentRules.merging(legacyRules) { currentRule, legacyRule in
+            currentRule.strategy == .none ? legacyRule : currentRule
         }
-
-        return .noStoreFound
     }
 }
 
 struct AppRulesStoreMigrationClient {
-    var prepareStore: @Sendable () async -> AppRulesStoreMigration.PrepareResult
+    var save: @Sendable (_ store: Shared<AppRulesStore>) async throws -> Void
 }
 
 extension AppRulesStoreMigrationClient: DependencyKey {
     static let liveValue = Self(
-        prepareStore: {
-            do {
-                return try AppRulesStoreMigration.prepareStore()
-            } catch {
-                print("⚠️ 规则存储迁移失败: \(error.localizedDescription)")
-                return .noStoreFound
-            }
+        save: { store in
+            try await store.save()
         }
     )
 
     static let testValue = Self(
-        prepareStore: { .noStoreFound }
+        save: { _ in }
     )
 }
 
