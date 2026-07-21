@@ -13,6 +13,14 @@ struct MenuBarView: View {
         Group {
             CurrentAppView(store: store)
             RunningAppsView(store: store)
+
+            if store.currentAppMenuItem != nil
+                || !store.runningUnconfiguredMenuItems.isEmpty
+                || !store.runningConfiguredMenuItems.isEmpty
+            {
+                Divider()
+            }
+
             ConfiguredAppsView(store: store)
             UnavailableAppsView(store: store)
             IgnoredAppsView(store: store)
