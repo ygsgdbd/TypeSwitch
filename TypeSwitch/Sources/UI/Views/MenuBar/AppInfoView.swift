@@ -22,7 +22,10 @@ struct AppInfoView: View {
             Button {
                 AppInfoService.openGitHubRepository()
             } label: {
-                Label(TypeSwitchStrings.Menu.githubRepository, systemImage: "link")
+                Label(
+                    TypeSwitchStrings.Menu.githubRepository,
+                    systemImage: "chevron.left.forwardslash.chevron.right"
+                )
             }
 
             Divider()
