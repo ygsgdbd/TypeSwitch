@@ -8,6 +8,8 @@ on:
 permissions:
   contents: write
   discussions: write
+  id-token: write
+  attestations: write
 
 jobs:
   build:
@@ -210,6 +212,11 @@ jobs:
             DerivedData/SparkleFeed
 
           cp DerivedData/SparkleFeed/appcast.xml appcast.xml
+
+      - name: Attest release artifact
+        uses: actions/attest@v4
+        with:
+          subject-path: TypeSwitch-macOS-universal.zip
       
       - name: Release
         uses: softprops/action-gh-release@v1

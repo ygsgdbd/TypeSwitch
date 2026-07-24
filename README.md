@@ -60,7 +60,7 @@ brew trust --cask ygsgdbd/tap/typeswitch
 brew install --cask typeswitch
 ```
 
-This trusts only the `typeswitch` cask, not the entire tap. Homebrew stores the trust entry, so you normally need to run the trust command only once. See Homebrew's [Tap Trust documentation](https://docs.brew.sh/Tap-Trust) for details.
+This trusts only the third-party `typeswitch` cask, not the entire tap. Homebrew stores the trust entry, so you normally need to run the trust command only once. The cask also includes a custom `postflight` step that removes the macOS quarantine attribute from TypeSwitch after installation. TypeSwitch is still unsigned and not notarized, and `brew trust` is not an official Gatekeeper certification. See Homebrew's [Tap Trust documentation](https://docs.brew.sh/Tap-Trust) for details.
 
 Homebrew 5.1.14 and earlier do not have `brew trust` and do not require it:
 
@@ -88,8 +88,10 @@ brew upgrade typeswitch
 
 1. Download the latest build from [Releases](https://github.com/ygsgdbd/TypeSwitch/releases).
 2. Drag `TypeSwitch.app` to the Applications folder.
-3. Launch TypeSwitch and grant any system permissions macOS requests.
-4. Use `Check for Updates…` from the menu bar app to check GitHub Releases for future updates.
+3. In Applications, Control-click or right-click `TypeSwitch.app`, choose `Open`, then confirm that you want to open it.
+4. If macOS still blocks the app, open System Settings → Privacy & Security, find the TypeSwitch security message, and choose `Open Anyway`.
+5. Grant any system permissions macOS requests.
+6. Use `Check for Updates…` from the menu bar app to check GitHub Releases for future updates.
 
 ## 🧭 Usage
 
@@ -171,7 +173,13 @@ git tag v0.6.0
 git push origin v0.6.0
 ```
 
-The workflow validates the tag, runs tests, builds a universal macOS app, packages a zip, generates checksums, creates a signed Sparkle `appcast.xml`, publishes a GitHub Release, and updates the Homebrew cask.
+The workflow validates the tag, runs tests, builds a universal macOS app, packages a zip, publishes its SHA-256 checksum, signs the Sparkle `appcast.xml` with EdDSA, generates a GitHub Artifact Attestation for the release zip, publishes a GitHub Release, and updates the Homebrew cask.
+
+After downloading the release zip, verify its build provenance with GitHub CLI:
+
+```bash
+gh attestation verify TypeSwitch-macOS-universal.zip --repo ygsgdbd/TypeSwitch
+```
 
 ## 🙏 Acknowledgments
 

@@ -60,7 +60,7 @@ brew trust --cask ygsgdbd/tap/typeswitch
 brew install --cask typeswitch
 ```
 
-这只会信任 `typeswitch` cask，不会信任整个 tap。Homebrew 会保存信任记录，因此通常只需执行一次 trust 命令。详情请参阅 Homebrew 官方的 [Tap Trust 文档](https://docs.brew.sh/Tap-Trust)。
+这只会信任第三方 `typeswitch` cask，不会信任整个 tap。Homebrew 会保存信任记录，因此通常只需执行一次 trust 命令。该 cask 还包含自定义 `postflight` 步骤，会在安装后移除 TypeSwitch 的 macOS quarantine 属性。TypeSwitch 仍未签名、未经公证，`brew trust` 也不代表获得 Gatekeeper 官方认证。详情请参阅 Homebrew 官方的 [Tap Trust 文档](https://docs.brew.sh/Tap-Trust)。
 
 Homebrew 5.1.14 及更早版本没有 `brew trust`，也不需要执行该命令：
 
@@ -88,8 +88,10 @@ brew upgrade typeswitch
 
 1. 从 [Releases](https://github.com/ygsgdbd/TypeSwitch/releases) 下载最新构建。
 2. 将 `TypeSwitch.app` 拖入“应用程序”文件夹。
-3. 启动 TypeSwitch，并授予 macOS 请求的系统权限。
-4. 后续可在菜单栏应用中使用“检查更新…”从 GitHub Releases 检查更新。
+3. 在“应用程序”中按住 Control 点击或右键点击 `TypeSwitch.app`，选择“打开”，然后确认打开。
+4. 如果 macOS 仍然阻止运行，请打开“系统设置”→“隐私与安全性”，找到 TypeSwitch 的安全提示并选择“仍要打开”。
+5. 授予 macOS 请求的系统权限。
+6. 后续可在菜单栏应用中使用“检查更新…”从 GitHub Releases 检查更新。
 
 ## 🧭 使用说明
 
@@ -171,7 +173,13 @@ git tag v0.6.0
 git push origin v0.6.0
 ```
 
-发布 workflow 会校验标签、运行测试、构建 universal macOS app、打包 zip、生成 checksums、创建已签名的 Sparkle `appcast.xml`、发布 GitHub Release，并更新 Homebrew cask。
+发布 workflow 会校验标签、运行测试、构建 universal macOS app、打包 zip、发布 SHA-256 checksum、使用 EdDSA 签名 Sparkle `appcast.xml`、为发布 zip 生成 GitHub Artifact Attestation、发布 GitHub Release，并更新 Homebrew cask。
+
+下载发布 zip 后，可使用 GitHub CLI 验证其构建来源：
+
+```bash
+gh attestation verify TypeSwitch-macOS-universal.zip --repo ygsgdbd/TypeSwitch
+```
 
 ## 🙏 致谢
 
