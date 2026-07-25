@@ -4,12 +4,18 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing vX.Y.Z tag; dispatch with the same tag ref via CLI or API
+        required: true
+        type: string
 
 permissions:
   contents: write
-  discussions: write
   id-token: write
   attestations: write
+  artifact-metadata: write
 
 jobs:
   build:
@@ -24,20 +30,97 @@ jobs:
 
       - name: Validate release tag
         id: release_tag
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
         run: |
-          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error title=Invalid release tag::Production releases must use vX.Y.Z, for example v0.4.0. Got ${GITHUB_REF_NAME}."
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error title=Invalid release tag::Production releases must use vX.Y.Z, for example v0.10.0. Got ${RELEASE_TAG}."
             exit 1
           fi
 
-          VERSION="${GITHUB_REF_NAME#v}"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "$(git cat-file -t "refs/tags/${RELEASE_TAG}" 2>/dev/null || true)" != "tag" ]]; then
+            echo "::error title=Invalid release tag::Tag ${RELEASE_TAG} must be an annotated tag."
+            exit 1
+          fi
+
+          if ! TAG_COMMIT=$(git rev-parse --verify "refs/tags/${RELEASE_TAG}^{commit}" 2>/dev/null); then
+            echo "::error title=Invalid release tag::Tag ${RELEASE_TAG} does not resolve to a commit."
+            exit 1
+          fi
+
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            if [[ "$GITHUB_REF_TYPE" != "tag" || "$GITHUB_REF_NAME" != "$RELEASE_TAG" ]]; then
+              echo "::error title=Invalid manual release ref::Manual releases must be dispatched from tag ${RELEASE_TAG}. Run: gh workflow run release.yml --ref ${RELEASE_TAG} -f release_tag=${RELEASE_TAG}"
+              exit 1
+            fi
+          elif [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            if [[ "$GITHUB_REF_TYPE" != "tag" || "$GITHUB_REF_NAME" != "$RELEASE_TAG" ]]; then
+              echo "::error title=Invalid tag push ref::Expected tag ref ${RELEASE_TAG}, got ${GITHUB_REF_TYPE} ${GITHUB_REF_NAME}."
+              exit 1
+            fi
+          else
+            echo "::error title=Unsupported release event::Expected push or workflow_dispatch, got ${GITHUB_EVENT_NAME}."
+            exit 1
+          fi
+
+          if [[ "$GITHUB_SHA" != "$TAG_COMMIT" ]]; then
+            echo "::error title=Release source mismatch::Event commit ${GITHUB_SHA} does not match tag ${RELEASE_TAG} commit ${TAG_COMMIT}."
+            exit 1
+          fi
+
+          if ! git rev-parse --verify "origin/main^{commit}" >/dev/null 2>&1; then
+            echo "::error title=Missing main branch::Unable to resolve origin/main from the release checkout."
+            exit 1
+          fi
+
+          if ! git merge-base --is-ancestor "$TAG_COMMIT" origin/main; then
+            echo "::error title=Release tag not on main::Tag ${RELEASE_TAG} commit ${TAG_COMMIT} is not contained in origin/main."
+            exit 1
+          fi
+
+          VERSION="${RELEASE_TAG#v}"
+          {
+            echo "tag=$RELEASE_TAG"
+            echo "version=$VERSION"
+            echo "commit=$TAG_COMMIT"
+          } >> "$GITHUB_OUTPUT"
+          echo "Release tag: $RELEASE_TAG"
           echo "Release version: $VERSION"
-      
+          echo "Release commit: $TAG_COMMIT"
+
+      - name: Checkout validated release commit
+        env:
+          RELEASE_COMMIT: ${{ steps.release_tag.outputs.commit }}
+        run: |
+          git checkout --detach "$RELEASE_COMMIT"
+          HEAD_COMMIT=$(git rev-parse HEAD)
+
+          if [[ "$HEAD_COMMIT" != "$RELEASE_COMMIT" ]]; then
+            echo "::error title=Release checkout mismatch::Checked out ${HEAD_COMMIT}, expected ${RELEASE_COMMIT}."
+            exit 1
+          fi
+
+          echo "Checked out release commit: $HEAD_COMMIT"
+
+      - name: Check publishing secrets
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          if [[ -z "$SPARKLE_ED_PRIVATE_KEY" ]]; then
+            echo "::error title=Missing Sparkle signing key::Set the SPARKLE_ED_PRIVATE_KEY repository secret before publishing a release."
+            exit 1
+          fi
+
+          if [[ -z "$HOMEBREW_TAP_TOKEN" ]]; then
+            echo "::error title=Missing Homebrew tap token::Set the HOMEBREW_TAP_TOKEN repository secret before publishing a release."
+            exit 1
+          fi
+
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '26.2'
+          xcode-version: '26.5'
       
       - name: Install Tuist
         run: |
@@ -102,8 +185,10 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent TypeSwitch.app ../../TypeSwitch-macOS-universal.zip
 
       - name: Prepare release notes
+        env:
+          RELEASE_TAG: ${{ steps.release_tag.outputs.tag }}
         run: |
-          if ! awk -v version="${GITHUB_REF_NAME}" '
+          if ! awk -v version="${RELEASE_TAG}" '
             $0 == "## " version {
               found = 1
               next
@@ -138,11 +223,11 @@ jobs:
               }
             }
           ' CHANGELOG.md > release-notes.md; then
-            echo "::error title=Missing release notes::CHANGELOG.md must contain a non-empty ## ${GITHUB_REF_NAME} section."
+            echo "::error title=Missing release notes::CHANGELOG.md must contain a non-empty ## ${RELEASE_TAG} section."
             exit 1
           fi
 
-          echo "Release notes for ${GITHUB_REF_NAME}:"
+          echo "Release notes for ${RELEASE_TAG}:"
           cat release-notes.md
 
       - name: Render Sparkle release notes HTML
@@ -166,13 +251,15 @@ jobs:
       
       - name: Generate Checksums
         run: |
-          echo "### SHA-256 Checksums" > checksums.txt
-          echo "\`\`\`" >> checksums.txt
-          shasum -a 256 TypeSwitch-macOS-universal.zip >> checksums.txt
-          echo "\`\`\`" >> checksums.txt
+          {
+            echo "### SHA-256 Checksums"
+            echo '```'
+            shasum -a 256 TypeSwitch-macOS-universal.zip
+            echo '```'
+          } > checksums.txt
 
           {
-            echo "## TypeSwitch ${{ github.ref_name }}"
+            echo "## TypeSwitch ${{ steps.release_tag.outputs.tag }}"
             echo ""
             cat release-notes.md
             echo ""
@@ -186,26 +273,31 @@ jobs:
 
       - name: Download Sparkle tools
         run: |
-          curl -fsSL -o Sparkle-2.9.4.tar.xz https://github.com/sparkle-project/Sparkle/releases/download/2.9.4/Sparkle-2.9.4.tar.xz
-          mkdir -p sparkle-tools
-          tar -xf Sparkle-2.9.4.tar.xz -C sparkle-tools --strip-components=1
+          SPARKLE_ARCHIVE="Sparkle-2.9.4.tar.xz"
+          EXPECTED_SHA256="ce89daf967db1e1893ed3ebd67575ed82d3902563e3191ca92aaec9164fbdef9"
+          curl -fsSL -o "$SPARKLE_ARCHIVE" https://github.com/sparkle-project/Sparkle/releases/download/2.9.4/Sparkle-2.9.4.tar.xz
 
-      - name: Generate Sparkle appcast
-        env:
-          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
-        run: |
-          if [[ -z "$SPARKLE_ED_PRIVATE_KEY" ]]; then
-            echo "::error title=Missing Sparkle signing key::Set the SPARKLE_ED_PRIVATE_KEY repository secret before publishing a release."
+          ACTUAL_SHA256=$(shasum -a 256 "$SPARKLE_ARCHIVE" | awk '{print $1}')
+          if [[ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]]; then
+            echo "::error title=Sparkle checksum mismatch::Expected ${EXPECTED_SHA256}, got ${ACTUAL_SHA256}."
             exit 1
           fi
 
+          mkdir -p sparkle-tools
+          tar -xf "$SPARKLE_ARCHIVE" -C sparkle-tools --strip-components=1
+
+      - name: Generate Sparkle appcast
+        env:
+          RELEASE_TAG: ${{ steps.release_tag.outputs.tag }}
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
           mkdir -p DerivedData/SparkleFeed
           cp TypeSwitch-macOS-universal.zip DerivedData/SparkleFeed/
           cp release-notes.html DerivedData/SparkleFeed/TypeSwitch-macOS-universal.html
 
           printf '%s' "$SPARKLE_ED_PRIVATE_KEY" | ./sparkle-tools/bin/generate_appcast \
             --ed-key-file - \
-            --download-url-prefix "https://github.com/ygsgdbd/TypeSwitch/releases/download/${GITHUB_REF_NAME}/" \
+            --download-url-prefix "https://github.com/ygsgdbd/TypeSwitch/releases/download/${RELEASE_TAG}/" \
             --link "https://github.com/ygsgdbd/TypeSwitch" \
             --embed-release-notes \
             --maximum-versions 1 \
@@ -219,7 +311,7 @@ jobs:
           subject-path: TypeSwitch-macOS-universal.zip
       
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             TypeSwitch-macOS-universal.zip
@@ -229,6 +321,7 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
+          tag_name: ${{ steps.release_tag.outputs.tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -242,19 +335,35 @@ jobs:
       - name: Update Homebrew cask
         env:
           ASSET_NAME: TypeSwitch-macOS-universal.zip
+          RELEASE_TAG: ${{ steps.release_tag.outputs.tag }}
           VERSION: ${{ steps.release_tag.outputs.version }}
         run: |
           SHA256=$(shasum -a 256 "$ASSET_NAME" | awk '{print $1}')
           CASK_PATH="homebrew-tap/Casks/typeswitch.rb"
 
-          export VERSION SHA256 CASK_PATH
+          export RELEASE_TAG VERSION SHA256 CASK_PATH
           ruby <<'RUBY'
           path = ENV.fetch("CASK_PATH")
+          release_tag = ENV.fetch("RELEASE_TAG")
+          version = ENV.fetch("VERSION")
+          sha256 = ENV.fetch("SHA256")
+
+          abort "Homebrew cask does not exist: #{path}" unless File.file?(path)
+
           content = File.read(path)
-          content.gsub!(/version ".*"/, "version \"#{ENV.fetch("VERSION")}\"")
-          content.gsub!(/sha256 ".*"/, "sha256 \"#{ENV.fetch("SHA256")}\"")
-          content.gsub!(%r{url ".*"}, "url \"https://github.com/ygsgdbd/TypeSwitch/releases/download/#{ENV.fetch("GITHUB_REF_NAME")}/#{ENV.fetch("ASSET_NAME")}\"")
-          content.gsub!(/depends_on macos: ".*"/, "depends_on macos: \">= :sonoma\"")
+          replacements = {
+            /^  version ".*"$/ => "  version \"#{version}\"",
+            /^  sha256 ".*"$/ => "  sha256 \"#{sha256}\"",
+            /^  url ".*"$/ => "  url \"https://github.com/ygsgdbd/TypeSwitch/releases/download/#{release_tag}/TypeSwitch-macOS-universal.zip\"",
+          }
+
+          replacements.each do |pattern, replacement|
+            matches = content.scan(pattern).length
+            abort "Expected exactly one #{pattern.inspect} entry in #{path}, found #{matches}" unless matches == 1
+
+            content.sub!(pattern, replacement)
+          end
+
           File.write(path, content)
           RUBY
 
@@ -268,5 +377,5 @@ jobs:
             exit 0
           fi
 
-          git commit -m "Update TypeSwitch cask to ${GITHUB_REF_NAME}"
+          git commit -m "Update TypeSwitch cask to ${RELEASE_TAG}"
           git push

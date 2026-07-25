@@ -40,7 +40,7 @@
 - **真正原生。** TypeSwitch 的 App 业务代码使用 Swift 编写，并采用 SwiftUI 和 The Composable Architecture（TCA）架构。它基于 `MenuBarExtra` 与 `LSUIElement` 构建，不包含 Electron 运行时，也没有嵌入 WebView。
 - **专注且轻量。** TypeSwitch 作为菜单栏工具运行，无需附带浏览器引擎或服务端组件。App 规则、默认规则和切换统计都保存在你的 Mac 上。
 - **自然融入 macOS。** 界面会自动适配浅色与暗色模式。在 macOS 26 上，原生 SwiftUI 控件会在适用位置呈现系统提供的 Liquid Glass 外观；macOS 14 与 macOS 15 则保持各自的原生系统样式。TypeSwitch 不使用自定义视觉效果模拟 Liquid Glass。
-- **同时支持新旧 Mac。** Release workflow 使用 Xcode 26.2，并验证每个发布版本都是同时支持 Apple Silicon 与 Intel Mac 的 Universal Binary。
+- **同时支持新旧 Mac。** Release workflow 使用 Xcode 26.5，并验证每个发布版本都是同时支持 Apple Silicon 与 Intel Mac 的 Universal Binary。
 
 ## 💻 系统要求
 
@@ -127,18 +127,21 @@ brew upgrade typeswitch
 
 ### 环境要求
 
-- Xcode 15.0+
+- Xcode 26.5+
 - Swift 5.9+
 - macOS 14.0+
+- [just](https://github.com/casey/just)
 - [Tuist](https://github.com/tuist/tuist)
+- [SwiftFormat](https://github.com/nicklockwood/SwiftFormat)（版本由 `.swiftformat-version` 固定）
 - [ImageMagick](https://imagemagick.org/)
 - RTK（`rtk`，截图生成脚本需要）
 
 ### 构建步骤
 
-安装 Tuist：
+安装所需开发工具：
 
 ```bash
+brew install just swiftformat
 brew tap tuist/tuist
 brew install --formula tuist
 ```
@@ -152,10 +155,10 @@ tuist generate
 open TypeSwitch.xcworkspace
 ```
 
-运行测试：
+运行与 Pull Request 相同的格式检查和测试：
 
 ```bash
-tuist test
+just check
 ```
 
 如需重新生成内容固定且不包含用户真实规则、输入法或统计信息的 README 截图，请先为终端或 Codex 授予“屏幕与系统音频录制”和“辅助功能”权限，退出其他正在运行的 TypeSwitch 实例，然后执行：
@@ -166,14 +169,20 @@ tuist test
 
 ### 发布流程
 
-推送 `vX.Y.Z` 标签后，GitHub Actions 会构建正式版本：
+推送位于 `main`、格式严格为 `vX.Y.Z` 的 annotated tag 后，GitHub Actions 会构建正式版本：
 
 ```bash
-git tag v0.6.0
-git push origin v0.6.0
+git tag -a v0.10.0 -m "TypeSwitch v0.10.0"
+git push origin v0.10.0
 ```
 
 发布 workflow 会校验标签、运行测试、构建 universal macOS app、打包 zip、发布 SHA-256 checksum、使用 EdDSA 签名 Sparkle `appcast.xml`、为发布 zip 生成 GitHub Artifact Attestation、发布 GitHub Release，并更新 Homebrew cask。
+
+如需重跑已有发布，必须从同一个 tag ref 手动触发；从分支或其他 tag ref 触发会被拒绝：
+
+```bash
+gh workflow run release.yml --ref v0.10.0 -f release_tag=v0.10.0
+```
 
 下载发布 zip 后，可使用 GitHub CLI 验证其构建来源：
 

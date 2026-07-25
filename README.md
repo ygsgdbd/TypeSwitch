@@ -40,7 +40,7 @@
 - **Truly native.** TypeSwitch's app business code is written in Swift and built with SwiftUI and The Composable Architecture (TCA). It uses `MenuBarExtra` and `LSUIElement` instead of an Electron runtime or embedded WebView.
 - **Focused and lightweight.** TypeSwitch runs as a menu bar utility without shipping a browser engine or server component. App rules, the default rule, and switch statistics stay on your Mac.
 - **At home on macOS.** The interface follows Light and Dark Mode automatically. On macOS 26, native SwiftUI controls use the system-provided Liquid Glass appearance where appropriate, while macOS 14 and macOS 15 retain their native system styling. TypeSwitch does not simulate Liquid Glass with custom visual effects.
-- **Built for modern Macs.** The release workflow uses Xcode 26.2 and verifies every release as a Universal Binary for both Apple Silicon and Intel Macs.
+- **Built for modern Macs.** The release workflow uses Xcode 26.5 and verifies every release as a Universal Binary for both Apple Silicon and Intel Macs.
 
 ## 💻 System Requirements
 
@@ -127,18 +127,21 @@ This project uses:
 
 ### Requirements
 
-- Xcode 15.0+
+- Xcode 26.5+
 - Swift 5.9+
 - macOS 14.0+
+- [just](https://github.com/casey/just)
 - [Tuist](https://github.com/tuist/tuist)
+- [SwiftFormat](https://github.com/nicklockwood/SwiftFormat) (version pinned in `.swiftformat-version`)
 - [ImageMagick](https://imagemagick.org/)
 - RTK (`rtk`, required by the screenshot generation script)
 
 ### Build Steps
 
-Install Tuist:
+Install the required development tools:
 
 ```bash
+brew install just swiftformat
 brew tap tuist/tuist
 brew install --formula tuist
 ```
@@ -152,10 +155,10 @@ tuist generate
 open TypeSwitch.xcworkspace
 ```
 
-Run tests:
+Run the same formatting and test checks required by pull requests:
 
 ```bash
-tuist test
+just check
 ```
 
 To regenerate the deterministic, privacy-safe README screenshots, grant your terminal or Codex Screen Recording and Accessibility permissions, quit other running TypeSwitch instances, and run:
@@ -166,14 +169,20 @@ To regenerate the deterministic, privacy-safe README screenshots, grant your ter
 
 ### Release Workflow
 
-Production releases are built by GitHub Actions when a `vX.Y.Z` tag is pushed:
+Production releases are built by GitHub Actions when a strict, annotated `vX.Y.Z` tag on `main` is pushed:
 
 ```bash
-git tag v0.6.0
-git push origin v0.6.0
+git tag -a v0.10.0 -m "TypeSwitch v0.10.0"
+git push origin v0.10.0
 ```
 
 The workflow validates the tag, runs tests, builds a universal macOS app, packages a zip, publishes its SHA-256 checksum, signs the Sparkle `appcast.xml` with EdDSA, generates a GitHub Artifact Attestation for the release zip, publishes a GitHub Release, and updates the Homebrew cask.
+
+To rerun an existing release, dispatch the workflow from that same tag ref. A branch or a different tag ref is rejected:
+
+```bash
+gh workflow run release.yml --ref v0.10.0 -f release_tag=v0.10.0
+```
 
 After downloading the release zip, verify its build provenance with GitHub CLI:
 
