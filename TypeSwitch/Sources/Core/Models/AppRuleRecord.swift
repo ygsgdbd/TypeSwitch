@@ -5,6 +5,7 @@ struct AppRuleRecord: Identifiable, Codable, Hashable, Sendable {
     var lastKnownPath: String?
     var lastKnownName: String
     var strategy: InputMethodStrategy
+    var strategyBeforeIgnoring: InputMethodStrategy? = nil
     var createdAt: Date
     var updatedAt: Date
 
