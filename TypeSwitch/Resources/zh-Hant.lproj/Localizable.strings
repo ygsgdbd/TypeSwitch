@@ -53,15 +53,27 @@
 "input_method.follow_last_with_input_method" = "記住上次切換（%@）";
 "input_method.fixed_section" = "指定輸入法";
 "input_method.deleted_option" = "已刪除的輸入法";
+"input_method.catalog_unavailable_option" = "輸入法狀態未知";
 "input_method.follow_last_missing_option" = "記住上次切換（不可用）";
 "input_method.clear_missing_configuration" = "清理失效設定";
 "input_method.clear_missing_confirmation.title" = "清理失效設定？";
 "input_method.clear_missing_confirmation.message" = "失效項會改為跟隨未設定 App 的預設規則。";
 "input_method.clear_missing_confirmation.confirm" = "清理";
 
+// 輸入法診斷
+"input_method_diagnostics.catalog_empty" = "沒有可用的輸入法";
+"input_method_diagnostics.catalog_failed" = "輸入法列表讀取失敗";
+"input_method_diagnostics.switch_failed" = "上次自動切換失敗";
+"input_method_diagnostics.app" = "App：%@";
+"input_method_diagnostics.target" = "目標輸入法：%@";
+"input_method_diagnostics.reload" = "重新載入輸入法";
+"input_method_diagnostics.retry_current_app" = "重新檢查目前 App";
+"input_method_diagnostics.open_keyboard_settings" = "開啟鍵盤設定";
+
 // 錯誤訊息
 "error.get_input_methods_failed" = "取得輸入法列表失敗";
 "error.input_method_not_found" = "找不到指定的輸入法: %@";
 "error.input_method_not_enabled" = "輸入法未啟用: %@";
 "error.switch_input_method_failed" = "切換輸入法失敗: %@";
+"error.verify_input_method_failed" = "無法確認輸入法已切換: %@";
 "error.get_current_input_method_failed" = "取得目前輸入法失敗";

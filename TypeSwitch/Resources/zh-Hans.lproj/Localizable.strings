@@ -53,15 +53,27 @@
 "input_method.follow_last_with_input_method" = "记住上次切换（%@）";
 "input_method.fixed_section" = "指定输入法";
 "input_method.deleted_option" = "已删除的输入法";
+"input_method.catalog_unavailable_option" = "输入法状态未知";
 "input_method.follow_last_missing_option" = "记住上次切换（不可用）";
 "input_method.clear_missing_configuration" = "清理失效设置";
 "input_method.clear_missing_confirmation.title" = "清理失效设置？";
 "input_method.clear_missing_confirmation.message" = "失效项会改为跟随未配置 App 的默认规则。";
 "input_method.clear_missing_confirmation.confirm" = "清理";
 
+// 输入法诊断
+"input_method_diagnostics.catalog_empty" = "没有可用的输入法";
+"input_method_diagnostics.catalog_failed" = "输入法列表读取失败";
+"input_method_diagnostics.switch_failed" = "上次自动切换失败";
+"input_method_diagnostics.app" = "App：%@";
+"input_method_diagnostics.target" = "目标输入法：%@";
+"input_method_diagnostics.reload" = "重新加载输入法";
+"input_method_diagnostics.retry_current_app" = "重新检查当前 App";
+"input_method_diagnostics.open_keyboard_settings" = "打开键盘设置";
+
 // 错误信息
 "error.get_input_methods_failed" = "获取输入法列表失败";
 "error.input_method_not_found" = "找不到指定的输入法: %@";
 "error.input_method_not_enabled" = "输入法未启用: %@";
 "error.switch_input_method_failed" = "切换输入法失败: %@";
+"error.verify_input_method_failed" = "无法确认输入法已切换: %@";
 "error.get_current_input_method_failed" = "获取当前输入法失败";
