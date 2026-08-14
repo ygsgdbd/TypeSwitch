@@ -40,6 +40,21 @@ extension AppFeature.State {
             : "keyboard"
     }
 
+    var menuBarAccessibilityLabel: String {
+        guard let currentFrontmostBundleId else {
+            return "TypeSwitch"
+        }
+
+        switch strategy(for: currentFrontmostBundleId) {
+        case .none:
+            return TypeSwitchStrings.Menu.accessibilityUnconfigured
+        case .fixed, .followLast:
+            return TypeSwitchStrings.Menu.accessibilityConfigured
+        case .ignored:
+            return TypeSwitchStrings.Menu.accessibilityIgnored
+        }
+    }
+
     var fallbackStrategy: InputMethodStrategy {
         switch fallbackRuleStore.strategy {
         case .followLast, .ignored:

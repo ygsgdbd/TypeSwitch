@@ -1069,6 +1069,7 @@ final class AppFeatureTests: XCTestCase {
             $0.pendingProgrammaticSwitch = nil
             $0.$appRulesStore.withLock {
                 guard var rule = $0.rules[app.bundleId] else { return }
+                rule.strategyBeforeIgnoring = .fixed(inputMethodId: targetInputMethod)
                 rule.strategy = .ignored
                 rule.updatedAt = updateDate
                 $0.rules[app.bundleId] = rule
@@ -1709,40 +1710,60 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertEqual(state.appSwitchStatisticsStore.counts[app.bundleId], 4)
     }
 
-    func testIgnoreAndRestoreAppUseIgnoredAndDefaultStrategies() async {
-        let app = AppInfo(bundleId: "com.test.passwords", name: "Passwords", path: "/Applications/Passwords.app")
+    func testIgnoreAndRestoreAppPreservesPreviousStrategy() async {
+        let strategies: [InputMethodStrategy] = [
+            .none,
+            .fixed(inputMethodId: "ime.en"),
+            .followLast(lastInputMethodId: "ime.zh"),
+        ]
 
-        var initialState = AppFeature.State()
-        initialState.runningApps = [app]
-
-        let store = TestStore(initialState: initialState) {
-            AppFeature()
-        }
-        store.dependencies.date = .constant(Date(timeIntervalSince1970: 20))
-
-        await store.send(.view(.ignoreAppTapped(app))) {
-            $0.$appRulesStore.withLock {
+        for (index, strategy) in strategies.enumerated() {
+            let app = AppInfo(
+                bundleId: "com.test.app.\(index)",
+                name: "App \(index)",
+                path: "/Applications/App\(index).app"
+            )
+            var initialState = AppFeature.State()
+            initialState.$appRulesStore.withLock {
                 $0.rules[app.bundleId] = AppRuleRecord(
                     bundleId: app.bundleId,
                     lastKnownPath: app.path,
                     lastKnownName: app.name,
-                    strategy: .ignored,
-                    createdAt: Date(timeIntervalSince1970: 20),
-                    updatedAt: Date(timeIntervalSince1970: 20)
+                    strategy: strategy,
+                    createdAt: Date(timeIntervalSince1970: 10),
+                    updatedAt: Date(timeIntervalSince1970: 10)
                 )
             }
-        }
 
-        await store.send(.view(.restoreIgnoredAppTapped(bundleId: app.bundleId))) {
-            $0.$appRulesStore.withLock {
-                guard var rule = $0.rules[app.bundleId] else { return }
-                rule.strategy = .none
-                rule.updatedAt = Date(timeIntervalSince1970: 20)
-                $0.rules[app.bundleId] = rule
+            let store = TestStore(initialState: initialState) {
+                AppFeature()
             }
-        }
+            store.dependencies.date = .constant(Date(timeIntervalSince1970: 20))
 
-        XCTAssertEqual(store.state.runningUnconfiguredMenuItems.map(\.bundleId), [app.bundleId])
+            await store.send(.view(.ignoreAppTapped(app))) {
+                $0.$appRulesStore.withLock {
+                    guard var rule = $0.rules[app.bundleId] else { return }
+                    rule.strategy = .ignored
+                    rule.strategyBeforeIgnoring = strategy
+                    rule.updatedAt = Date(timeIntervalSince1970: 20)
+                    $0.rules[app.bundleId] = rule
+                }
+            }
+
+            await store.send(.view(.ignoreAppTapped(app)))
+
+            await store.send(.view(.restoreIgnoredAppTapped(bundleId: app.bundleId))) {
+                $0.$appRulesStore.withLock {
+                    guard var rule = $0.rules[app.bundleId] else { return }
+                    rule.strategy = strategy
+                    rule.strategyBeforeIgnoring = nil
+                    rule.updatedAt = Date(timeIntervalSince1970: 20)
+                    $0.rules[app.bundleId] = rule
+                }
+            }
+
+            await store.send(.view(.restoreIgnoredAppTapped(bundleId: app.bundleId)))
+        }
     }
 
     func testIgnoringUnavailableAppPreservesLastKnownPath() async {
@@ -1771,6 +1792,7 @@ final class AppFeatureTests: XCTestCase {
         ))) {
             $0.$appRulesStore.withLock {
                 guard var rule = $0.rules[bundleId] else { return }
+                rule.strategyBeforeIgnoring = .fixed(inputMethodId: "ime.en")
                 rule.strategy = .ignored
                 rule.updatedAt = Date(timeIntervalSince1970: 20)
                 $0.rules[bundleId] = rule
@@ -1780,19 +1802,35 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertEqual(store.state.appRules[bundleId]?.lastKnownPath, lastKnownPath)
     }
 
-    func testRestoreAllIgnoredAppsUsesDefaultStrategy() async {
+    func testRestoreAllIgnoredAppsUsesSavedStrategyAndLegacyFallback() async {
         var initialState = AppFeature.State()
         initialState.$appRulesStore.withLock {
-            for bundleId in ["com.test.alpha", "com.test.beta"] {
-                $0.rules[bundleId] = AppRuleRecord(
-                    bundleId: bundleId,
-                    lastKnownPath: nil,
-                    lastKnownName: bundleId,
-                    strategy: .ignored,
-                    createdAt: Date(timeIntervalSince1970: 10),
-                    updatedAt: Date(timeIntervalSince1970: 10)
-                )
-            }
+            $0.rules["com.test.fixed"] = AppRuleRecord(
+                bundleId: "com.test.fixed",
+                lastKnownPath: nil,
+                lastKnownName: "Fixed",
+                strategy: .ignored,
+                strategyBeforeIgnoring: .fixed(inputMethodId: "ime.en"),
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+            $0.rules["com.test.follow-last"] = AppRuleRecord(
+                bundleId: "com.test.follow-last",
+                lastKnownPath: nil,
+                lastKnownName: "Follow Last",
+                strategy: .ignored,
+                strategyBeforeIgnoring: .followLast(lastInputMethodId: "ime.zh"),
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+            $0.rules["com.test.legacy"] = AppRuleRecord(
+                bundleId: "com.test.legacy",
+                lastKnownPath: nil,
+                lastKnownName: "Legacy",
+                strategy: .ignored,
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
         }
 
         let store = TestStore(initialState: initialState) {
@@ -1802,9 +1840,15 @@ final class AppFeatureTests: XCTestCase {
 
         await store.send(.view(.restoreAllIgnoredAppsTapped)) {
             $0.$appRulesStore.withLock {
-                for bundleId in ["com.test.alpha", "com.test.beta"] {
+                let restoredStrategies: [String: InputMethodStrategy] = [
+                    "com.test.fixed": .fixed(inputMethodId: "ime.en"),
+                    "com.test.follow-last": .followLast(lastInputMethodId: "ime.zh"),
+                    "com.test.legacy": .none,
+                ]
+                for (bundleId, strategy) in restoredStrategies {
                     guard var rule = $0.rules[bundleId] else { continue }
-                    rule.strategy = .none
+                    rule.strategy = strategy
+                    rule.strategyBeforeIgnoring = nil
                     rule.updatedAt = Date(timeIntervalSince1970: 20)
                     $0.rules[bundleId] = rule
                 }
@@ -1834,6 +1878,7 @@ final class AppFeatureTests: XCTestCase {
                     lastKnownPath: app.path,
                     lastKnownName: app.name,
                     strategy: .ignored,
+                    strategyBeforeIgnoring: .some(.none),
                     createdAt: Date(timeIntervalSince1970: 20),
                     updatedAt: Date(timeIntervalSince1970: 20)
                 )
@@ -1859,6 +1904,7 @@ final class AppFeatureTests: XCTestCase {
             $0.$appRulesStore.withLock {
                 guard var rule = $0.rules[app.bundleId] else { return }
                 rule.strategy = .none
+                rule.strategyBeforeIgnoring = nil
                 rule.updatedAt = Date(timeIntervalSince1970: 20)
                 $0.rules[app.bundleId] = rule
             }
@@ -1949,6 +1995,7 @@ final class AppFeatureTests: XCTestCase {
         let state = AppFeature.State()
 
         XCTAssertEqual(state.menuBarIconSystemName, "keyboard")
+        XCTAssertEqual(state.menuBarAccessibilityLabel, "TypeSwitch")
     }
 
     func testMenuBarIconUsesUnconfiguredIconForFrontmostAppWithoutRule() {
@@ -1956,6 +2003,7 @@ final class AppFeatureTests: XCTestCase {
         state.currentFrontmostBundleId = "com.test.chat"
 
         XCTAssertEqual(state.menuBarIconSystemName, "keyboard.badge.ellipsis")
+        XCTAssertEqual(state.menuBarAccessibilityLabel, TypeSwitchStrings.Menu.accessibilityUnconfigured)
     }
 
     func testMenuBarIconUsesUnconfiguredIconForFrontmostAppWithNoneStrategy() {
@@ -1975,6 +2023,7 @@ final class AppFeatureTests: XCTestCase {
         }
 
         XCTAssertEqual(state.menuBarIconSystemName, "keyboard.badge.ellipsis")
+        XCTAssertEqual(state.menuBarAccessibilityLabel, TypeSwitchStrings.Menu.accessibilityUnconfigured)
     }
 
     func testMenuBarIconUsesKeyboardForFrontmostAppWithFixedStrategy() {
@@ -1994,6 +2043,7 @@ final class AppFeatureTests: XCTestCase {
         }
 
         XCTAssertEqual(state.menuBarIconSystemName, "keyboard")
+        XCTAssertEqual(state.menuBarAccessibilityLabel, TypeSwitchStrings.Menu.accessibilityConfigured)
     }
 
     func testMenuBarIconUsesKeyboardForFrontmostAppWithFollowLastStrategy() {
@@ -2013,6 +2063,27 @@ final class AppFeatureTests: XCTestCase {
         }
 
         XCTAssertEqual(state.menuBarIconSystemName, "keyboard")
+        XCTAssertEqual(state.menuBarAccessibilityLabel, TypeSwitchStrings.Menu.accessibilityConfigured)
+    }
+
+    func testMenuBarAccessibilityLabelDescribesIgnoredFrontmostApp() {
+        let app = AppInfo(bundleId: "com.test.chat", name: "Chat", path: "/Applications/Chat.app")
+
+        var state = AppFeature.State()
+        state.currentFrontmostBundleId = app.bundleId
+        state.$appRulesStore.withLock {
+            $0.rules[app.bundleId] = AppRuleRecord(
+                bundleId: app.bundleId,
+                lastKnownPath: app.path,
+                lastKnownName: app.name,
+                strategy: .ignored,
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+        }
+
+        XCTAssertEqual(state.menuBarIconSystemName, "keyboard")
+        XCTAssertEqual(state.menuBarAccessibilityLabel, TypeSwitchStrings.Menu.accessibilityIgnored)
     }
 
     func testFollowLastWithoutRecordShowsEmptyMenuOption() {

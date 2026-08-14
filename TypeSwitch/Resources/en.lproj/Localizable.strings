@@ -1,6 +1,9 @@
 // Menu
 "menu.quit" = "Quit TypeSwitch";
 "menu.github_repository" = "GitHub Repository";
+"menu.accessibility_configured" = "TypeSwitch, current app configured";
+"menu.accessibility_unconfigured" = "TypeSwitch, current app unconfigured";
+"menu.accessibility_ignored" = "TypeSwitch, current app ignored";
 
 // Common
 "common.cancel" = "Cancel";
@@ -10,7 +13,6 @@
 "settings.general.auto_launch_requires_approval" = "Approve TypeSwitch in System Settings > General > Login Items.";
 "settings.general.open_login_items" = "Open Login Items Settings";
 "settings.general.check_for_updates" = "Check for Updates…";
-"settings.general.update_available" = "New Version Available…";
 "settings.fallback.default_input_method" = "Default Rule for Unconfigured Apps";
 
 // App List

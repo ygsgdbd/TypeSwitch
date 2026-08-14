@@ -4,20 +4,18 @@ import SwiftUI
 
 /// 应用信息视图，显示项目链接和退出入口
 struct AppInfoView: View {
-    @ObservedObject var updateMonitor: SparkleUpdateMonitor
     let updaterController: SPUStandardUpdaterController
 
     var body: some View {
         Group {
             Button {
-                updateMonitor.showUpdate(using: updaterController.updater)
+                updaterController.checkForUpdates(nil)
             } label: {
                 Label(
-                    updateMonitor.menuTitle,
+                    TypeSwitchStrings.Settings.General.checkForUpdates,
                     systemImage: "arrow.triangle.2.circlepath"
                 )
             }
-            .disabled(!updateMonitor.isMenuActionEnabled)
 
             Button {
                 AppInfoService.openGitHubRepository()

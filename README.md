@@ -100,7 +100,7 @@ brew upgrade typeswitch
 3. Use `Running · Unconfigured` to assign rules to running apps that do not have one yet.
 4. Use `Running · Configured` and `All Configured Apps` to review and change existing app rules.
 5. For each app, choose `Default` to inherit the fallback, `Last Switch`, or a specific input method.
-6. Choose `Ignore This App` to stop automatic switching and hide the app from the regular lists. Restore one or all apps from `Ignored Apps`.
+6. Choose `Ignore This App` to stop automatic switching and hide the app from the regular lists. Restore one or all apps from `Ignored Apps` to recover their previous rules.
 7. Use `Default Rule for Unconfigured Apps` to set the fallback behavior for apps without their own rule.
 8. Check `Missing Apps` and `Switches` when you want to clean missing rules or review successful switches.
 
@@ -108,7 +108,7 @@ brew upgrade typeswitch
 
 - App rules, the Default Rule for Unconfigured Apps, and switch statistics are stored locally.
 - TypeSwitch has no server-side component in this repository.
-- `GitHub Repository` and `Check for Updates…` contact GitHub only when you use them.
+- TypeSwitch does not check for updates or contact GitHub at startup. `GitHub Repository` and `Check for Updates…` contact GitHub only after you click them.
 - Input method switching uses macOS system input sources.
 - Launch at Login uses macOS Login Items, with a LaunchAgent fallback when needed.
 

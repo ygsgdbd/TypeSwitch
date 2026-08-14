@@ -35,6 +35,7 @@ final class AppRulesStoreMigrationTests: XCTestCase {
                     lastKnownPath: "/Applications/Passwords.app",
                     lastKnownName: "Passwords",
                     strategy: .ignored,
+                    strategyBeforeIgnoring: .followLast(lastInputMethodId: "ime.zh"),
                     createdAt: Date(timeIntervalSince1970: 10),
                     updatedAt: Date(timeIntervalSince1970: 20)
                 ),
@@ -44,6 +45,17 @@ final class AppRulesStoreMigrationTests: XCTestCase {
         let data = try JSONEncoder().encode(store)
 
         XCTAssertEqual(try JSONDecoder().decode(AppRulesStore.self, from: data), store)
+    }
+
+    func testLegacyIgnoredRuleWithoutPreviousStrategyDecodesWithNil() throws {
+        let data = Data(
+            #"{"bundleId":"com.test.passwords","lastKnownName":"Passwords","strategy":{"ignored":{}},"createdAt":0,"updatedAt":0}"#.utf8
+        )
+
+        let rule = try JSONDecoder().decode(AppRuleRecord.self, from: data)
+
+        XCTAssertEqual(rule.strategy, .ignored)
+        XCTAssertNil(rule.strategyBeforeIgnoring)
     }
 
     func testExistingInputMethodStrategiesStillDecode() throws {

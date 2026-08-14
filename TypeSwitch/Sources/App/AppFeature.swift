@@ -395,6 +395,7 @@ struct AppFeature {
                     var updatedRule = currentRule
                     updatedRule.lastKnownPath = appInfo.path ?? currentRule.lastKnownPath
                     updatedRule.lastKnownName = appInfo.name
+                    updatedRule.strategyBeforeIgnoring = currentRule.strategy
                     updatedRule.strategy = .ignored
                     updatedRule.updatedAt = updateDate
                     store.rules[appInfo.bundleId] = updatedRule
@@ -440,7 +441,8 @@ struct AppFeature {
                         guard var rule = store.rules[bundleId], rule.strategy == .ignored else {
                             continue
                         }
-                        rule.strategy = .none
+                        rule.strategy = rule.strategyBeforeIgnoring ?? .none
+                        rule.strategyBeforeIgnoring = nil
                         rule.updatedAt = updateDate
                         store.rules[bundleId] = rule
                     }
@@ -453,7 +455,8 @@ struct AppFeature {
                     guard var rule = store.rules[bundleId], rule.strategy == .ignored else {
                         return
                     }
-                    rule.strategy = .none
+                    rule.strategy = rule.strategyBeforeIgnoring ?? .none
+                    rule.strategyBeforeIgnoring = nil
                     rule.updatedAt = updateDate
                     store.rules[bundleId] = rule
                 }
@@ -513,6 +516,7 @@ struct AppFeature {
 
                     var updatedRule = currentRule
                     updatedRule.strategy = strategy
+                    updatedRule.strategyBeforeIgnoring = nil
                     updatedRule.updatedAt = updateDate
                     store.rules[bundleId] = updatedRule
                 }
