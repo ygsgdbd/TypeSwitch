@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+### 🇨🇳 中文
+
+#### 修复
+
+- 取消启动时的静默更新检查，确保只有用户主动点击“检查更新…”时才会访问 GitHub。
+- 修复恢复已忽略 App 时丢失原输入法策略的问题，并为菜单栏图标补充当前 App 状态的 VoiceOver 描述。
+
+### 🇺🇸 English
+
+#### Fixes
+
+- Removed the silent update check at startup so TypeSwitch contacts GitHub for updates only after the user clicks `Check for Updates…`.
+- Fixed restored ignored apps losing their previous input method strategy, and added VoiceOver descriptions for the current app state in the menu bar icon.
+
 ## v0.9.0
 
 ### 🇨🇳 中文
