@@ -1,6 +1,19 @@
 import Foundation
 
 extension AppFeature.State {
+    struct InputMethodDiagnostic: Equatable {
+        enum Kind: Equatable {
+            case catalogEmpty
+            case catalogFailed
+            case switchFailed
+        }
+
+        let appName: String?
+        let errorDescription: String?
+        let inputMethodName: String?
+        let kind: Kind
+    }
+
     var launchAtLoginEnabled: Bool {
         launchAtLoginStatus.isToggleOn
     }
@@ -14,6 +27,10 @@ extension AppFeature.State {
     }
 
     var menuBarIconSystemName: String {
+        if inputMethodDiagnostic != nil {
+            return "exclamationmark.triangle"
+        }
+
         guard let currentFrontmostBundleId else {
             return "keyboard"
         }
@@ -56,6 +73,67 @@ extension AppFeature.State {
 
     var fallbackHasMissingInputMethod: Bool {
         hasMissingInputMethod(in: fallbackStrategy)
+    }
+
+    var inputMethodDiagnostic: InputMethodDiagnostic? {
+        switch inputMethodCatalogStatus {
+        case .failed(let error):
+            return InputMethodDiagnostic(
+                appName: nil,
+                errorDescription: error.errorDescription,
+                inputMethodName: nil,
+                kind: .catalogFailed
+            )
+        case .ready where inputMethods.isEmpty:
+            return InputMethodDiagnostic(
+                appName: nil,
+                errorDescription: nil,
+                inputMethodName: nil,
+                kind: .catalogEmpty
+            )
+        case .loading, .ready:
+            break
+        }
+
+        guard let lastSwitchAttempt,
+              currentFrontmostBundleId == lastSwitchAttempt.bundleId,
+              isCurrentTarget(lastSwitchAttempt),
+              case .failed(let error) = lastSwitchAttempt.outcome
+        else {
+            return nil
+        }
+        return InputMethodDiagnostic(
+            appName: lastSwitchAttempt.appName,
+            errorDescription: error.errorDescription,
+            inputMethodName: lastSwitchAttempt.inputMethodName ?? lastSwitchAttempt.inputMethodId,
+            kind: .switchFailed
+        )
+    }
+
+    var shouldOfferKeyboardSettings: Bool {
+        guard let inputMethodDiagnostic else { return false }
+        switch inputMethodDiagnostic.kind {
+        case .catalogEmpty:
+            return true
+        case .catalogFailed:
+            return false
+        case .switchFailed:
+            guard let lastSwitchAttempt,
+                  case .failed(let error) = lastSwitchAttempt.outcome
+            else {
+                return false
+            }
+            switch error {
+            case .inputMethodNotEnabled, .inputMethodNotFound:
+                return true
+            case .failedToFetchInputMethods,
+                 .failedToGetCurrentInputMethod,
+                 .failedToSwitchInputMethod,
+                 .failedToVerifyInputMethod,
+                 .unexpected:
+                return false
+            }
+        }
     }
 
     var totalSuccessfulSwitchCount: Int {
@@ -146,7 +224,8 @@ extension AppFeature.State {
     }
 
     var hasMissingInputMethodRules: Bool {
-        appRules.keys.contains {
+        guard inputMethodCatalogStatus == .ready else { return false }
+        return appRules.keys.contains {
             hasMissingInputMethod(in: strategyForMenu(bundleId: $0))
         }
     }
@@ -156,6 +235,7 @@ extension AppFeature.State {
     }
 
     func hasMissingInputMethod(in strategy: InputMethodStrategy) -> Bool {
+        guard inputMethodCatalogStatus == .ready else { return false }
         switch strategy {
         case .ignored, .none:
             return false
@@ -251,7 +331,9 @@ extension AppFeature.State {
             return TypeSwitchStrings.InputMethod.appDefaultFallbackNoneOption
         case .fixed(let inputMethodId):
             guard let inputMethodName = inputMethodName(for: inputMethodId) else {
-                return TypeSwitchStrings.InputMethod.appDefaultMissingOption
+                return inputMethodCatalogStatus == .ready
+                    ? TypeSwitchStrings.InputMethod.appDefaultMissingOption
+                    : TypeSwitchStrings.InputMethod.catalogUnavailableOption
             }
             return TypeSwitchStrings.InputMethod.appDefaultWithInputMethod(inputMethodName)
         case .followLast:
@@ -266,13 +348,15 @@ extension AppFeature.State {
         case .ignored:
             return nil
         case .fixed(let inputMethodId):
-            return inputMethodName(for: inputMethodId) ?? TypeSwitchStrings.InputMethod.deletedOption
+            return inputMethodName(for: inputMethodId) ?? unavailableInputMethodLabel
         case .followLast(let lastInputMethodId):
             guard let lastInputMethodId else {
                 return TypeSwitchStrings.InputMethod.followLastEmptyOption
             }
             guard let inputMethodName = inputMethodName(for: lastInputMethodId) else {
-                return TypeSwitchStrings.InputMethod.followLastMissingOption
+                return inputMethodCatalogStatus == .ready
+                    ? TypeSwitchStrings.InputMethod.followLastMissingOption
+                    : TypeSwitchStrings.InputMethod.catalogUnavailableOption
             }
             return TypeSwitchStrings.InputMethod.followLastWithInputMethod(inputMethodName)
         }
@@ -288,7 +372,9 @@ extension AppFeature.State {
         }
 
         guard let inputMethodName = inputMethodName(for: lastInputMethodId) else {
-            return TypeSwitchStrings.InputMethod.followLastMissingOption
+            return inputMethodCatalogStatus == .ready
+                ? TypeSwitchStrings.InputMethod.followLastMissingOption
+                : TypeSwitchStrings.InputMethod.catalogUnavailableOption
         }
 
         return TypeSwitchStrings.InputMethod.followLastWithInputMethod(inputMethodName)
@@ -296,6 +382,34 @@ extension AppFeature.State {
 
     private func inputMethodName(for inputMethodId: String) -> String? {
         inputMethods.first(where: { $0.id == inputMethodId })?.name
+    }
+
+    private func isCurrentTarget(_ attempt: LastSwitchAttempt) -> Bool {
+        let appStrategy = strategy(for: attempt.bundleId)
+        switch attempt.ruleSource {
+        case .app:
+            return inputMethodId(for: appStrategy) == attempt.inputMethodId
+        case .fallback:
+            return appStrategy == .none
+                && inputMethodId(for: fallbackStrategy) == attempt.inputMethodId
+        }
+    }
+
+    private func inputMethodId(for strategy: InputMethodStrategy) -> String? {
+        switch strategy {
+        case .fixed(let inputMethodId):
+            return inputMethodId
+        case .followLast(let lastInputMethodId):
+            return lastInputMethodId
+        case .ignored, .none:
+            return nil
+        }
+    }
+
+    private var unavailableInputMethodLabel: String {
+        inputMethodCatalogStatus == .ready
+            ? TypeSwitchStrings.InputMethod.deletedOption
+            : TypeSwitchStrings.InputMethod.catalogUnavailableOption
     }
 
     private var ignoredAppBundleIdsForMenu: Set<String> {

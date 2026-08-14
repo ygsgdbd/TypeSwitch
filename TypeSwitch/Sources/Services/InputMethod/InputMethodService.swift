@@ -7,12 +7,14 @@ import OSLog
 @MainActor
 enum InputMethodService {
     /// 输入法相关错误
-    enum InputMethodError: Error, LocalizedError {
+    enum InputMethodError: Error, Equatable, LocalizedError, Sendable {
         case failedToFetchInputMethods
         case inputMethodNotFound(String)
         case inputMethodNotEnabled(String)
         case failedToSwitchInputMethod(String)
+        case failedToVerifyInputMethod(String)
         case failedToGetCurrentInputMethod
+        case unexpected(String)
 
         var errorDescription: String? {
             switch self {
@@ -24,9 +26,17 @@ enum InputMethodService {
                 return TypeSwitchStrings.Error.inputMethodNotEnabled(id)
             case .failedToSwitchInputMethod(let id):
                 return TypeSwitchStrings.Error.switchInputMethodFailed(id)
+            case .failedToVerifyInputMethod(let id):
+                return TypeSwitchStrings.Error.verifyInputMethodFailed(id)
             case .failedToGetCurrentInputMethod:
                 return TypeSwitchStrings.Error.getCurrentInputMethodFailed
+            case .unexpected(let description):
+                return description
             }
+        }
+
+        static func diagnostic(from error: Error) -> Self {
+            (error as? Self) ?? .unexpected(error.localizedDescription)
         }
     }
 
@@ -81,6 +91,10 @@ enum InputMethodService {
         let status = TISSelectInputSource(targetSource)
         if status != noErr {
             throw InputMethodError.failedToSwitchInputMethod(inputMethodID)
+        }
+
+        guard try getCurrentInputMethodId() == inputMethodID else {
+            throw InputMethodError.failedToVerifyInputMethod(inputMethodID)
         }
     }
 

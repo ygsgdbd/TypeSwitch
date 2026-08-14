@@ -55,15 +55,27 @@
 "input_method.follow_last_with_input_method" = "Last Switch (%@)";
 "input_method.fixed_section" = "Specific Input Method";
 "input_method.deleted_option" = "Deleted input method";
+"input_method.catalog_unavailable_option" = "Input Method Status Unknown";
 "input_method.follow_last_missing_option" = "Last Switch (Unavailable)";
 "input_method.clear_missing_configuration" = "Clear unavailable settings";
 "input_method.clear_missing_confirmation.title" = "Clear unavailable settings?";
 "input_method.clear_missing_confirmation.message" = "Unavailable items will use the Default Rule for Unconfigured Apps.";
 "input_method.clear_missing_confirmation.confirm" = "Clear";
 
+// Input Method Diagnostics
+"input_method_diagnostics.catalog_empty" = "No Input Methods Available";
+"input_method_diagnostics.catalog_failed" = "Failed to Load Input Methods";
+"input_method_diagnostics.switch_failed" = "Last Automatic Switch Failed";
+"input_method_diagnostics.app" = "App: %@";
+"input_method_diagnostics.target" = "Target Input Method: %@";
+"input_method_diagnostics.reload" = "Reload Input Methods";
+"input_method_diagnostics.retry_current_app" = "Retry Current App";
+"input_method_diagnostics.open_keyboard_settings" = "Open Keyboard Settings";
+
 // Error Messages
 "error.get_input_methods_failed" = "Failed to get input methods list";
 "error.input_method_not_found" = "Input method not found: %@";
 "error.input_method_not_enabled" = "Input method not enabled: %@";
 "error.switch_input_method_failed" = "Failed to switch input method: %@";
+"error.verify_input_method_failed" = "Could not verify the selected input method: %@";
 "error.get_current_input_method_failed" = "Failed to get current input method";

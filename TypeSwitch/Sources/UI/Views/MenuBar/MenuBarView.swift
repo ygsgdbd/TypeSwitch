@@ -10,6 +10,12 @@ struct MenuBarView: View {
 
     var body: some View {
         Group {
+            InputMethodDiagnosticsView(store: store)
+
+            if store.inputMethodDiagnostic != nil {
+                Divider()
+            }
+
             CurrentAppView(store: store)
             RunningAppsView(store: store)
 
@@ -41,6 +47,87 @@ struct MenuBarView: View {
             return false
         }
         return menu.supermenu == nil && menu !== NSApp.mainMenu
+    }
+}
+
+private struct InputMethodDiagnosticsView: View {
+    let store: StoreOf<AppFeature>
+
+    var body: some View {
+        if let diagnostic = store.inputMethodDiagnostic {
+            Menu {
+                if let appName = diagnostic.appName {
+                    Text(TypeSwitchStrings.InputMethodDiagnostics.app(appName))
+                }
+                if let inputMethodName = diagnostic.inputMethodName {
+                    Text(TypeSwitchStrings.InputMethodDiagnostics.target(inputMethodName))
+                }
+                if let errorDescription = diagnostic.errorDescription {
+                    Text(errorDescription)
+                }
+
+                Divider()
+
+                switch diagnostic.kind {
+                case .catalogEmpty, .catalogFailed:
+                    Button {
+                        store.send(.view(.reloadInputMethodsTapped))
+                    } label: {
+                        Label(
+                            TypeSwitchStrings.InputMethodDiagnostics.reload,
+                            systemImage: "arrow.clockwise"
+                        )
+                    }
+                case .switchFailed:
+                    Button {
+                        store.send(.view(.retryCurrentAppTapped))
+                    } label: {
+                        Label(
+                            TypeSwitchStrings.InputMethodDiagnostics.retryCurrentApp,
+                            systemImage: "arrow.clockwise"
+                        )
+                    }
+                }
+
+                if store.shouldOfferKeyboardSettings {
+                    Button(action: openKeyboardSettings) {
+                        Label(
+                            TypeSwitchStrings.InputMethodDiagnostics.openKeyboardSettings,
+                            systemImage: "keyboard"
+                        )
+                    }
+                }
+            } label: {
+                Label(title(for: diagnostic.kind), systemImage: "exclamationmark.triangle")
+            }
+        }
+    }
+
+    private func title(for kind: AppFeature.State.InputMethodDiagnostic.Kind) -> String {
+        switch kind {
+        case .catalogEmpty:
+            return TypeSwitchStrings.InputMethodDiagnostics.catalogEmpty
+        case .catalogFailed:
+            return TypeSwitchStrings.InputMethodDiagnostics.catalogFailed
+        case .switchFailed:
+            return TypeSwitchStrings.InputMethodDiagnostics.switchFailed
+        }
+    }
+
+    private func openKeyboardSettings() {
+        let settingsURLs = [
+            "x-apple.systempreferences:com.apple.Keyboard-Settings.extension",
+            "x-apple.systempreferences:com.apple.preference.keyboard",
+        ]
+
+        for value in settingsURLs {
+            guard let url = URL(string: value) else { continue }
+            if NSWorkspace.shared.open(url) {
+                return
+            }
+        }
+
+        NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/System Settings.app"))
     }
 }
 
