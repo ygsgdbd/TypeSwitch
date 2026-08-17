@@ -15,6 +15,12 @@
 "settings.general.check_for_updates" = "检查更新…";
 "settings.fallback.default_input_method" = "未配置 App 的默认规则";
 
+// 支持
+"support.version" = "TypeSwitch v%@";
+"support.help" = "使用帮助";
+"support.copy_diagnostics" = "复制诊断信息";
+"support.report_issue" = "报告问题";
+
 // 应用列表
 "apps.section.current_app" = "当前应用";
 "apps.section.running_count" = "运行中 · 已配置（%d）";

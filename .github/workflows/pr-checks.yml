@@ -11,6 +11,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  release-scripts:
+    name: Release Scripts
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test release scripts
+        run: script/test_release_scripts.sh
+
   format:
     name: Format
     runs-on: macos-26

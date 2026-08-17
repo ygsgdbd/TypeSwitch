@@ -1,0 +1,75 @@
+name: Bug report
+description: Report a reproducible problem with TypeSwitch
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。请勿提交私人 App 名称、用户名或文件路径。
+        Thanks for helping improve TypeSwitch. Do not include private app names, usernames, or file paths.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 问题描述 / Problem description
+      description: 请说明发生了什么，以及你观察到的实际行为。
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction_steps
+    attributes:
+      label: 复现步骤 / Steps to reproduce
+      placeholder: |
+        1. 打开……
+        2. 选择……
+        3. 观察到……
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: 预期行为 / Expected behavior
+      description: 请说明你原本期望 TypeSwitch 如何运行。
+    validations:
+      required: true
+
+  - type: dropdown
+    id: installation_method
+    attributes:
+      label: 安装方式 / Installation method
+      options:
+        - Homebrew
+        - GitHub Release 手动安装 / Manual GitHub Release install
+        - 从源码构建 / Built from source
+        - 不确定 / Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: reproducibility
+    attributes:
+      label: 是否稳定复现 / Reproducibility
+      options:
+        - 每次 / Every time
+        - 偶尔 / Sometimes
+        - 一次 / Once
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: 诊断信息 / Diagnostics
+      description: 可选。粘贴与问题相关的错误信息或诊断内容，并先移除隐私数据。
+
+  - type: checkboxes
+    id: privacy_confirmation
+    attributes:
+      label: 隐私确认 / Privacy confirmation
+      options:
+        - label: 我已检查以上内容，不包含私人 App、用户名或文件路径。
+          required: true

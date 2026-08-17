@@ -1,13 +1,20 @@
 import AppKit
+import ComposableArchitecture
 import Sparkle
 import SwiftUI
 
 /// 应用信息视图，显示项目链接和退出入口
 struct AppInfoView: View {
+    let store: StoreOf<AppFeature>
     let updaterController: SPUStandardUpdaterController
 
     var body: some View {
+        let diagnostics = supportDiagnostics
+
         Group {
+            Text(TypeSwitchStrings.Support.version(diagnostics.version))
+                .foregroundStyle(.secondary)
+
             Button {
                 updaterController.checkForUpdates(nil)
             } label: {
@@ -26,6 +33,24 @@ struct AppInfoView: View {
                 )
             }
 
+            Button {
+                AppInfoService.openHelp()
+            } label: {
+                Label(TypeSwitchStrings.Support.help, systemImage: "questionmark.circle")
+            }
+
+            Button {
+                AppInfoService.copySupportDiagnostics(diagnostics)
+            } label: {
+                Label(TypeSwitchStrings.Support.copyDiagnostics, systemImage: "doc.on.doc")
+            }
+
+            Button {
+                AppInfoService.openReportIssue()
+            } label: {
+                Label(TypeSwitchStrings.Support.reportIssue, systemImage: "exclamationmark.bubble")
+            }
+
             Divider()
 
             Button(role: .destructive) {
@@ -34,6 +59,25 @@ struct AppInfoView: View {
                 Label(TypeSwitchStrings.Menu.quit, systemImage: "power")
             }
             .keyboardShortcut("q", modifiers: .command)
+        }
+    }
+
+    private var supportDiagnostics: SupportDiagnostics {
+        let diagnostic = store.inputMethodDiagnostic
+        return .current(
+            diagnosticCategory: diagnostic.map { category(for: $0.kind) },
+            errorDescription: diagnostic?.errorDescription
+        )
+    }
+
+    private func category(for kind: AppFeature.State.InputMethodDiagnostic.Kind) -> String {
+        switch kind {
+        case .catalogEmpty:
+            return "catalogEmpty"
+        case .catalogFailed:
+            return "catalogFailed"
+        case .switchFailed:
+            return "switchFailed"
         }
     }
 }

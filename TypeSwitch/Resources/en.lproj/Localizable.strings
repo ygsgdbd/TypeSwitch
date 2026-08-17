@@ -15,6 +15,12 @@
 "settings.general.check_for_updates" = "Check for Updates…";
 "settings.fallback.default_input_method" = "Default Rule for Unconfigured Apps";
 
+// Support
+"support.version" = "TypeSwitch v%@";
+"support.help" = "Help";
+"support.copy_diagnostics" = "Copy Diagnostics";
+"support.report_issue" = "Report an Issue";
+
 // App List
 "apps.section.current_app" = "Current App";
 "apps.section.running_count" = "Running · Configured (%d)";
