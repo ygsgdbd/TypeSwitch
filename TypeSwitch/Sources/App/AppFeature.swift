@@ -298,6 +298,15 @@ struct AppFeature {
                     return .none
                 }
 
+                if let lastSwitchAttempt = state.lastSwitchAttempt,
+                   lastSwitchAttempt.bundleId == bundleId,
+                   lastSwitchAttempt.inputMethodId == inputMethodId,
+                   case .failed = lastSwitchAttempt.outcome,
+                   state.isCurrentTarget(lastSwitchAttempt)
+                {
+                    state.lastSwitchAttempt = nil
+                }
+
                 if case .followLast(let previousInputMethodId) = state.appRules[bundleId]?.strategy {
                     guard previousInputMethodId != inputMethodId else {
                         return .none

@@ -4,6 +4,7 @@
 "menu.accessibility_configured" = "TypeSwitch, current app configured";
 "menu.accessibility_unconfigured" = "TypeSwitch, current app unconfigured";
 "menu.accessibility_ignored" = "TypeSwitch, current app ignored";
+"menu.accessibility_warning" = "TypeSwitch, input method warning";
 
 // Common
 "common.cancel" = "Cancel";

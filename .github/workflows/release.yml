@@ -4,19 +4,13 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
-    inputs:
-      release_tag:
-        description: Existing vX.Y.Z tag; dispatch with the same tag ref via CLI or API
-        required: true
-        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-${{ github.repository }}-${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
-  cancel-in-progress: false
+  group: release-${{ github.repository }}
+  queue: max
 
 jobs:
   publish:
@@ -43,10 +37,10 @@ jobs:
       - name: Validate release tag
         id: release_tag
         env:
-          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error title=Invalid release tag::Production releases must use vX.Y.Z, for example v0.10.0. Got ${RELEASE_TAG}."
+          if [[ ! "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error title=Invalid release tag::Production releases must use vX.Y.Z without leading zeros. Got ${RELEASE_TAG}."
             exit 1
           fi
 
@@ -55,66 +49,28 @@ jobs:
             exit 1
           fi
 
-          if ! TAG_COMMIT=$(git rev-parse --verify "refs/tags/${RELEASE_TAG}^{commit}" 2>/dev/null); then
-            echo "::error title=Invalid release tag::Tag ${RELEASE_TAG} does not resolve to a commit."
-            exit 1
-          fi
-
-          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
-            if [[ "$GITHUB_REF_TYPE" != "tag" || "$GITHUB_REF_NAME" != "$RELEASE_TAG" ]]; then
-              echo "::error title=Invalid manual release ref::Manual releases must be dispatched from tag ${RELEASE_TAG}. Run: gh workflow run release.yml --ref ${RELEASE_TAG} -f release_tag=${RELEASE_TAG}"
-              exit 1
-            fi
-          elif [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
-            if [[ "$GITHUB_REF_TYPE" != "tag" || "$GITHUB_REF_NAME" != "$RELEASE_TAG" ]]; then
-              echo "::error title=Invalid tag push ref::Expected tag ref ${RELEASE_TAG}, got ${GITHUB_REF_TYPE} ${GITHUB_REF_NAME}."
-              exit 1
-            fi
-          else
-            echo "::error title=Unsupported release event::Expected push or workflow_dispatch, got ${GITHUB_EVENT_NAME}."
-            exit 1
-          fi
-
-          if [[ "$GITHUB_SHA" != "$TAG_COMMIT" ]]; then
-            echo "::error title=Release source mismatch::Event commit ${GITHUB_SHA} does not match tag ${RELEASE_TAG} commit ${TAG_COMMIT}."
-            exit 1
-          fi
-
-          if ! git rev-parse --verify "origin/main^{commit}" >/dev/null 2>&1; then
-            echo "::error title=Missing main branch::Unable to resolve origin/main from the release checkout."
+          TAG_COMMIT=$(git rev-parse --verify "refs/tags/${RELEASE_TAG}^{commit}")
+          HEAD_COMMIT=$(git rev-parse HEAD)
+          if [[ "$HEAD_COMMIT" != "$TAG_COMMIT" ]]; then
+            echo "::error title=Release source mismatch::Checked out ${HEAD_COMMIT}, expected tag commit ${TAG_COMMIT}."
             exit 1
           fi
 
           if ! git merge-base --is-ancestor "$TAG_COMMIT" origin/main; then
-            echo "::error title=Release tag not on main::Tag ${RELEASE_TAG} commit ${TAG_COMMIT} is not contained in origin/main."
+            echo "::error title=Release tag not on main::Tag ${RELEASE_TAG} is not contained in origin/main."
             exit 1
           fi
 
-          VERSION="${RELEASE_TAG#v}"
+          git tag --merged origin/main --list 'v*' |
+            ruby script/validate_release_order.rb "$RELEASE_TAG"
+
           {
             echo "tag=$RELEASE_TAG"
-            echo "version=$VERSION"
+            echo "version=${RELEASE_TAG#v}"
             echo "commit=$TAG_COMMIT"
           } >> "$GITHUB_OUTPUT"
-          echo "Release tag: $RELEASE_TAG"
-          echo "Release version: $VERSION"
-          echo "Release commit: $TAG_COMMIT"
 
-      - name: Checkout validated release commit
-        env:
-          RELEASE_COMMIT: ${{ steps.release_tag.outputs.commit }}
-        run: |
-          git checkout --detach "$RELEASE_COMMIT"
-          HEAD_COMMIT=$(git rev-parse HEAD)
-
-          if [[ "$HEAD_COMMIT" != "$RELEASE_COMMIT" ]]; then
-            echo "::error title=Release checkout mismatch::Checked out ${HEAD_COMMIT}, expected ${RELEASE_COMMIT}."
-            exit 1
-          fi
-
-          echo "Checked out release commit: $HEAD_COMMIT"
-
-      - name: Check publishing secrets
+      - name: Check Sparkle signing key
         env:
           SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
         run: |
@@ -127,20 +83,16 @@ jobs:
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: '26.5'
-      
+
       - name: Install Tuist
-        run: |
-          brew install tuist
-      
+        run: brew install tuist
+
       - name: Generate Xcode Project
         env:
           TUIST_APP_VERSION: ${{ steps.release_tag.outputs.version }}
         run: |
-          # 生成基于时间戳的构建号（格式：YYYYMMDDHHmm）
           TUIST_BUILD_VERSION=$(date -u "+%Y%m%d%H%M")
           export TUIST_BUILD_VERSION
-          echo "App version set to: $TUIST_APP_VERSION"
-          echo "Build number set to: $TUIST_BUILD_VERSION"
           tuist generate --no-open
 
       - name: Test
@@ -154,7 +106,7 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO
-      
+
       - name: Archive App
         run: |
           xcodebuild \
@@ -175,110 +127,62 @@ jobs:
       - name: Verify Universal Binary
         run: |
           BINARY_PATH="DerivedData/Archives/TypeSwitch.xcarchive/Products/Applications/TypeSwitch.app/Contents/MacOS/TypeSwitch"
-          ARCHS=$(lipo -archs "$BINARY_PATH")
-          echo "TypeSwitch architectures: $ARCHS"
-
-          if [[ " $ARCHS " != *" arm64 "* || " $ARCHS " != *" x86_64 "* ]]; then
-            echo "::error title=Invalid binary architectures::Expected universal binary with arm64 and x86_64, got: $ARCHS"
+          ARCHITECTURES=$(lipo -archs "$BINARY_PATH")
+          if [[ " $ARCHITECTURES " != *" arm64 "* || " $ARCHITECTURES " != *" x86_64 "* ]]; then
+            echo "::error title=Invalid binary architectures::Expected arm64 and x86_64, got ${ARCHITECTURES}."
             exit 1
           fi
-      
+
       - name: Package App
         run: |
           mkdir -p DerivedData/Exports
           ditto DerivedData/Archives/TypeSwitch.xcarchive/Products/Applications/TypeSwitch.app DerivedData/Exports/TypeSwitch.app
-          cd DerivedData/Exports
-          ditto -c -k --sequesterRsrc --keepParent TypeSwitch.app ../../TypeSwitch-macOS-universal.zip
+          ditto -c -k --sequesterRsrc --keepParent DerivedData/Exports/TypeSwitch.app TypeSwitch-macOS-universal.zip
 
       - name: Prepare release notes
         env:
           RELEASE_TAG: ${{ steps.release_tag.outputs.tag }}
         run: |
-          if ! awk -v version="${RELEASE_TAG}" '
-            $0 == "## " version {
-              found = 1
-              next
-            }
-            found && /^## / {
-              exit
-            }
-            found {
-              lines[++count] = $0
-            }
-            END {
-              if (!found) {
-                exit 2
-              }
-
-              start = 1
-              while (start <= count && lines[start] ~ /^[[:space:]]*$/) {
-                start++
-              }
-
-              end = count
-              while (end >= start && lines[end] ~ /^[[:space:]]*$/) {
-                end--
-              }
-
-              if (end < start) {
-                exit 3
-              }
-
-              for (i = start; i <= end; i++) {
-                print lines[i]
-              }
-            }
+          if ! awk -v heading="## ${RELEASE_TAG}" '
+            $0 == heading { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+            END { if (!found) exit 2 }
           ' CHANGELOG.md > release-notes.md; then
+            echo "::error title=Missing release notes::CHANGELOG.md does not contain a ## ${RELEASE_TAG} section."
+            exit 1
+          fi
+
+          if ! grep -q '[^[:space:]]' release-notes.md; then
             echo "::error title=Missing release notes::CHANGELOG.md must contain a non-empty ## ${RELEASE_TAG} section."
             exit 1
           fi
 
-          echo "Release notes for ${RELEASE_TAG}:"
-          cat release-notes.md
-
-      - name: Render Sparkle release notes HTML
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api markdown \
-            --method POST \
-            -F text=@release-notes.md \
-            -f mode=gfm \
-            -f context="${GITHUB_REPOSITORY}" \
-            > release-notes.html
-
-          if [[ ! -s release-notes.html ]]; then
-            echo "::error title=Missing rendered release notes::GitHub Markdown API returned an empty release-notes.html file."
-            exit 1
-          fi
-
-          echo "Rendered Sparkle release notes HTML:"
-          cat release-notes.html
-      
       - name: Generate Checksums
         id: release_artifact
         run: |
-          SHA256=$(shasum -a 256 TypeSwitch-macOS-universal.zip | awk '{print $1}')
-          echo "asset_name=TypeSwitch-macOS-universal.zip" >> "$GITHUB_OUTPUT"
+          ASSET_NAME="TypeSwitch-macOS-universal.zip"
+          SHA256=$(shasum -a 256 "$ASSET_NAME" | awk '{print $1}')
+          echo "asset_name=$ASSET_NAME" >> "$GITHUB_OUTPUT"
           echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
 
           {
             echo "### SHA-256 Checksums"
             echo '```'
-            echo "$SHA256  TypeSwitch-macOS-universal.zip"
+            echo "$SHA256  $ASSET_NAME"
             echo '```'
           } > checksums.txt
 
           {
             echo "## TypeSwitch ${{ steps.release_tag.outputs.tag }}"
-            echo ""
+            echo
             cat release-notes.md
-            echo ""
+            echo
             echo "### Build"
-            echo ""
+            echo
             echo "- Universal Binary (Apple Silicon + Intel)"
             echo "- macOS 14.0+"
-            echo ""
+            echo
             cat checksums.txt
           } > release-body.md
 
@@ -286,7 +190,7 @@ jobs:
         run: |
           SPARKLE_ARCHIVE="Sparkle-2.9.4.tar.xz"
           EXPECTED_SHA256="ce89daf967db1e1893ed3ebd67575ed82d3902563e3191ca92aaec9164fbdef9"
-          curl -fsSL -o "$SPARKLE_ARCHIVE" https://github.com/sparkle-project/Sparkle/releases/download/2.9.4/Sparkle-2.9.4.tar.xz
+          curl -fsSL -o "$SPARKLE_ARCHIVE" "https://github.com/sparkle-project/Sparkle/releases/download/2.9.4/$SPARKLE_ARCHIVE"
 
           ACTUAL_SHA256=$(shasum -a 256 "$SPARKLE_ARCHIVE" | awk '{print $1}')
           if [[ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]]; then
@@ -304,7 +208,7 @@ jobs:
         run: |
           mkdir -p DerivedData/SparkleFeed
           cp TypeSwitch-macOS-universal.zip DerivedData/SparkleFeed/
-          cp release-notes.html DerivedData/SparkleFeed/TypeSwitch-macOS-universal.html
+          cp release-notes.md DerivedData/SparkleFeed/TypeSwitch-macOS-universal.md
 
           printf '%s' "$SPARKLE_ED_PRIVATE_KEY" | ./sparkle-tools/bin/generate_appcast \
             --ed-key-file - \
@@ -316,19 +220,16 @@ jobs:
 
           cp DerivedData/SparkleFeed/appcast.xml appcast.xml
 
-      - name: Verify local release artifacts
+      - name: Verify release artifacts
         env:
           RELEASE_TAG: ${{ steps.release_tag.outputs.tag }}
-        run: script/verify_release.sh local "$RELEASE_TAG" .
-
-      - name: Test release scripts
-        run: script/test_release_scripts.sh
+        run: script/verify_release.sh "$RELEASE_TAG" .
 
       - name: Attest release artifact
         uses: actions/attest@v4
         with:
           subject-path: TypeSwitch-macOS-universal.zip
-      
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
@@ -339,29 +240,18 @@ jobs:
           body_path: release-body.md
           draft: false
           prerelease: false
-          generate_release_notes: true
-          overwrite_files: true
+          overwrite_files: false
           tag_name: ${{ steps.release_tag.outputs.tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Record publish failure
-        if: ${{ failure() }}
-        run: |
-          {
-            echo "### Release distribution status"
-            echo
-            echo '- Status: `publish_failed`'
-            echo "- Tag: \`${{ steps.release_tag.outputs.tag || github.ref_name }}\`"
-            echo "- Details: The publish job did not complete successfully."
-          } >> "$GITHUB_STEP_SUMMARY"
-
-  sync_homebrew:
-    name: Sync Homebrew cask
+  homebrew:
+    name: Update Homebrew cask
     needs: publish
     runs-on: ubuntu-latest
     permissions:
       contents: read
+
     steps:
       - name: Checkout release scripts
         uses: actions/checkout@v4
@@ -412,24 +302,3 @@ jobs:
 
           git commit -m "Update TypeSwitch cask to ${RELEASE_TAG}"
           git push
-
-  verify_distribution:
-    name: Verify published distribution
-    needs: [publish, sync_homebrew]
-    if: ${{ always() && needs.publish.result == 'success' }}
-    runs-on: macos-26
-    permissions:
-      contents: read
-      attestations: read
-    steps:
-      - name: Checkout release scripts
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.publish.outputs.commit }}
-
-      - name: Verify GitHub Release assets and attestation
-        env:
-          EXPECTED_SHA256: ${{ needs.publish.outputs.sha256 }}
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ needs.publish.outputs.tag }}
-        run: script/verify_release.sh remote "$RELEASE_TAG" "$GITHUB_REPOSITORY" "$EXPECTED_SHA256"

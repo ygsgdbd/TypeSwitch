@@ -2731,6 +2731,46 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertEqual(state.menuBarAccessibilityLabel, TypeSwitchStrings.Menu.accessibilityIgnored)
     }
 
+    func testMenuBarAccessibilityLabelPrioritizesInputMethodDiagnostics() {
+        let bundleId = "com.test.chat"
+        let failedAttempt = AppFeature.State.LastSwitchAttempt(
+            appName: "Chat",
+            bundleId: bundleId,
+            inputMethodId: "ime.zh",
+            inputMethodName: "Pinyin",
+            outcome: .failed(.failedToSwitchInputMethod("ime.zh")),
+            ruleSource: .app,
+            timestamp: Date(timeIntervalSince1970: 10)
+        )
+
+        var catalogEmptyState = AppFeature.State()
+        catalogEmptyState.inputMethodCatalogStatus = .ready
+
+        var catalogFailedState = AppFeature.State()
+        catalogFailedState.inputMethodCatalogStatus = .failed(.failedToFetchInputMethods)
+
+        var switchFailedState = AppFeature.State()
+        switchFailedState.currentFrontmostBundleId = bundleId
+        switchFailedState.inputMethodCatalogStatus = .ready
+        switchFailedState.inputMethods = [InputMethod(id: "ime.zh", name: "Pinyin")]
+        switchFailedState.lastSwitchAttempt = failedAttempt
+        switchFailedState.$appRulesStore.withLock {
+            $0.rules[bundleId] = AppRuleRecord(
+                bundleId: bundleId,
+                lastKnownPath: "/Applications/Chat.app",
+                lastKnownName: "Chat",
+                strategy: .fixed(inputMethodId: "ime.zh"),
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+        }
+
+        for state in [catalogEmptyState, catalogFailedState, switchFailedState] {
+            XCTAssertNotNil(state.inputMethodDiagnostic)
+            XCTAssertEqual(state.menuBarAccessibilityLabel, TypeSwitchStrings.Menu.accessibilityWarning)
+        }
+    }
+
     func testFollowLastWithoutRecordShowsEmptyMenuOption() {
         let app = AppInfo(bundleId: "com.test.chat", name: "Chat", path: "/Applications/Chat.app")
 
@@ -2866,6 +2906,51 @@ final class AppFeatureTests: XCTestCase {
                 $0.rules[bundleId] = rule
             }
         }
+    }
+
+    func testManualSelectionOfFailedTargetClearsDiagnosticWithoutIncrementingStatistics() async {
+        let bundleId = "com.test.chat"
+        let targetInputMethod = "ime.zh"
+
+        var initialState = AppFeature.State()
+        initialState.currentFrontmostBundleId = bundleId
+        initialState.inputMethodCatalogStatus = .ready
+        initialState.inputMethods = [InputMethod(id: targetInputMethod, name: "Pinyin")]
+        initialState.lastSwitchAttempt = .init(
+            appName: "Chat",
+            bundleId: bundleId,
+            inputMethodId: targetInputMethod,
+            inputMethodName: "Pinyin",
+            outcome: .failed(.failedToSwitchInputMethod(targetInputMethod)),
+            ruleSource: .app,
+            timestamp: Date(timeIntervalSince1970: 10)
+        )
+        initialState.$appRulesStore.withLock {
+            $0.rules[bundleId] = AppRuleRecord(
+                bundleId: bundleId,
+                lastKnownPath: "/Applications/Chat.app",
+                lastKnownName: "Chat",
+                strategy: .fixed(inputMethodId: targetInputMethod),
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+        }
+        initialState.$appSwitchStatisticsStore.withLock {
+            $0.counts[bundleId] = 2
+        }
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+
+        XCTAssertEqual(store.state.inputMethodDiagnostic?.kind, .switchFailed)
+
+        await store.send(.system(.inputMethodSelectedChanged(targetInputMethod))) {
+            $0.lastSwitchAttempt = nil
+        }
+
+        XCTAssertNil(store.state.inputMethodDiagnostic)
+        XCTAssertEqual(store.state.appSwitchStatisticsStore.counts[bundleId], 2)
     }
 
     func testManualSelectionDoesNotUpdateFallbackFollowLastWhenAppRuleIsNone() async {
