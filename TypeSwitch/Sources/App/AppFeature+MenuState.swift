@@ -41,6 +41,10 @@ extension AppFeature.State {
     }
 
     var menuBarAccessibilityLabel: String {
+        if inputMethodDiagnostic != nil {
+            return TypeSwitchStrings.Menu.accessibilityWarning
+        }
+
         guard let currentFrontmostBundleId else {
             return "TypeSwitch"
         }
@@ -384,7 +388,7 @@ extension AppFeature.State {
         inputMethods.first(where: { $0.id == inputMethodId })?.name
     }
 
-    private func isCurrentTarget(_ attempt: LastSwitchAttempt) -> Bool {
+    func isCurrentTarget(_ attempt: LastSwitchAttempt) -> Bool {
         let appStrategy = strategy(for: attempt.bundleId)
         switch attempt.ruleSource {
         case .app:

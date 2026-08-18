@@ -4,6 +4,7 @@
 "menu.accessibility_configured" = "TypeSwitch，目前 App 已設定";
 "menu.accessibility_unconfigured" = "TypeSwitch，目前 App 未設定";
 "menu.accessibility_ignored" = "TypeSwitch，目前 App 已忽略";
+"menu.accessibility_warning" = "TypeSwitch，輸入法狀態警告";
 
 // 通用
 "common.cancel" = "取消";
