@@ -1,0 +1,43 @@
+name: Feature request
+description: Suggest an improvement for TypeSwitch
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你的建议。请描述实际使用场景，并避免提交隐私信息。
+        Thanks for your suggestion. Describe the real use case and avoid sharing private information.
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: 使用场景 / Use case
+      description: 请说明你在什么情况下需要这个功能，以及它要解决的问题。
+    validations:
+      required: true
+
+  - type: textarea
+    id: current_workaround
+    attributes:
+      label: 当前绕行方式 / Current workaround
+      description: 请说明你现在如何处理这个需求；如果没有，请填写“无”。
+    validations:
+      required: true
+
+  - type: textarea
+    id: desired_behavior
+    attributes:
+      label: 期望行为 / Desired behavior
+      description: 请从用户角度说明期望 TypeSwitch 如何运行。
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: privacy_confirmation
+    attributes:
+      label: 隐私确认 / Privacy confirmation
+      options:
+        - label: 我已检查以上内容，不包含私人 App、用户名或文件路径。
+          required: true

@@ -4,17 +4,27 @@
 
 ### 🇨🇳 中文
 
+#### 功能
+
+- 新增输入法健康诊断：输入法列表为空、读取失败或自动切换失败时，菜单会显示具体状态，并提供重新加载输入法、重试当前 App 和打开键盘设置等恢复操作。
+
 #### 修复
 
 - 取消启动时的静默更新检查，确保只有用户主动点击“检查更新…”时才会访问 GitHub。
 - 修复恢复已忽略 App 时丢失原输入法策略的问题，并为菜单栏图标补充当前 App 状态的 VoiceOver 描述。
+- 修复输入法目录加载期间激活 App 时可能漏掉自动切换的问题；目录加载完成后仅补偿处理此前被跳过的当前 App。
 
 ### 🇺🇸 English
+
+#### Features
+
+- Added input method health diagnostics. When the input method catalog is empty, fails to load, or an automatic switch fails, the menu now explains the state and offers recovery actions to reload input methods, retry the current app, or open Keyboard Settings.
 
 #### Fixes
 
 - Removed the silent update check at startup so TypeSwitch contacts GitHub for updates only after the user clicks `Check for Updates…`.
 - Fixed restored ignored apps losing their previous input method strategy, and added VoiceOver descriptions for the current app state in the menu bar icon.
+- Fixed automatic switching being skipped when an app activates while the input method catalog is loading; TypeSwitch now retries only the current app whose activation was deferred.
 
 ## v0.9.0
 

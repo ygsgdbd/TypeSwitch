@@ -97,8 +97,12 @@ test: check-tuist
         CODE_SIGNING_ALLOWED=NO \
         CODE_SIGNING_REQUIRED=NO
 
+# Test release verification and Homebrew update scripts.
+test-release-scripts:
+    script/test_release_scripts.sh
+
 # Run the same formatting and test checks required by pull requests.
-check: lint test
+check: lint test test-release-scripts
 
 [private]
 check-swiftformat:

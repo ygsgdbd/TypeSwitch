@@ -37,7 +37,7 @@ struct MenuBarView: View {
 
             Divider()
 
-            AppInfoView(updaterController: updaterController)
+            AppInfoView(store: store, updaterController: updaterController)
         }
         .labelStyle(.titleAndIcon)
     }

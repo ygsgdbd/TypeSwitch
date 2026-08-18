@@ -109,6 +109,7 @@ struct AppFeature {
         var pendingInputMethodRefreshID: Int?
         var pendingProgrammaticSwitch: PendingProgrammaticSwitch?
         var runningApps: [AppInfo] = []
+        var shouldRetryFrontmostAfterInputMethodRefresh = false
 
         init(
             appRulesStore: Shared<AppRulesStore> = Shared(
@@ -137,7 +138,8 @@ struct AppFeature {
             pendingFrontmostRetryID: Int? = nil,
             pendingInputMethodRefreshID: Int? = nil,
             pendingProgrammaticSwitch: PendingProgrammaticSwitch? = nil,
-            runningApps: [AppInfo] = []
+            runningApps: [AppInfo] = [],
+            shouldRetryFrontmostAfterInputMethodRefresh: Bool = false
         ) {
             self._appRulesStore = appRulesStore
             self._appSwitchStatisticsStore = appSwitchStatisticsStore
@@ -157,6 +159,7 @@ struct AppFeature {
             self.pendingInputMethodRefreshID = pendingInputMethodRefreshID
             self.pendingProgrammaticSwitch = pendingProgrammaticSwitch
             self.runningApps = runningApps
+            self.shouldRetryFrontmostAfterInputMethodRefresh = shouldRetryFrontmostAfterInputMethodRefresh
         }
     }
 
@@ -319,7 +322,11 @@ struct AppFeature {
                 state.pendingInputMethodRefreshID = nil
                 state.inputMethodCatalogStatus = .ready
                 state.inputMethods = inputMethods
-                return .none
+                guard state.shouldRetryFrontmostAfterInputMethodRefresh else {
+                    return .none
+                }
+                state.shouldRetryFrontmostAfterInputMethodRefresh = false
+                return retryFrontmostApplicationEffect(in: &state)
 
             case let .response(.inputMethodsLoaded(refreshID, .failure(error))):
                 guard state.pendingInputMethodRefreshID == refreshID else {
@@ -463,15 +470,7 @@ struct AppFeature {
                 return .none
 
             case .view(.retryCurrentAppTapped):
-                let retryID = state.nextFrontmostRetryID
-                state.nextFrontmostRetryID += 1
-                state.pendingFrontmostRetryID = retryID
-                return .run { send in
-                    await send(.response(.frontmostApplicationRetried(
-                        retryID: retryID,
-                        appInfo: await workspaceClient.frontmostApplication()
-                    )))
-                }
+                return retryFrontmostApplicationEffect(in: &state)
 
             case .response(.runningApps(let runningApps)):
                 state.runningApps = runningApps
@@ -530,6 +529,7 @@ struct AppFeature {
                 if wasCurrentApp {
                     state.currentFrontmostBundleId = nil
                     state.pendingFrontmostRetryID = nil
+                    state.shouldRetryFrontmostAfterInputMethodRefresh = false
                 }
                 let shouldCancelProgrammaticSwitch = wasCurrentApp
                     || state.pendingProgrammaticSwitch?.bundleId == bundleId
@@ -556,9 +556,15 @@ struct AppFeature {
         switch resolveSwitchTarget(for: appInfo.bundleId, state: state) {
         case .none:
             state.pendingProgrammaticSwitch = nil
+            state.shouldRetryFrontmostAfterInputMethodRefresh = false
+            return .cancel(id: CancelID.programmaticSwitch)
+        case .waitingForCatalog:
+            state.pendingProgrammaticSwitch = nil
+            state.shouldRetryFrontmostAfterInputMethodRefresh = true
             return .cancel(id: CancelID.programmaticSwitch)
         case let .unavailable(inputMethodId, ruleSource):
             state.pendingProgrammaticSwitch = nil
+            state.shouldRetryFrontmostAfterInputMethodRefresh = false
             state.lastSwitchAttempt = .init(
                 appName: appInfo.name,
                 bundleId: appInfo.bundleId,
@@ -570,6 +576,7 @@ struct AppFeature {
             )
             return .cancel(id: CancelID.programmaticSwitch)
         case let .target(inputMethod, ruleSource):
+            state.shouldRetryFrontmostAfterInputMethodRefresh = false
             let attemptID = state.nextSwitchAttemptID
             state.nextSwitchAttemptID += 1
             state.pendingProgrammaticSwitch = .init(
@@ -676,6 +683,7 @@ struct AppFeature {
         case none
         case target(InputMethod, State.RuleSource)
         case unavailable(String, State.RuleSource)
+        case waitingForCatalog
     }
 
     private func resolveSwitchTarget(for bundleId: String, state: State) -> SwitchTargetResolution {
@@ -699,9 +707,26 @@ struct AppFeature {
         if let inputMethod = state.inputMethods.first(where: { $0.id == candidateId }) {
             return .target(inputMethod, ruleSource)
         }
-        return state.inputMethodCatalogStatus == .ready
-            ? .unavailable(candidateId, ruleSource)
-            : .none
+        switch state.inputMethodCatalogStatus {
+        case .loading:
+            return .waitingForCatalog
+        case .ready:
+            return .unavailable(candidateId, ruleSource)
+        case .failed:
+            return .waitingForCatalog
+        }
+    }
+
+    private func retryFrontmostApplicationEffect(in state: inout State) -> Effect<Action> {
+        let retryID = state.nextFrontmostRetryID
+        state.nextFrontmostRetryID += 1
+        state.pendingFrontmostRetryID = retryID
+        return .run { send in
+            await send(.response(.frontmostApplicationRetried(
+                retryID: retryID,
+                appInfo: await workspaceClient.frontmostApplication()
+            )))
+        }
     }
 
     private func fallbackSupportedStrategy(_ strategy: InputMethodStrategy) -> InputMethodStrategy {

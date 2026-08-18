@@ -12,16 +12,28 @@ on:
         type: string
 
 permissions:
-  contents: write
-  id-token: write
-  attestations: write
-  artifact-metadata: write
+  contents: read
+
+concurrency:
+  group: release-${{ github.repository }}-${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
-  build:
-    name: Build and Release
+  publish:
+    name: Publish GitHub Release
     runs-on: macos-26
-    
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    outputs:
+      tag: ${{ steps.release_tag.outputs.tag }}
+      version: ${{ steps.release_tag.outputs.version }}
+      commit: ${{ steps.release_tag.outputs.commit }}
+      asset_name: ${{ steps.release_artifact.outputs.asset_name }}
+      sha256: ${{ steps.release_artifact.outputs.sha256 }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -105,15 +117,9 @@ jobs:
       - name: Check publishing secrets
         env:
           SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
-          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
           if [[ -z "$SPARKLE_ED_PRIVATE_KEY" ]]; then
             echo "::error title=Missing Sparkle signing key::Set the SPARKLE_ED_PRIVATE_KEY repository secret before publishing a release."
-            exit 1
-          fi
-
-          if [[ -z "$HOMEBREW_TAP_TOKEN" ]]; then
-            echo "::error title=Missing Homebrew tap token::Set the HOMEBREW_TAP_TOKEN repository secret before publishing a release."
             exit 1
           fi
 
@@ -250,11 +256,16 @@ jobs:
           cat release-notes.html
       
       - name: Generate Checksums
+        id: release_artifact
         run: |
+          SHA256=$(shasum -a 256 TypeSwitch-macOS-universal.zip | awk '{print $1}')
+          echo "asset_name=TypeSwitch-macOS-universal.zip" >> "$GITHUB_OUTPUT"
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+
           {
             echo "### SHA-256 Checksums"
             echo '```'
-            shasum -a 256 TypeSwitch-macOS-universal.zip
+            echo "$SHA256  TypeSwitch-macOS-universal.zip"
             echo '```'
           } > checksums.txt
 
@@ -305,6 +316,14 @@ jobs:
 
           cp DerivedData/SparkleFeed/appcast.xml appcast.xml
 
+      - name: Verify local release artifacts
+        env:
+          RELEASE_TAG: ${{ steps.release_tag.outputs.tag }}
+        run: script/verify_release.sh local "$RELEASE_TAG" .
+
+      - name: Test release scripts
+        run: script/test_release_scripts.sh
+
       - name: Attest release artifact
         uses: actions/attest@v4
         with:
@@ -321,9 +340,51 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
+          overwrite_files: true
           tag_name: ${{ steps.release_tag.outputs.tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Record publish failure
+        if: ${{ failure() }}
+        run: |
+          {
+            echo "### Release distribution status"
+            echo
+            echo '- Status: `publish_failed`'
+            echo "- Tag: \`${{ steps.release_tag.outputs.tag || github.ref_name }}\`"
+            echo "- Details: The publish job did not complete successfully."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  sync_homebrew:
+    name: Sync Homebrew cask
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout release scripts
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.publish.outputs.commit }}
+
+      - name: Download published release asset
+        env:
+          ASSET_NAME: ${{ needs.publish.outputs.asset_name }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.publish.outputs.tag }}
+        run: |
+          mkdir -p release-assets
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir release-assets \
+            --pattern "$ASSET_NAME"
+
+          ACTUAL_SHA256=$(sha256sum "release-assets/$ASSET_NAME" | awk '{print $1}')
+          if [[ "$ACTUAL_SHA256" != "${{ needs.publish.outputs.sha256 }}" ]]; then
+            echo "::error title=Published asset checksum mismatch::Expected ${{ needs.publish.outputs.sha256 }}, got ${ACTUAL_SHA256}."
+            exit 1
+          fi
 
       - name: Checkout Homebrew tap
         uses: actions/checkout@v4
@@ -332,40 +393,12 @@ jobs:
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           path: homebrew-tap
 
-      - name: Update Homebrew cask
+      - name: Update and push Homebrew cask
         env:
-          ASSET_NAME: TypeSwitch-macOS-universal.zip
-          RELEASE_TAG: ${{ steps.release_tag.outputs.tag }}
-          VERSION: ${{ steps.release_tag.outputs.version }}
+          RELEASE_TAG: ${{ needs.publish.outputs.tag }}
+          SHA256: ${{ needs.publish.outputs.sha256 }}
         run: |
-          SHA256=$(shasum -a 256 "$ASSET_NAME" | awk '{print $1}')
-          CASK_PATH="homebrew-tap/Casks/typeswitch.rb"
-
-          export RELEASE_TAG VERSION SHA256 CASK_PATH
-          ruby <<'RUBY'
-          path = ENV.fetch("CASK_PATH")
-          release_tag = ENV.fetch("RELEASE_TAG")
-          version = ENV.fetch("VERSION")
-          sha256 = ENV.fetch("SHA256")
-
-          abort "Homebrew cask does not exist: #{path}" unless File.file?(path)
-
-          content = File.read(path)
-          replacements = {
-            /^  version ".*"$/ => "  version \"#{version}\"",
-            /^  sha256 ".*"$/ => "  sha256 \"#{sha256}\"",
-            /^  url ".*"$/ => "  url \"https://github.com/ygsgdbd/TypeSwitch/releases/download/#{release_tag}/TypeSwitch-macOS-universal.zip\"",
-          }
-
-          replacements.each do |pattern, replacement|
-            matches = content.scan(pattern).length
-            abort "Expected exactly one #{pattern.inspect} entry in #{path}, found #{matches}" unless matches == 1
-
-            content.sub!(pattern, replacement)
-          end
-
-          File.write(path, content)
-          RUBY
+          ruby script/update_homebrew_cask.rb homebrew-tap/Casks/typeswitch.rb "$RELEASE_TAG" "$SHA256"
 
           cd homebrew-tap
           git config user.name "github-actions[bot]"
@@ -379,3 +412,24 @@ jobs:
 
           git commit -m "Update TypeSwitch cask to ${RELEASE_TAG}"
           git push
+
+  verify_distribution:
+    name: Verify published distribution
+    needs: [publish, sync_homebrew]
+    if: ${{ always() && needs.publish.result == 'success' }}
+    runs-on: macos-26
+    permissions:
+      contents: read
+      attestations: read
+    steps:
+      - name: Checkout release scripts
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.publish.outputs.commit }}
+
+      - name: Verify GitHub Release assets and attestation
+        env:
+          EXPECTED_SHA256: ${{ needs.publish.outputs.sha256 }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.publish.outputs.tag }}
+        run: script/verify_release.sh remote "$RELEASE_TAG" "$GITHUB_REPOSITORY" "$EXPECTED_SHA256"
