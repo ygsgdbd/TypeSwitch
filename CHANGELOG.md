@@ -7,10 +7,14 @@
 #### 功能
 
 - 新增输入法健康诊断：输入法列表为空、读取失败或自动切换失败时，菜单会显示具体状态，并提供重新加载输入法、重试当前 App 和打开键盘设置等恢复操作。
+- 恢复启动时静默检查并开启定时自动检查；发现新版本后，一级菜单会显示具体版本，只有用户点击后才会打开 Sparkle 更新窗口。
+
+#### 优化
+
+- 将版本、项目主页、开发者、帮助、诊断和问题反馈收进“帮助与关于”子菜单，减少低频支持入口对一级菜单空间的占用。
 
 #### 修复
 
-- 取消启动时的静默更新检查，确保只有用户主动点击“检查更新…”时才会访问 GitHub。
 - 修复恢复已忽略 App 时丢失原输入法策略的问题，并为菜单栏图标补充当前 App 状态的 VoiceOver 描述。
 - 修复输入法目录加载期间激活 App 时可能漏掉自动切换的问题；目录加载完成后仅补偿处理此前被跳过的当前 App。
 - 修复手动切换到正确输入法后仍保留失败警告的问题，并让 VoiceOver 在输入法异常时优先播报警告状态。
@@ -21,10 +25,14 @@
 #### Features
 
 - Added input method health diagnostics. When the input method catalog is empty, fails to load, or an automatic switch fails, the menu now explains the state and offers recovery actions to reload input methods, retry the current app, or open Keyboard Settings.
+- Restored a silent startup check and enabled scheduled automatic checks. When an update is available, the root menu shows its version, and Sparkle presents its update window only after the user clicks it.
+
+#### Improvements
+
+- Moved version, project, developer, help, diagnostics, and issue-reporting information into a `Help & About` submenu so low-frequency support actions no longer crowd the root menu.
 
 #### Fixes
 
-- Removed the silent update check at startup so TypeSwitch contacts GitHub for updates only after the user clicks `Check for Updates…`.
 - Fixed restored ignored apps losing their previous input method strategy, and added VoiceOver descriptions for the current app state in the menu bar icon.
 - Fixed automatic switching being skipped when an app activates while the input method catalog is loading; TypeSwitch now retries only the current app whose activation was deferred.
 - Fixed stale failure warnings after manually selecting the correct input method, and made VoiceOver announce input method warnings before the current app state.

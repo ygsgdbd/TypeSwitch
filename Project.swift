@@ -62,7 +62,9 @@ let project = Project(
                 "CFBundleVersion": .string(buildVersion), // 构建版本号
                 "SUFeedURL": "https://github.com/ygsgdbd/TypeSwitch/releases/latest/download/appcast.xml",
                 "SUPublicEDKey": "tzapCS0NiXBf0Alm3T2veTCaauxr2dmMCnIFYaK+lOs=",
-                "SUEnableAutomaticChecks": false,
+                "SUAllowsAutomaticUpdates": false,
+                "SUEnableAutomaticChecks": true,
+                "SUAutomaticallyUpdate": false,
             ]),
             sources: ["TypeSwitch/Sources/**"],
             resources: ["TypeSwitch/Resources/**"],

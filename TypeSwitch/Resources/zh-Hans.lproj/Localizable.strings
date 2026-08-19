@@ -1,6 +1,5 @@
 // 菜单
 "menu.quit" = "退出 TypeSwitch";
-"menu.github_repository" = "GitHub 仓库";
 "menu.accessibility_configured" = "TypeSwitch，当前 App 已配置";
 "menu.accessibility_unconfigured" = "TypeSwitch，当前 App 未配置";
 "menu.accessibility_ignored" = "TypeSwitch，当前 App 已忽略";
@@ -17,13 +16,17 @@
 "settings.general.auto_launch_requires_approval" = "请前往“系统设置”>“通用”>“登录项”允许 TypeSwitch。";
 "settings.general.open_login_items" = "打开登录项设置";
 "settings.general.check_for_updates" = "检查更新…";
+"settings.general.checking_for_updates" = "正在检查更新…";
+"settings.general.update_available" = "新版本 %@ 可用…";
 "settings.fallback.default_input_method" = "未配置 App 的默认规则";
 
 // 支持
 "support.version" = "TypeSwitch v%@";
+"support.help_and_about" = "帮助与关于";
+"support.developer" = "开发者：%@";
 "support.help" = "使用帮助";
 "support.copy_diagnostics" = "复制诊断信息";
-"support.report_issue" = "报告问题";
+"support.report_issue" = "报告问题…";
 
 // 应用列表
 "apps.section.current_app" = "当前应用";

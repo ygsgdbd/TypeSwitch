@@ -125,18 +125,20 @@ on run argv
     tell application "System Events"
         tell first application process whose unix id is targetPID
             repeat with candidateMenuBar in menu bars
-                if exists menu bar item "TypeSwitch" of candidateMenuBar then
-                    set candidateItem to menu bar item "TypeSwitch" of candidateMenuBar
-                    set {itemX, itemY} to position of candidateItem
-                    set {itemWidth, itemHeight} to size of candidateItem
-                    set centerX to itemX + itemWidth / 2
-                    set centerY to itemY + itemHeight / 2
-                    if itemWidth > 0 and itemHeight > 0 ¬
-                        and centerX ≥ displayLeft and centerX < displayRight ¬
-                        and centerY ≥ displayTop and centerY < displayBottom then
-                        return true
+                repeat with candidateItem in menu bar items of candidateMenuBar
+                    set itemName to name of candidateItem
+                    if itemName is not "TypeSwitch" and itemName starts with "TypeSwitch" then
+                        set {itemX, itemY} to position of candidateItem
+                        set {itemWidth, itemHeight} to size of candidateItem
+                        set centerX to itemX + itemWidth / 2
+                        set centerY to itemY + itemHeight / 2
+                        if itemWidth > 0 and itemHeight > 0 ¬
+                            and centerX ≥ displayLeft and centerX < displayRight ¬
+                            and centerY ≥ displayTop and centerY < displayBottom then
+                            return true
+                        end if
                     end if
-                end if
+                end repeat
             end repeat
             error "TypeSwitch menu bar item was not found on the selected display."
         end tell
@@ -161,14 +163,16 @@ on run argv
     tell application "System Events"
         tell first application process whose unix id is targetPID
             repeat with candidateMenuBar in menu bars
-                if exists menu bar item "TypeSwitch" of candidateMenuBar then
-                    set candidateItem to menu bar item "TypeSwitch" of candidateMenuBar
-                    set {itemX, itemY} to position of candidateItem
-                    set {itemWidth, itemHeight} to size of candidateItem
-                    if itemWidth > 0 and itemHeight > 0 then
-                        return (itemX as text) & "," & (itemY as text)
+                repeat with candidateItem in menu bar items of candidateMenuBar
+                    set itemName to name of candidateItem
+                    if itemName is not "TypeSwitch" and itemName starts with "TypeSwitch" then
+                        set {itemX, itemY} to position of candidateItem
+                        set {itemWidth, itemHeight} to size of candidateItem
+                        if itemWidth > 0 and itemHeight > 0 then
+                            return (itemX as text) & "," & (itemY as text)
+                        end if
                     end if
-                end if
+                end repeat
             end repeat
             error "A visible TypeSwitch menu bar item was not found."
         end tell
@@ -215,19 +219,21 @@ on run argv
     tell application "System Events"
         tell first application process whose unix id is targetPID
             repeat with candidateMenuBar in menu bars
-                if exists menu bar item "TypeSwitch" of candidateMenuBar then
-                    set candidateItem to menu bar item "TypeSwitch" of candidateMenuBar
-                    set {itemX, itemY} to position of candidateItem
-                    set {itemWidth, itemHeight} to size of candidateItem
-                    set centerX to itemX + itemWidth / 2
-                    set centerY to itemY + itemHeight / 2
-                    if itemWidth > 0 and itemHeight > 0 ¬
-                        and centerX ≥ displayLeft and centerX < displayRight ¬
-                        and centerY ≥ displayTop and centerY < displayBottom then
-                        click candidateItem
-                        return
+                repeat with candidateItem in menu bar items of candidateMenuBar
+                    set itemName to name of candidateItem
+                    if itemName is not "TypeSwitch" and itemName starts with "TypeSwitch" then
+                        set {itemX, itemY} to position of candidateItem
+                        set {itemWidth, itemHeight} to size of candidateItem
+                        set centerX to itemX + itemWidth / 2
+                        set centerY to itemY + itemHeight / 2
+                        if itemWidth > 0 and itemHeight > 0 ¬
+                            and centerX ≥ displayLeft and centerX < displayRight ¬
+                            and centerY ≥ displayTop and centerY < displayBottom then
+                            click candidateItem
+                            return
+                        end if
                     end if
-                end if
+                end repeat
             end repeat
             error "TypeSwitch menu bar item was not found on the selected display."
         end tell
@@ -249,21 +255,23 @@ on run argv
     tell application "System Events"
         tell first application process whose unix id is targetPID
             repeat with candidateMenuBar in menu bars
-                if exists menu bar item "TypeSwitch" of candidateMenuBar then
-                    set candidateItem to menu bar item "TypeSwitch" of candidateMenuBar
-                    set {itemX, itemY} to position of candidateItem
-                    set {itemWidth, itemHeight} to size of candidateItem
-                    set centerX to itemX + itemWidth / 2
-                    set centerY to itemY + itemHeight / 2
-                    if itemWidth > 0 and itemHeight > 0 ¬
-                        and centerX ≥ displayLeft and centerX < displayRight ¬
-                        and centerY ≥ displayTop and centerY < displayBottom then
-                        tell menu item "Safari" of menu 1 of candidateItem
-                            perform action "AXPress"
-                        end tell
-                        return
+                repeat with candidateItem in menu bar items of candidateMenuBar
+                    set itemName to name of candidateItem
+                    if itemName is not "TypeSwitch" and itemName starts with "TypeSwitch" then
+                        set {itemX, itemY} to position of candidateItem
+                        set {itemWidth, itemHeight} to size of candidateItem
+                        set centerX to itemX + itemWidth / 2
+                        set centerY to itemY + itemHeight / 2
+                        if itemWidth > 0 and itemHeight > 0 ¬
+                            and centerX ≥ displayLeft and centerX < displayRight ¬
+                            and centerY ≥ displayTop and centerY < displayBottom then
+                            tell menu item "Safari" of menu 1 of candidateItem
+                                perform action "AXPress"
+                            end tell
+                            return
+                        end if
                     end if
-                end if
+                end repeat
             end repeat
             error "TypeSwitch menu bar item was not found on the selected display."
         end tell
