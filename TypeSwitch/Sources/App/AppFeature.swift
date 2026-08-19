@@ -301,8 +301,7 @@ struct AppFeature {
                 if let lastSwitchAttempt = state.lastSwitchAttempt,
                    lastSwitchAttempt.bundleId == bundleId,
                    lastSwitchAttempt.inputMethodId == inputMethodId,
-                   case .failed = lastSwitchAttempt.outcome,
-                   state.isCurrentTarget(lastSwitchAttempt)
+                   case .failed = lastSwitchAttempt.outcome
                 {
                     state.lastSwitchAttempt = nil
                 }

@@ -2731,44 +2731,56 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertEqual(state.menuBarAccessibilityLabel, TypeSwitchStrings.Menu.accessibilityIgnored)
     }
 
-    func testMenuBarAccessibilityLabelPrioritizesInputMethodDiagnostics() {
-        let bundleId = "com.test.chat"
-        let failedAttempt = AppFeature.State.LastSwitchAttempt(
-            appName: "Chat",
-            bundleId: bundleId,
-            inputMethodId: "ime.zh",
-            inputMethodName: "Pinyin",
-            outcome: .failed(.failedToSwitchInputMethod("ime.zh")),
-            ruleSource: .app,
-            timestamp: Date(timeIntervalSince1970: 10)
-        )
-
+    func testMenuBarAccessibilityLabelUsesWarningWithoutFrontmostApp() {
         var catalogEmptyState = AppFeature.State()
         catalogEmptyState.inputMethodCatalogStatus = .ready
 
         var catalogFailedState = AppFeature.State()
         catalogFailedState.inputMethodCatalogStatus = .failed(.failedToFetchInputMethods)
 
-        var switchFailedState = AppFeature.State()
-        switchFailedState.currentFrontmostBundleId = bundleId
-        switchFailedState.inputMethodCatalogStatus = .ready
-        switchFailedState.inputMethods = [InputMethod(id: "ime.zh", name: "Pinyin")]
-        switchFailedState.lastSwitchAttempt = failedAttempt
-        switchFailedState.$appRulesStore.withLock {
+        for state in [catalogEmptyState, catalogFailedState] {
+            XCTAssertNotNil(state.inputMethodDiagnostic)
+            XCTAssertEqual(state.menuBarAccessibilityLabel, TypeSwitchStrings.Menu.accessibilityWarning)
+        }
+    }
+
+    func testMenuBarAccessibilityLabelCombinesWarningWithFrontmostAppStatus() {
+        let bundleId = "com.test.chat"
+        var state = AppFeature.State(
+            currentFrontmostBundleId: bundleId,
+            inputMethodCatalogStatus: .failed(.failedToFetchInputMethods)
+        )
+        state.$appRulesStore.withLock {
             $0.rules[bundleId] = AppRuleRecord(
                 bundleId: bundleId,
                 lastKnownPath: "/Applications/Chat.app",
                 lastKnownName: "Chat",
-                strategy: .fixed(inputMethodId: "ime.zh"),
+                strategy: .none,
                 createdAt: Date(timeIntervalSince1970: 10),
                 updatedAt: Date(timeIntervalSince1970: 10)
             )
         }
 
-        for state in [catalogEmptyState, catalogFailedState, switchFailedState] {
-            XCTAssertNotNil(state.inputMethodDiagnostic)
-            XCTAssertEqual(state.menuBarAccessibilityLabel, TypeSwitchStrings.Menu.accessibilityWarning)
+        XCTAssertEqual(
+            state.menuBarAccessibilityLabel,
+            TypeSwitchStrings.Menu.accessibilityWarningUnconfigured
+        )
+
+        state.$appRulesStore.withLock {
+            $0.rules[bundleId]?.strategy = .fixed(inputMethodId: "ime.zh")
         }
+        XCTAssertEqual(
+            state.menuBarAccessibilityLabel,
+            TypeSwitchStrings.Menu.accessibilityWarningConfigured
+        )
+
+        state.$appRulesStore.withLock {
+            $0.rules[bundleId]?.strategy = .ignored
+        }
+        XCTAssertEqual(
+            state.menuBarAccessibilityLabel,
+            TypeSwitchStrings.Menu.accessibilityWarningIgnored
+        )
     }
 
     func testFollowLastWithoutRecordShowsEmptyMenuOption() {
@@ -2950,6 +2962,79 @@ final class AppFeatureTests: XCTestCase {
         }
 
         XCTAssertNil(store.state.inputMethodDiagnostic)
+        XCTAssertEqual(store.state.appSwitchStatisticsStore.counts[bundleId], 2)
+    }
+
+    func testManualSelectionOfStaleFailedFollowLastTargetClearsDiagnosticWithoutIncrementingStatistics() async {
+        let bundleId = "com.test.chat"
+        let failedInputMethod = "ime.zh"
+        let otherInputMethod = "ime.jp"
+        let updateDate = Date(timeIntervalSince1970: 888)
+
+        var initialState = AppFeature.State()
+        initialState.currentFrontmostBundleId = bundleId
+        initialState.inputMethodCatalogStatus = .ready
+        initialState.inputMethods = [
+            InputMethod(id: failedInputMethod, name: "Pinyin"),
+            InputMethod(id: otherInputMethod, name: "Japanese"),
+        ]
+        initialState.lastSwitchAttempt = .init(
+            appName: "Chat",
+            bundleId: bundleId,
+            inputMethodId: failedInputMethod,
+            inputMethodName: "Pinyin",
+            outcome: .failed(.failedToSwitchInputMethod(failedInputMethod)),
+            ruleSource: .app,
+            timestamp: Date(timeIntervalSince1970: 10)
+        )
+        initialState.$appRulesStore.withLock {
+            $0.rules[bundleId] = AppRuleRecord(
+                bundleId: bundleId,
+                lastKnownPath: "/Applications/Chat.app",
+                lastKnownName: "Chat",
+                strategy: .followLast(lastInputMethodId: failedInputMethod),
+                createdAt: Date(timeIntervalSince1970: 10),
+                updatedAt: Date(timeIntervalSince1970: 10)
+            )
+        }
+        initialState.$appSwitchStatisticsStore.withLock {
+            $0.counts[bundleId] = 2
+        }
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(updateDate)
+
+        XCTAssertEqual(store.state.inputMethodDiagnostic?.kind, .switchFailed)
+
+        await store.send(.system(.inputMethodSelectedChanged(otherInputMethod))) {
+            $0.$appRulesStore.withLock {
+                guard var rule = $0.rules[bundleId] else { return }
+                rule.strategy = .followLast(lastInputMethodId: otherInputMethod)
+                rule.updatedAt = updateDate
+                $0.rules[bundleId] = rule
+            }
+        }
+
+        XCTAssertNil(store.state.inputMethodDiagnostic)
+        XCTAssertNotNil(store.state.lastSwitchAttempt)
+
+        await store.send(.system(.inputMethodSelectedChanged(failedInputMethod))) {
+            $0.lastSwitchAttempt = nil
+            $0.$appRulesStore.withLock {
+                guard var rule = $0.rules[bundleId] else { return }
+                rule.strategy = .followLast(lastInputMethodId: failedInputMethod)
+                rule.updatedAt = updateDate
+                $0.rules[bundleId] = rule
+            }
+        }
+
+        XCTAssertNil(store.state.inputMethodDiagnostic)
+        XCTAssertEqual(
+            store.state.appRules[bundleId]?.strategy,
+            .followLast(lastInputMethodId: failedInputMethod)
+        )
         XCTAssertEqual(store.state.appSwitchStatisticsStore.counts[bundleId], 2)
     }
 

@@ -42,7 +42,18 @@ extension AppFeature.State {
 
     var menuBarAccessibilityLabel: String {
         if inputMethodDiagnostic != nil {
-            return TypeSwitchStrings.Menu.accessibilityWarning
+            guard let currentFrontmostBundleId else {
+                return TypeSwitchStrings.Menu.accessibilityWarning
+            }
+
+            switch strategy(for: currentFrontmostBundleId) {
+            case .none:
+                return TypeSwitchStrings.Menu.accessibilityWarningUnconfigured
+            case .fixed, .followLast:
+                return TypeSwitchStrings.Menu.accessibilityWarningConfigured
+            case .ignored:
+                return TypeSwitchStrings.Menu.accessibilityWarningIgnored
+            }
         }
 
         guard let currentFrontmostBundleId else {

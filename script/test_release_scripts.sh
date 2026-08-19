@@ -6,6 +6,7 @@ ROOT_DIR=$(cd "$(dirname "$0")/.." && pwd)
 VERIFY_SCRIPT="${ROOT_DIR}/script/verify_release.sh"
 CASK_SCRIPT="${ROOT_DIR}/script/update_homebrew_cask.rb"
 ORDER_SCRIPT="${ROOT_DIR}/script/validate_release_order.rb"
+RELEASE_ABSENT_SCRIPT="${ROOT_DIR}/script/ensure_release_absent.sh"
 TEST_DIR=$(mktemp -d)
 trap 'rm -rf "$TEST_DIR"' EXIT
 
@@ -113,6 +114,52 @@ EOF
 chmod +x "${TEST_DIR}/bin/sign_update"
 export SPARKLE_SIGN_UPDATE="${TEST_DIR}/bin/sign_update"
 
+cat > "${TEST_DIR}/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ "$#" == 4 ]] || exit 99
+[[ "$1" == "api" && "$2" == "--include" && "$3" == "--silent" ]] || exit 99
+[[ "$4" == "repos/ygsgdbd/TypeSwitch/releases/tags/v1.2.3" ]] || exit 99
+
+case "${GH_STUB_MODE:-}" in
+  404)
+    printf 'HTTP/2.0 404 Not Found\n\n'
+    exit 1
+    ;;
+  200)
+    printf 'HTTP/2.0 200 OK\n\n'
+    ;;
+  403)
+    printf 'HTTP/2.0 403 Forbidden\n\n'
+    exit 1
+    ;;
+  429)
+    printf 'HTTP/2.0 429 Too Many Requests\n\n'
+    exit 1
+    ;;
+  500)
+    printf 'HTTP/2.0 500 Internal Server Error\n\n'
+    exit 1
+    ;;
+  network)
+    echo 'network unavailable' >&2
+    exit 1
+    ;;
+  *)
+    exit 98
+    ;;
+esac
+EOF
+chmod +x "${TEST_DIR}/bin/gh"
+
+PATH="${TEST_DIR}/bin:${PATH}" GH_STUB_MODE=404 \
+  "$RELEASE_ABSENT_SCRIPT" ygsgdbd/TypeSwitch v1.2.3 >/dev/null
+for stub_mode in 200 403 429 500 network; do
+  assert_fails env PATH="${TEST_DIR}/bin:${PATH}" GH_STUB_MODE="$stub_mode" \
+    "$RELEASE_ABSENT_SCRIPT" ygsgdbd/TypeSwitch v1.2.3
+done
+
 ARTIFACTS="${TEST_DIR}/artifacts"
 make_artifacts "$ARTIFACTS" v1.2.3
 PATH="${TEST_DIR}/bin:${PATH}" "$VERIFY_SCRIPT" v1.2.3 "$ARTIFACTS" >/dev/null
@@ -171,6 +218,9 @@ end
 EOF
 
 ruby "$CASK_SCRIPT" "$CASK" v1.2.4 "$SHA" >/dev/null
+assert_contains "$CASK" '  version "1.2.4"'
+assert_contains "$CASK" "  sha256 \"${SHA}\""
+assert_contains "$CASK" '  url "https://github.com/ygsgdbd/TypeSwitch/releases/download/v1.2.4/TypeSwitch-macOS-universal.zip"'
 EXPECTED_CASK=$(cat "$CASK")
 ruby "$CASK_SCRIPT" "$CASK" v1.2.4 "$SHA" >/dev/null
 [[ "$(cat "$CASK")" == "$EXPECTED_CASK" ]] || fail "Cask updater is not idempotent."
@@ -200,6 +250,7 @@ assert_contains "$WORKFLOW" 'group: release-${{ github.repository }}'
 assert_contains "$WORKFLOW" 'queue: max'
 assert_contains "$WORKFLOW" "git tag --merged origin/main --list 'v*'"
 assert_contains "$WORKFLOW" 'ruby script/validate_release_order.rb "$RELEASE_TAG"'
+assert_contains "$WORKFLOW" 'script/ensure_release_absent.sh "$GITHUB_REPOSITORY" "$RELEASE_TAG"'
 assert_contains "$WORKFLOW" 'cp release-notes.md DerivedData/SparkleFeed/TypeSwitch-macOS-universal.md'
 assert_contains "$WORKFLOW" '--embed-release-notes'
 assert_contains "$WORKFLOW" 'script/verify_release.sh "$RELEASE_TAG" .'
@@ -215,6 +266,13 @@ assert_not_contains "$WORKFLOW" 'gh api markdown'
 assert_not_contains "$WORKFLOW" 'release-notes.html'
 [[ "$(grep -Fc 'secrets.HOMEBREW_TAP_TOKEN' "$WORKFLOW")" == "1" ]] || fail "Homebrew token must appear only in the tap checkout."
 [[ ! -e "${ROOT_DIR}/script/validate_release_version.rb" ]] || fail "Obsolete release version helper still exists."
+
+VALIDATE_TAG_LINE=$(grep -nF -- 'name: Validate release tag' "$WORKFLOW" | cut -d: -f1)
+RELEASE_ABSENT_LINE=$(grep -nF -- 'name: Ensure GitHub Release does not already exist' "$WORKFLOW" | cut -d: -f1)
+GENERATE_PROJECT_LINE=$(grep -nF -- 'name: Generate Xcode Project' "$WORKFLOW" | cut -d: -f1)
+if (( VALIDATE_TAG_LINE >= RELEASE_ABSENT_LINE || RELEASE_ABSENT_LINE >= GENERATE_PROJECT_LINE )); then
+  fail "GitHub Release absence check must run after tag validation and before project generation."
+fi
 
 assert_contains "$PR_WORKFLOW" 'release-scripts:'
 assert_contains "$PR_WORKFLOW" 'run: script/test_release_scripts.sh'
