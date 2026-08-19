@@ -33,7 +33,7 @@
 - **Choose the behavior that fits.** Let an app inherit the default rule, remember its `Last Switch`, select a `Specific Input Method`, or ignore apps you do not want TypeSwitch to manage.
 - **Configure apps where you find them.** Set a rule for the current app, review running apps by configuration status, or manage every saved rule without leaving the menu bar.
 - **Keep rules and results tidy.** Find rules for missing apps, remove stale settings, review successful switch counts, and clear statistics when needed.
-- **Fit TypeSwitch into your workflow.** Launch it at login, check for updates through Sparkle, open the GitHub repository, or press `Command + Q` to quit.
+- **Fit TypeSwitch into your workflow.** Launch it at login, let Sparkle check silently for updates, open project and support links from `Help & About`, or press `Command + Q` to quit.
 
 ## 🪶 Native and Lightweight
 
@@ -91,7 +91,7 @@ brew upgrade typeswitch
 3. In Applications, Control-click or right-click `TypeSwitch.app`, choose `Open`, then confirm that you want to open it.
 4. If macOS still blocks the app, open System Settings → Privacy & Security, find the TypeSwitch security message, and choose `Open Anyway`.
 5. Grant any system permissions macOS requests.
-6. Use `Check for Updates…` from the menu bar app to check GitHub Releases for future updates.
+6. TypeSwitch checks GitHub Releases silently. When a new version is available, the menu shows its version; click it to open the update window.
 
 ## 🧭 Usage
 
@@ -108,7 +108,7 @@ brew upgrade typeswitch
 
 - App rules, the Default Rule for Unconfigured Apps, and switch statistics are stored locally.
 - TypeSwitch has no server-side component in this repository.
-- TypeSwitch does not check for updates or contact GitHub at startup. `GitHub Repository` and `Check for Updates…` contact GitHub only after you click them.
+- TypeSwitch contacts its GitHub appcast at startup and periodically while running to check for updates. Background checks only update the menu status and never present UI, download, or install automatically; the Sparkle update window opens only after you click `Check for Updates…` or `New Version … Available…`.
 - Input method switching uses macOS system input sources.
 - Launch at Login uses macOS Login Items, with a LaunchAgent fallback when needed.
 
@@ -118,7 +118,7 @@ This project uses:
 
 - [The Composable Architecture](https://github.com/pointfreeco/swift-composable-architecture) `1.26.0` for app architecture and state management
 - [Sharing](https://github.com/pointfreeco/swift-sharing) `2.9.1` for file-backed shared state
-- [Sparkle](https://github.com/sparkle-project/Sparkle) `2.9.4` for manual update checks and appcast support
+- [Sparkle](https://github.com/sparkle-project/Sparkle) `2.9.4` for silent automatic checks, manual updates, and appcast support
 - [SwifterSwift](https://github.com/SwifterSwift/SwifterSwift) `8.0.0` for Swift extensions
 - Point-Free support libraries: CasePaths, Dependencies, and PerceptionCore
 - [Tuist](https://github.com/tuist/tuist) for project generation and build configuration

@@ -120,4 +120,12 @@ final class SupportDiagnosticsTests: XCTestCase {
             "bug_report.yml"
         )
     }
+
+    func testGitHubLinksUseRepositoryAndDeveloperProfile() throws {
+        let repositoryURL = try XCTUnwrap(AppInfoService.githubRepositoryURL)
+        let profileURL = try XCTUnwrap(AppInfoService.githubProfileURL)
+
+        XCTAssertEqual(repositoryURL.absoluteString, "https://github.com/ygsgdbd/TypeSwitch")
+        XCTAssertEqual(profileURL.absoluteString, "https://github.com/ygsgdbd")
+    }
 }

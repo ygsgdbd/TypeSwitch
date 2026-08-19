@@ -6,49 +6,66 @@ import SwiftUI
 /// 应用信息视图，显示项目链接和退出入口
 struct AppInfoView: View {
     let store: StoreOf<AppFeature>
+    @ObservedObject var updateMonitor: SparkleUpdateMonitor
     let updaterController: SPUStandardUpdaterController
 
     var body: some View {
         let diagnostics = supportDiagnostics
 
         Group {
-            Text(TypeSwitchStrings.Support.version(diagnostics.version))
-                .foregroundStyle(.secondary)
-
             Button {
-                updaterController.checkForUpdates(nil)
+                updateMonitor.showUpdate(using: updaterController.updater)
             } label: {
                 Label(
-                    TypeSwitchStrings.Settings.General.checkForUpdates,
+                    updateMonitor.menuTitle,
                     systemImage: "arrow.triangle.2.circlepath"
                 )
             }
+            .disabled(!updateMonitor.isMenuActionEnabled)
 
-            Button {
-                AppInfoService.openGitHubRepository()
+            Menu {
+                Button {
+                    AppInfoService.openGitHubRepository()
+                } label: {
+                    Label(
+                        TypeSwitchStrings.Support.version(diagnostics.version),
+                        systemImage: "chevron.left.forwardslash.chevron.right"
+                    )
+                }
+
+                Button {
+                    AppInfoService.openGitHubProfile()
+                } label: {
+                    Label(
+                        TypeSwitchStrings.Support.developer("ygsgdbd"),
+                        systemImage: "person.crop.circle"
+                    )
+                }
+
+                Divider()
+
+                Button {
+                    AppInfoService.openHelp()
+                } label: {
+                    Label(TypeSwitchStrings.Support.help, systemImage: "questionmark.circle")
+                }
+
+                Button {
+                    AppInfoService.copySupportDiagnostics(diagnostics)
+                } label: {
+                    Label(TypeSwitchStrings.Support.copyDiagnostics, systemImage: "doc.on.doc")
+                }
+
+                Button {
+                    AppInfoService.openReportIssue()
+                } label: {
+                    Label(TypeSwitchStrings.Support.reportIssue, systemImage: "exclamationmark.bubble")
+                }
             } label: {
                 Label(
-                    TypeSwitchStrings.Menu.githubRepository,
-                    systemImage: "chevron.left.forwardslash.chevron.right"
+                    TypeSwitchStrings.Support.helpAndAbout,
+                    systemImage: "info.circle"
                 )
-            }
-
-            Button {
-                AppInfoService.openHelp()
-            } label: {
-                Label(TypeSwitchStrings.Support.help, systemImage: "questionmark.circle")
-            }
-
-            Button {
-                AppInfoService.copySupportDiagnostics(diagnostics)
-            } label: {
-                Label(TypeSwitchStrings.Support.copyDiagnostics, systemImage: "doc.on.doc")
-            }
-
-            Button {
-                AppInfoService.openReportIssue()
-            } label: {
-                Label(TypeSwitchStrings.Support.reportIssue, systemImage: "exclamationmark.bubble")
             }
 
             Divider()
