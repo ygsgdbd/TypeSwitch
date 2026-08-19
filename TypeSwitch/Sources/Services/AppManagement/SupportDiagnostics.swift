@@ -7,6 +7,7 @@ struct SupportDiagnostics: Equatable {
     let operatingSystemVersion: String
     let architecture: String
     let appLanguage: String
+    let localeIdentifier: String
     let diagnosticCategory: String?
     let errorDescription: String?
 
@@ -16,6 +17,7 @@ struct SupportDiagnostics: Equatable {
         operatingSystemVersion: String,
         architecture: String,
         appLanguage: String?,
+        localeIdentifier: String?,
         diagnosticCategory: String? = nil,
         errorDescription: String? = nil
     ) {
@@ -24,6 +26,7 @@ struct SupportDiagnostics: Equatable {
         self.operatingSystemVersion = operatingSystemVersion
         self.architecture = architecture
         self.appLanguage = Self.valueOrPlaceholder(appLanguage)
+        self.localeIdentifier = Self.valueOrPlaceholder(localeIdentifier)
         self.diagnosticCategory = diagnosticCategory
         self.errorDescription = errorDescription
     }
@@ -42,6 +45,7 @@ struct SupportDiagnostics: Equatable {
             operatingSystemVersion: ProcessInfo.processInfo.operatingSystemVersionString,
             architecture: currentArchitecture,
             appLanguage: bundle.preferredLocalizations.first,
+            localeIdentifier: Locale.current.identifier,
             diagnosticCategory: diagnosticCategory,
             errorDescription: errorDescription
         )
@@ -54,6 +58,7 @@ struct SupportDiagnostics: Equatable {
             "macOS: \(operatingSystemVersion)",
             "Architecture: \(architecture)",
             "App Language: \(appLanguage)",
+            "Locale: \(localeIdentifier)",
         ]
         if let diagnosticCategory {
             lines.append("Diagnostic category: \(diagnosticCategory)")

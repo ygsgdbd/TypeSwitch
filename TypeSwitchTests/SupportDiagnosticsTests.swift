@@ -9,7 +9,8 @@ final class SupportDiagnosticsTests: XCTestCase {
             build: "45",
             operatingSystemVersion: "macOS 15.6 (24G84)",
             architecture: "arm64",
-            appLanguage: "zh-Hans"
+            appLanguage: "zh-Hans",
+            localeIdentifier: "en_US"
         )
 
         XCTAssertEqual(
@@ -20,6 +21,7 @@ final class SupportDiagnosticsTests: XCTestCase {
             macOS: macOS 15.6 (24G84)
             Architecture: arm64
             App Language: zh-Hans
+            Locale: en_US
             """
         )
     }
@@ -31,6 +33,7 @@ final class SupportDiagnosticsTests: XCTestCase {
             operatingSystemVersion: "macOS 15.6 (24G84)",
             architecture: "arm64",
             appLanguage: "zh-Hans",
+            localeIdentifier: "zh_Hans_CN",
             diagnosticCategory: "switchFailed",
             errorDescription: "Could not verify the selected input method"
         )
@@ -43,6 +46,7 @@ final class SupportDiagnosticsTests: XCTestCase {
             macOS: macOS 15.6 (24G84)
             Architecture: arm64
             App Language: zh-Hans
+            Locale: zh_Hans_CN
             Diagnostic category: switchFailed
             Error description: Could not verify the selected input method
             """
@@ -55,14 +59,16 @@ final class SupportDiagnosticsTests: XCTestCase {
             build: "45",
             operatingSystemVersion: "macOS 15.6 (24G84)",
             architecture: "arm64",
-            appLanguage: "en"
+            appLanguage: "en",
+            localeIdentifier: "en_US"
         )
         let missingBuild = SupportDiagnostics(
             version: "1.2.3",
             build: "",
             operatingSystemVersion: "macOS 15.6 (24G84)",
             architecture: "arm64",
-            appLanguage: "en"
+            appLanguage: "en",
+            localeIdentifier: "en_US"
         )
 
         XCTAssertEqual(missingVersion.version, "–")
@@ -79,11 +85,27 @@ final class SupportDiagnosticsTests: XCTestCase {
             build: "45",
             operatingSystemVersion: "macOS 15.6 (24G84)",
             architecture: "arm64",
-            appLanguage: nil
+            appLanguage: nil,
+            localeIdentifier: "en_US"
         )
 
         XCTAssertEqual(diagnostics.appLanguage, "–")
-        XCTAssertTrue(diagnostics.reportText.contains("App Language: –"))
+        XCTAssertEqual(diagnostics.localeIdentifier, "en_US")
+        XCTAssertTrue(diagnostics.reportText.contains("App Language: –\nLocale: en_US"))
+    }
+
+    func testMissingLocaleUsesPlaceholder() {
+        let diagnostics = SupportDiagnostics(
+            version: "1.2.3",
+            build: "45",
+            operatingSystemVersion: "macOS 15.6 (24G84)",
+            architecture: "arm64",
+            appLanguage: "en",
+            localeIdentifier: nil
+        )
+
+        XCTAssertEqual(diagnostics.localeIdentifier, "–")
+        XCTAssertTrue(diagnostics.reportText.contains("App Language: en\nLocale: –"))
     }
 
     func testReportIssueURLUsesBugReportTemplate() throws {

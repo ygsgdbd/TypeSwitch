@@ -5,6 +5,9 @@
 "menu.accessibility_unconfigured" = "TypeSwitch，当前 App 未配置";
 "menu.accessibility_ignored" = "TypeSwitch，当前 App 已忽略";
 "menu.accessibility_warning" = "TypeSwitch，输入法状态警告";
+"menu.accessibility_warning_configured" = "TypeSwitch，输入法状态警告，当前 App 已配置";
+"menu.accessibility_warning_unconfigured" = "TypeSwitch，输入法状态警告，当前 App 未配置";
+"menu.accessibility_warning_ignored" = "TypeSwitch，输入法状态警告，当前 App 已忽略";
 
 // 通用
 "common.cancel" = "取消";

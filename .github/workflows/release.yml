@@ -70,6 +70,12 @@ jobs:
             echo "commit=$TAG_COMMIT"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Ensure GitHub Release does not already exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release_tag.outputs.tag }}
+        run: script/ensure_release_absent.sh "$GITHUB_REPOSITORY" "$RELEASE_TAG"
+
       - name: Check Sparkle signing key
         env:
           SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
