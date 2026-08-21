@@ -1378,7 +1378,9 @@ final class AppFeatureTests: XCTestCase {
         }
         store.dependencies.date = .constant(timestamp)
 
-        await store.send(.system(.inputMethodSelectedChanged("ime.en")))
+        await store.send(.system(.inputMethodSelectedChanged("ime.en"))) {
+            $0.pendingProgrammaticSwitch?.didObserveTargetSelection = true
+        }
         await store.send(.response(.programmaticSwitchFinished(
             attemptID: 0,
             outcome: .switched
@@ -1397,6 +1399,114 @@ final class AppFeatureTests: XCTestCase {
                 $0.counts[bundleId] = 1
             }
         }
+    }
+
+    func testSelectionNotificationPreventsFailureFromOverwritingConfirmedSuccess() async {
+        let timestamp = Date(timeIntervalSince1970: 10)
+        let bundleId = "com.test.editor"
+        let inputMethodId = "ime.en"
+        var initialState = AppFeature.State()
+        initialState.currentFrontmostBundleId = bundleId
+        initialState.pendingProgrammaticSwitch = .init(
+            appName: "Editor",
+            bundleId: bundleId,
+            inputMethodId: inputMethodId,
+            inputMethodName: "English"
+        )
+        initialState.$appRulesStore.withLock {
+            $0.rules[bundleId] = AppRuleRecord(
+                bundleId: bundleId,
+                lastKnownPath: "/Applications/Editor.app",
+                lastKnownName: "Editor",
+                strategy: .fixed(inputMethodId: inputMethodId),
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        }
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(timestamp)
+
+        await store.send(.system(.inputMethodSelectedChanged(inputMethodId))) {
+            $0.pendingProgrammaticSwitch?.didObserveTargetSelection = true
+        }
+        await store.send(.response(.programmaticSwitchFinished(
+            attemptID: 0,
+            outcome: .failed(.failedToVerifyInputMethod(inputMethodId))
+        ))) {
+            $0.pendingProgrammaticSwitch = nil
+            $0.lastSwitchAttempt = .init(
+                appName: "Editor",
+                bundleId: bundleId,
+                inputMethodId: inputMethodId,
+                inputMethodName: "English",
+                outcome: .alreadySelected,
+                ruleSource: .app,
+                timestamp: timestamp
+            )
+        }
+
+        XCTAssertNil(store.state.inputMethodDiagnostic)
+        XCTAssertTrue(store.state.appSwitchStatisticsStore.counts.isEmpty)
+    }
+
+    func testNonTargetSelectionRevokesConfirmedProgrammaticSwitch() async {
+        let timestamp = Date(timeIntervalSince1970: 10)
+        let bundleId = "com.test.editor"
+        let targetInputMethodId = "ime.en"
+        var initialState = AppFeature.State()
+        initialState.currentFrontmostBundleId = bundleId
+        initialState.pendingProgrammaticSwitch = .init(
+            appName: "Editor",
+            bundleId: bundleId,
+            inputMethodId: targetInputMethodId,
+            inputMethodName: "English"
+        )
+        initialState.$appRulesStore.withLock {
+            $0.rules[bundleId] = AppRuleRecord(
+                bundleId: bundleId,
+                lastKnownPath: "/Applications/Editor.app",
+                lastKnownName: "Editor",
+                strategy: .fixed(inputMethodId: targetInputMethodId),
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+        }
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(timestamp)
+
+        await store.send(.system(.inputMethodSelectedChanged(targetInputMethodId))) {
+            $0.pendingProgrammaticSwitch?.didObserveTargetSelection = true
+        }
+        await store.send(.system(.inputMethodSelectedChanged("ime.jp"))) {
+            $0.pendingProgrammaticSwitch?.didObserveTargetSelection = false
+        }
+        await store.send(.response(.programmaticSwitchFinished(
+            attemptID: 0,
+            outcome: .failed(.failedToVerifyInputMethod(targetInputMethodId))
+        ))) {
+            $0.pendingProgrammaticSwitch = nil
+            $0.lastSwitchAttempt = .init(
+                appName: "Editor",
+                bundleId: bundleId,
+                inputMethodId: targetInputMethodId,
+                inputMethodName: "English",
+                outcome: .failed(.failedToVerifyInputMethod(targetInputMethodId)),
+                ruleSource: .app,
+                timestamp: timestamp
+            )
+        }
+
+        XCTAssertEqual(
+            store.state.lastSwitchAttempt?.outcome,
+            .failed(.failedToVerifyInputMethod(targetInputMethodId))
+        )
+        XCTAssertTrue(store.state.appSwitchStatisticsStore.counts.isEmpty)
     }
 
     func testVerificationFailureProducesSwitchDiagnostic() async {
@@ -1933,7 +2043,9 @@ final class AppFeatureTests: XCTestCase {
         }
         await switchGate.waitUntilStarted()
 
-        await store.send(.system(.inputMethodSelectedChanged(targetInputMethod)))
+        await store.send(.system(.inputMethodSelectedChanged(targetInputMethod))) {
+            $0.pendingProgrammaticSwitch?.didObserveTargetSelection = true
+        }
         await store.send(.system(.workspaceEvent(.terminated(bundleId: app.bundleId)))) {
             $0.currentFrontmostBundleId = nil
             $0.pendingProgrammaticSwitch = nil
@@ -3116,7 +3228,9 @@ final class AppFeatureTests: XCTestCase {
             AppFeature()
         }
 
-        await store.send(.system(.inputMethodSelectedChanged(targetInputMethod)))
+        await store.send(.system(.inputMethodSelectedChanged(targetInputMethod))) {
+            $0.pendingProgrammaticSwitch?.didObserveTargetSelection = true
+        }
 
         XCTAssertEqual(
             store.state.appRules[bundleId]?.strategy,
@@ -3139,7 +3253,9 @@ final class AppFeatureTests: XCTestCase {
             AppFeature()
         }
 
-        await store.send(.system(.inputMethodSelectedChanged(targetInputMethod)))
+        await store.send(.system(.inputMethodSelectedChanged(targetInputMethod))) {
+            $0.pendingProgrammaticSwitch?.didObserveTargetSelection = true
+        }
 
         XCTAssertEqual(
             store.state.fallbackRuleStore.strategy,

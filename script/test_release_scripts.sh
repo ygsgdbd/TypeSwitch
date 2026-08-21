@@ -118,17 +118,23 @@ cat > "${TEST_DIR}/bin/gh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
-[[ "$#" == 4 ]] || exit 99
-[[ "$1" == "api" && "$2" == "--include" && "$3" == "--silent" ]] || exit 99
-[[ "$4" == "repos/ygsgdbd/TypeSwitch/releases/tags/v1.2.3" ]] || exit 99
+[[ "$#" == 5 ]] || exit 99
+[[ "$1" == "api" && "$2" == "--include" && "$3" == "--jq" && "$4" == ".draft" ]] || exit 99
+[[ "$5" == "repos/ygsgdbd/TypeSwitch/releases/tags/v1.2.3" ]] || exit 99
 
 case "${GH_STUB_MODE:-}" in
   404)
     printf 'HTTP/2.0 404 Not Found\n\n'
     exit 1
     ;;
-  200)
-    printf 'HTTP/2.0 200 OK\n\n'
+  draft)
+    printf 'HTTP/2.0 200 OK\n\ntrue\n'
+    ;;
+  published)
+    printf 'HTTP/2.0 200 OK\n\nfalse\n'
+    ;;
+  invalid-200)
+    printf 'HTTP/2.0 200 OK\n\nnull\n'
     ;;
   403)
     printf 'HTTP/2.0 403 Forbidden\n\n'
@@ -155,10 +161,30 @@ chmod +x "${TEST_DIR}/bin/gh"
 
 PATH="${TEST_DIR}/bin:${PATH}" GH_STUB_MODE=404 \
   "$RELEASE_ABSENT_SCRIPT" ygsgdbd/TypeSwitch v1.2.3 >/dev/null
-for stub_mode in 200 403 429 500 network; do
+for stub_mode in 403 429 500 network invalid-200; do
   assert_fails env PATH="${TEST_DIR}/bin:${PATH}" GH_STUB_MODE="$stub_mode" \
     "$RELEASE_ABSENT_SCRIPT" ygsgdbd/TypeSwitch v1.2.3
 done
+
+DRAFT_ERROR="${TEST_DIR}/draft-release-error.txt"
+if env PATH="${TEST_DIR}/bin:${PATH}" GH_STUB_MODE=draft \
+  "$RELEASE_ABSENT_SCRIPT" ygsgdbd/TypeSwitch v1.2.3 >/dev/null 2>"$DRAFT_ERROR"; then
+  fail "Draft release unexpectedly passed the release guard."
+fi
+assert_contains "$DRAFT_ERROR" 'Draft GitHub Release ygsgdbd/TypeSwitch@v1.2.3 already exists'
+assert_contains "$DRAFT_ERROR" 'gh release view v1.2.3 --repo ygsgdbd/TypeSwitch --json isDraft,url,assets'
+assert_contains "$DRAFT_ERROR" 'gh release delete v1.2.3 --repo ygsgdbd/TypeSwitch --yes'
+assert_contains "$DRAFT_ERROR" 'FAILED_RUN_ID=123456789'
+assert_contains "$DRAFT_ERROR" 'gh run rerun "$FAILED_RUN_ID" --failed --repo ygsgdbd/TypeSwitch'
+assert_not_contains "$DRAFT_ERROR" '<failed-run-id>'
+
+PUBLISHED_ERROR="${TEST_DIR}/published-release-error.txt"
+if env PATH="${TEST_DIR}/bin:${PATH}" GH_STUB_MODE=published \
+  "$RELEASE_ABSENT_SCRIPT" ygsgdbd/TypeSwitch v1.2.3 >/dev/null 2>"$PUBLISHED_ERROR"; then
+  fail "Published release unexpectedly passed the release guard."
+fi
+assert_contains "$PUBLISHED_ERROR" 'must not be rebuilt or overwritten'
+assert_not_contains "$PUBLISHED_ERROR" 'gh release delete'
 
 ARTIFACTS="${TEST_DIR}/artifacts"
 make_artifacts "$ARTIFACTS" v1.2.3
@@ -247,7 +273,8 @@ JOB_NAMES=$(awk '
 [[ "$JOB_NAMES" == $'publish\nhomebrew' ]] || fail "Release workflow must contain only publish and homebrew jobs; got: $JOB_NAMES"
 
 assert_contains "$WORKFLOW" 'group: release-${{ github.repository }}'
-assert_contains "$WORKFLOW" 'queue: max'
+assert_contains "$WORKFLOW" 'cancel-in-progress: false'
+assert_not_contains "$WORKFLOW" 'queue:'
 assert_contains "$WORKFLOW" "git tag --merged origin/main --list 'v*'"
 assert_contains "$WORKFLOW" 'ruby script/validate_release_order.rb "$RELEASE_TAG"'
 assert_contains "$WORKFLOW" 'script/ensure_release_absent.sh "$GITHUB_REPOSITORY" "$RELEASE_TAG"'
@@ -275,6 +302,7 @@ if (( VALIDATE_TAG_LINE >= RELEASE_ABSENT_LINE || RELEASE_ABSENT_LINE >= GENERAT
 fi
 
 assert_contains "$PR_WORKFLOW" 'release-scripts:'
+assert_contains "$PR_WORKFLOW" 'run: actionlint .github/workflows/*.yml'
 assert_contains "$PR_WORKFLOW" 'run: script/test_release_scripts.sh'
 assert_contains "$JUSTFILE" 'test-release-scripts:'
 

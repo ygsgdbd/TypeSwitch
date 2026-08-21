@@ -44,11 +44,27 @@
 
 - 发布前要求当前 tag 是 `origin/main` 上最高的严格 SemVer，阻止低版本 GitHub Release 成为 latest。
 - Homebrew updater 独立拒绝版本降级，同版本保持幂等。
-- 所有版本共用仓库级 release concurrency group，并使用 `queue: max`。
+
+## 已处理（2026-08-21）
+
+- 删除 GitHub Actions schema 不支持的 `concurrency.queue`，改用仓库级 release concurrency group 和 `cancel-in-progress: false`，避免正在发布的版本被后续 tag 取消。
+- PR 的 Release Scripts job 新增 `actionlint` schema 校验，防止无效 workflow 被字符串断言误判为通过。
+- 发布保护现在区分残留草稿与已完成的正式 Release：草稿会提供“检查、删除草稿但保留 tag、仅重跑失败任务”的恢复指引，正式 Release 继续拒绝重建或覆盖；中英文 README 已改用实际支持的 `gh run rerun "$FAILED_RUN_ID" --failed`，避免 shell 将尖括号占位符解释为重定向。
+- 自动切换 attempt 会记录最新选择是否仍为目标输入法；目标通知先到而 effect 随后返回失败时，结果收敛为 `alreadySelected`，非目标通知会先撤销该确认。处理后既不会因瞬时验证失败显示错误警告，也不会在输入法已经切走时隐藏真实失败或增加自动切换统计。回归测试覆盖“目标通知 → 失败”和“目标通知 → 非目标通知 → 失败”两种交错。
+
+## 待后续处理（2026-08-21）
+
+以下为已确认但尚未修复或完成回归验证的问题；后续处理方向不代表已经采用具体实现方案。
+
+### P2：连续多个 release tag 不具备完整 FIFO 保证
+
+GitHub Actions 原生 concurrency 只保留一个 running 和一个 pending run。当前仓库级 concurrency group 能阻止多个正式发布同时运行，但短时间内连续推送三个或更多 tag 时，较早的 pending run 仍可能被更新的 pending run 替换。
+
+后续处理：在确实需要连续发布多个版本时，设计受支持的显式排队或调度方案，并增加多 tag 到达顺序的验证；不再使用 Actions schema 不支持的 `queue` 字段。
 
 ## 已验证
 
-- 重新生成 Tuist 工程后的完整 macOS XCTest：131 tests，0 failures。
+- 重新生成 Tuist 工程后的完整 macOS XCTest：133 tests，0 failures。
 - `script/test_release_scripts.sh`：通过。
 - Shell、Ruby、workflow YAML 和 `git diff --check`：通过。
 - SwiftFormat 0.62.1：0 个文件需要格式化。
