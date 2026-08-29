@@ -119,7 +119,6 @@ brew upgrade typeswitch
 - [The Composable Architecture](https://github.com/pointfreeco/swift-composable-architecture) `1.26.0`：应用架构和状态管理
 - [Sharing](https://github.com/pointfreeco/swift-sharing) `2.9.1`：基于文件的共享状态持久化
 - [Sparkle](https://github.com/sparkle-project/Sparkle) `2.9.4`：静默自动检查、手动更新和 appcast 支持
-- [SwifterSwift](https://github.com/SwifterSwift/SwifterSwift) `8.0.0`：Swift 扩展
 - Point-Free 支持库：CasePaths、Dependencies、PerceptionCore
 - [Tuist](https://github.com/tuist/tuist)：项目生成和构建配置
 

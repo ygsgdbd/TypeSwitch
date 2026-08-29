@@ -119,7 +119,6 @@ This project uses:
 - [The Composable Architecture](https://github.com/pointfreeco/swift-composable-architecture) `1.26.0` for app architecture and state management
 - [Sharing](https://github.com/pointfreeco/swift-sharing) `2.9.1` for file-backed shared state
 - [Sparkle](https://github.com/sparkle-project/Sparkle) `2.9.4` for silent automatic checks, manual updates, and appcast support
-- [SwifterSwift](https://github.com/SwifterSwift/SwifterSwift) `8.0.0` for Swift extensions
 - Point-Free support libraries: CasePaths, Dependencies, and PerceptionCore
 - [Tuist](https://github.com/tuist/tuist) for project generation and build configuration
 

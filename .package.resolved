@@ -128,15 +128,6 @@
       }
     },
     {
-      "identity" : "swifterswift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/SwifterSwift/SwifterSwift",
-      "state" : {
-        "revision" : "5d948a15446bddb6c367bc7e7100cfcbaa0e9b57",
-        "version" : "8.0.0"
-      }
-    },
-    {
       "identity" : "xctest-dynamic-overlay",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/xctest-dynamic-overlay",

@@ -12,6 +12,7 @@
 #### 优化
 
 - 将版本、项目主页、开发者、帮助、诊断和问题反馈收进“帮助与关于”子菜单，减少低频支持入口对一级菜单空间的占用。
+- 移除旧 Defaults 到当前 Sharing 存储的升级迁移代码；从本版本起仅保证从 v0.9.0 及以上版本直接升级时保留配置，更早版本直接升级可能无法恢复旧 App 规则。
 
 #### 修复
 
@@ -30,6 +31,7 @@
 #### Improvements
 
 - Moved version, project, developer, help, diagnostics, and issue-reporting information into a `Help & About` submenu so low-frequency support actions no longer crowd the root menu.
+- Removed the upgrade migration from legacy Defaults to the current Sharing store. Starting with this release, configuration preservation is guaranteed only when upgrading directly from v0.9.0 or later; direct upgrades from earlier versions may not restore legacy app rules.
 
 #### Fixes
 
