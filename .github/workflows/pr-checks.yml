@@ -19,6 +19,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install actionlint
+        run: brew install actionlint
+
+      - name: Validate workflows
+        run: actionlint .github/workflows/*.yml
+
       - name: Test release scripts
         run: script/test_release_scripts.sh
 

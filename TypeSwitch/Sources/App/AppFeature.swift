@@ -61,6 +61,7 @@ struct AppFeature {
             let appName: String
             let attemptID: Int
             let bundleId: String
+            var didObserveTargetSelection: Bool
             let inputMethodId: String
             let inputMethodName: String?
             let ruleSource: RuleSource
@@ -69,6 +70,7 @@ struct AppFeature {
                 appName: String = "",
                 attemptID: Int = 0,
                 bundleId: String,
+                didObserveTargetSelection: Bool = false,
                 inputMethodId: String,
                 inputMethodName: String? = nil,
                 ruleSource: RuleSource = .app
@@ -76,6 +78,7 @@ struct AppFeature {
                 self.appName = appName
                 self.attemptID = attemptID
                 self.bundleId = bundleId
+                self.didObserveTargetSelection = didObserveTargetSelection
                 self.inputMethodId = inputMethodId
                 self.inputMethodName = inputMethodName
                 self.ruleSource = ruleSource
@@ -290,8 +293,16 @@ struct AppFeature {
                 return beginInputMethodRefresh(in: &state)
 
             case .system(.inputMethodSelectedChanged(let inputMethodId)):
-                if state.pendingProgrammaticSwitch?.inputMethodId == inputMethodId {
-                    return .none
+                if var pendingSwitch = state.pendingProgrammaticSwitch {
+                    if pendingSwitch.inputMethodId == inputMethodId {
+                        pendingSwitch.didObserveTargetSelection = true
+                        state.pendingProgrammaticSwitch = pendingSwitch
+                        return .none
+                    }
+                    if pendingSwitch.didObserveTargetSelection {
+                        pendingSwitch.didObserveTargetSelection = false
+                        state.pendingProgrammaticSwitch = pendingSwitch
+                    }
                 }
 
                 guard let bundleId = state.currentFrontmostBundleId else {
@@ -370,16 +381,24 @@ struct AppFeature {
                     return .none
                 }
                 state.pendingProgrammaticSwitch = nil
+                let resolvedOutcome: State.ProgrammaticSwitchOutcome
+                if pendingSwitch.didObserveTargetSelection,
+                   case .failed = outcome
+                {
+                    resolvedOutcome = .alreadySelected
+                } else {
+                    resolvedOutcome = outcome
+                }
                 state.lastSwitchAttempt = .init(
                     appName: pendingSwitch.appName,
                     bundleId: pendingSwitch.bundleId,
                     inputMethodId: pendingSwitch.inputMethodId,
                     inputMethodName: pendingSwitch.inputMethodName,
-                    outcome: outcome,
+                    outcome: resolvedOutcome,
                     ruleSource: pendingSwitch.ruleSource,
                     timestamp: now
                 )
-                if outcome == .switched {
+                if resolvedOutcome == .switched {
                     state.$appSwitchStatisticsStore.withLock { store in
                         store.counts[pendingSwitch.bundleId, default: 0] += 1
                     }

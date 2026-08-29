@@ -178,11 +178,28 @@ git push origin v0.10.0
 
 发布 workflow 会校验标签、运行测试、构建 universal macOS app、打包 zip、发布 SHA-256 checksum、使用 EdDSA 签名 Sparkle `appcast.xml`、为发布 zip 生成 GitHub Artifact Attestation、发布 GitHub Release，并更新 Homebrew cask。
 
-如需重跑已有发布，必须从同一个 tag ref 手动触发；从分支或其他 tag ref 触发会被拒绝：
+不要重新触发或构建已经正式发布的 tag。如果发布运行失败，请在 Actions 页面仅重跑失败的任务，或执行：
 
 ```bash
-gh workflow run release.yml --ref v0.10.0 -f release_tag=v0.10.0
+FAILED_RUN_ID=123456789 # 替换为失败的 workflow run ID。
+gh run rerun "$FAILED_RUN_ID" --failed --repo ygsgdbd/TypeSwitch
 ```
+
+如果发布保护提示存在未完成的草稿 Release，请先检查它：
+
+```bash
+gh release view v0.10.0 --repo ygsgdbd/TypeSwitch --json isDraft,url,assets
+```
+
+仅在确认 `isDraft` 为 `true` 后，删除该草稿但保留 tag，然后仅重跑失败的任务：
+
+```bash
+gh release delete v0.10.0 --repo ygsgdbd/TypeSwitch --yes
+FAILED_RUN_ID=123456789 # 替换为失败的 workflow run ID。
+gh run rerun "$FAILED_RUN_ID" --failed --repo ygsgdbd/TypeSwitch
+```
+
+workflow 会拒绝重新构建或覆盖已完成的正式 Release。修复内容应使用新的 SemVer tag 发布。
 
 下载发布 zip 后，可使用 GitHub CLI 验证其构建来源：
 

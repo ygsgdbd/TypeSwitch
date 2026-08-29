@@ -178,11 +178,28 @@ git push origin v0.10.0
 
 The workflow validates the tag, runs tests, builds a universal macOS app, packages a zip, publishes its SHA-256 checksum, signs the Sparkle `appcast.xml` with EdDSA, generates a GitHub Artifact Attestation for the release zip, publishes a GitHub Release, and updates the Homebrew cask.
 
-To rerun an existing release, dispatch the workflow from that same tag ref. A branch or a different tag ref is rejected:
+Do not dispatch or rebuild an already published tag. If a release run fails, rerun only its failed jobs from the Actions UI, or use:
 
 ```bash
-gh workflow run release.yml --ref v0.10.0 -f release_tag=v0.10.0
+FAILED_RUN_ID=123456789 # Replace with the failed workflow run ID.
+gh run rerun "$FAILED_RUN_ID" --failed --repo ygsgdbd/TypeSwitch
 ```
+
+If the release guard reports that an incomplete draft Release already exists, inspect it first:
+
+```bash
+gh release view v0.10.0 --repo ygsgdbd/TypeSwitch --json isDraft,url,assets
+```
+
+Only after confirming `isDraft` is `true`, delete that draft without deleting the tag, then rerun only the failed jobs:
+
+```bash
+gh release delete v0.10.0 --repo ygsgdbd/TypeSwitch --yes
+FAILED_RUN_ID=123456789 # Replace with the failed workflow run ID.
+gh run rerun "$FAILED_RUN_ID" --failed --repo ygsgdbd/TypeSwitch
+```
+
+The workflow refuses to rebuild or overwrite a completed, published Release. Publish fixes under a new SemVer tag instead.
 
 After downloading the release zip, verify its build provenance with GitHub CLI:
 
