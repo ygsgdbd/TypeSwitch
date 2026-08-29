@@ -18,7 +18,6 @@ let project = Project(
         .remote(url: "https://github.com/pointfreeco/swift-perception", requirement: .upToNextMajor(from: "2.0.10")),
         .remote(url: "https://github.com/pointfreeco/swift-sharing", requirement: .upToNextMajor(from: "2.9.1")),
         .remote(url: "https://github.com/sparkle-project/Sparkle", requirement: .upToNextMajor(from: "2.9.4")),
-        .remote(url: "https://github.com/SwifterSwift/SwifterSwift", requirement: .upToNextMajor(from: "8.0.0")),
     ],
     settings: .settings(
         base: [
@@ -76,7 +75,6 @@ let project = Project(
                 .package(product: "PerceptionCore"),
                 .package(product: "Sharing"),
                 .package(product: "Sparkle"),
-                .package(product: "SwifterSwift"),
             ],
             settings: .settings(
                 base: [
