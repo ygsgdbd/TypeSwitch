@@ -33,7 +33,7 @@
 - **选择适合自己的切换方式。** 可让 App 继承默认规则、记住上次切换、指定输入法，或忽略不希望 TypeSwitch 管理的 App。
 - **随时配置遇到的 App。** 可直接设置当前 App，从按配置状态分组的运行中 App 里选择，或在菜单栏中管理全部已保存规则。
 - **保持规则与统计整洁。** 查找不存在 App 的规则、移除失效设置、查看成功切换次数，并按需清零统计。
-- **融入日常工作流程。** 支持登录时打开、通过 Sparkle 检查更新、访问 GitHub 仓库，以及使用 `Command + Q` 退出。
+- **融入日常工作流程。** 支持登录时打开、通过 Sparkle 静默检查更新、从“帮助与关于”访问项目与支持入口，以及使用 `Command + Q` 退出。
 
 ## 🪶 原生与轻量
 
@@ -91,7 +91,7 @@ brew upgrade typeswitch
 3. 在“应用程序”中按住 Control 点击或右键点击 `TypeSwitch.app`，选择“打开”，然后确认打开。
 4. 如果 macOS 仍然阻止运行，请打开“系统设置”→“隐私与安全性”，找到 TypeSwitch 的安全提示并选择“仍要打开”。
 5. 授予 macOS 请求的系统权限。
-6. 后续可在菜单栏应用中使用“检查更新…”从 GitHub Releases 检查更新。
+6. TypeSwitch 会静默检查 GitHub Releases；发现新版本后，菜单会显示版本号，点击后才会打开更新窗口。
 
 ## 🧭 使用说明
 
@@ -108,7 +108,7 @@ brew upgrade typeswitch
 
 - App 规则、未配置 App 的默认规则和切换统计都存储在本地。
 - 本仓库中没有服务端组件。
-- TypeSwitch 启动时不会检查更新或访问 GitHub。只有在你主动点击“GitHub 仓库”或“检查更新…”后才会访问 GitHub。
+- TypeSwitch 会在启动时及运行期间定时访问 GitHub appcast 检查更新。后台检查只更新菜单状态，不会自动弹窗、下载或安装；点击“检查更新…”或“新版本 … 可用…”后才会打开 Sparkle 更新窗口。
 - 输入法切换使用 macOS 系统输入源。
 - “登录时打开”使用 macOS 登录项；必要时会回退到 LaunchAgent。
 
@@ -118,7 +118,7 @@ brew upgrade typeswitch
 
 - [The Composable Architecture](https://github.com/pointfreeco/swift-composable-architecture) `1.26.0`：应用架构和状态管理
 - [Sharing](https://github.com/pointfreeco/swift-sharing) `2.9.1`：基于文件的共享状态持久化
-- [Sparkle](https://github.com/sparkle-project/Sparkle) `2.9.4`：手动检查更新和 appcast 支持
+- [Sparkle](https://github.com/sparkle-project/Sparkle) `2.9.4`：静默自动检查、手动更新和 appcast 支持
 - [SwifterSwift](https://github.com/SwifterSwift/SwifterSwift) `8.0.0`：Swift 扩展
 - Point-Free 支持库：CasePaths、Dependencies、PerceptionCore
 - [Tuist](https://github.com/tuist/tuist)：项目生成和构建配置

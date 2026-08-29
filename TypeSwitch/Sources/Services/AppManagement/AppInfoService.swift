@@ -4,8 +4,14 @@ import Foundation
 /// 应用信息服务类，负责管理应用相关链接
 enum AppInfoService {
     /// GitHub 仓库信息
-    private static let githubRepository = "ygsgdbd/TypeSwitch"
+    private static let githubAccount = "ygsgdbd"
+    private static let githubRepository = "\(githubAccount)/TypeSwitch"
     private static let githubBaseURL = "https://github.com"
+
+    /// 获取开发者 GitHub 主页 URL
+    static var githubProfileURL: URL? {
+        URL(string: "\(githubBaseURL)/\(githubAccount)")
+    }
 
     /// 获取 GitHub 仓库 URL
     static var githubRepositoryURL: URL? {
@@ -39,6 +45,13 @@ enum AppInfoService {
     @MainActor
     static func openGitHubRepository() {
         guard let url = githubRepositoryURL else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    /// 打开开发者 GitHub 主页
+    @MainActor
+    static func openGitHubProfile() {
+        guard let url = githubProfileURL else { return }
         NSWorkspace.shared.open(url)
     }
 
