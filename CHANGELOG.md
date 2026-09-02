@@ -1,8 +1,12 @@
 # Changelog
 
-## Unreleased
+## v0.10.0
 
 ### 🇨🇳 中文
+
+#### 升级提示
+
+- 从 v0.9.0 及以上版本直接升级会保留现有配置。更早版本请先安装并运行 v0.9.0 完成迁移，再升级到 v0.10.0；否则旧 App 规则可能无法恢复。
 
 #### 功能
 
@@ -22,6 +26,10 @@
 - 加固发布链路：阻止版本回退和跨版本并发，校验 Sparkle 签名与 App 内置公钥一致，并为发布失败后残留的草稿 Release 提供安全恢复指引。
 
 ### 🇺🇸 English
+
+#### Upgrade Notice
+
+- Direct upgrades from v0.9.0 or later preserve existing configuration. For earlier versions, install and run v0.9.0 first to complete migration before upgrading to v0.10.0; otherwise, legacy app rules may not be restored.
 
 #### Features
 
