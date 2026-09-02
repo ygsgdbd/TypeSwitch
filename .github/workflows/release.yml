@@ -34,6 +34,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Restore annotated release tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: git fetch --force origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
+
       - name: Validate release tag
         id: release_tag
         env:

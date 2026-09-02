@@ -275,6 +275,7 @@ JOB_NAMES=$(awk '
 assert_contains "$WORKFLOW" 'group: release-${{ github.repository }}'
 assert_contains "$WORKFLOW" 'cancel-in-progress: false'
 assert_not_contains "$WORKFLOW" 'queue:'
+assert_contains "$WORKFLOW" 'git fetch --force origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"'
 assert_contains "$WORKFLOW" "git tag --merged origin/main --list 'v*'"
 assert_contains "$WORKFLOW" 'ruby script/validate_release_order.rb "$RELEASE_TAG"'
 assert_contains "$WORKFLOW" 'script/ensure_release_absent.sh "$GITHUB_REPOSITORY" "$RELEASE_TAG"'
@@ -294,11 +295,14 @@ assert_not_contains "$WORKFLOW" 'release-notes.html'
 [[ "$(grep -Fc 'secrets.HOMEBREW_TAP_TOKEN' "$WORKFLOW")" == "1" ]] || fail "Homebrew token must appear only in the tap checkout."
 [[ ! -e "${ROOT_DIR}/script/validate_release_version.rb" ]] || fail "Obsolete release version helper still exists."
 
+RESTORE_TAG_LINE=$(grep -nF -- 'name: Restore annotated release tag' "$WORKFLOW" | cut -d: -f1)
 VALIDATE_TAG_LINE=$(grep -nF -- 'name: Validate release tag' "$WORKFLOW" | cut -d: -f1)
 RELEASE_ABSENT_LINE=$(grep -nF -- 'name: Ensure GitHub Release does not already exist' "$WORKFLOW" | cut -d: -f1)
 GENERATE_PROJECT_LINE=$(grep -nF -- 'name: Generate Xcode Project' "$WORKFLOW" | cut -d: -f1)
-if (( VALIDATE_TAG_LINE >= RELEASE_ABSENT_LINE || RELEASE_ABSENT_LINE >= GENERATE_PROJECT_LINE )); then
-  fail "GitHub Release absence check must run after tag validation and before project generation."
+if (( RESTORE_TAG_LINE >= VALIDATE_TAG_LINE
+  || VALIDATE_TAG_LINE >= RELEASE_ABSENT_LINE
+  || RELEASE_ABSENT_LINE >= GENERATE_PROJECT_LINE )); then
+  fail "Annotated tag restore and release absence checks must run before project generation."
 fi
 
 assert_contains "$PR_WORKFLOW" 'release-scripts:'
