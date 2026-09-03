@@ -1,3 +1,4 @@
+import Combine
 import Sparkle
 @testable import TypeSwitch
 import XCTest
@@ -71,6 +72,60 @@ final class SparkleUpdateMonitorTests: XCTestCase {
         )
     }
 
+    func testFinishingCheckWhileMenuIsTrackedDefersVisibleStateUntilTrackingEnds() {
+        let updater = UpdaterSpy()
+        let monitor = SparkleUpdateMonitor()
+        monitor.startSilentCheck(using: updater)
+        monitor.menuTrackingDidBegin()
+
+        monitor.updater(
+            delegateUpdater,
+            didFinishUpdateCycleFor: .updateInformation,
+            error: noUpdateError
+        )
+
+        XCTAssertEqual(monitor.status, .checking)
+        XCTAssertEqual(
+            monitor.menuTitle,
+            TypeSwitchStrings.Settings.General.checkingForUpdates
+        )
+        XCTAssertFalse(monitor.isMenuActionEnabled)
+
+        monitor.menuTrackingDidEnd()
+
+        XCTAssertEqual(monitor.status, .idle)
+        XCTAssertEqual(
+            monitor.menuTitle,
+            TypeSwitchStrings.Settings.General.checkForUpdates
+        )
+        XCTAssertTrue(monitor.isMenuActionEnabled)
+    }
+
+    func testMenuTrackingPublishesOnlyFinalStatusWhenTrackingEnds() {
+        let updater = UpdaterSpy()
+        let monitor = SparkleUpdateMonitor()
+        let update = SUAppcastItem.empty()
+        monitor.startSilentCheck(using: updater)
+        var publishedStatuses: [SparkleUpdateMonitor.Status] = []
+        let cancellable = monitor.$status.dropFirst().sink {
+            publishedStatuses.append($0)
+        }
+        monitor.menuTrackingDidBegin()
+
+        monitor.updater(delegateUpdater, didFindValidUpdate: update)
+        monitor.updater(delegateUpdater, didFinishUpdateCycleFor: .updateInformation, error: nil)
+
+        XCTAssertTrue(publishedStatuses.isEmpty)
+
+        monitor.menuTrackingDidEnd()
+
+        XCTAssertEqual(
+            publishedStatuses,
+            [.updateAvailable(version: update.displayVersionString)]
+        )
+        withExtendedLifetime(cancellable) {}
+    }
+
     func testNoUpdateClearsPreviouslyKnownUpdate() {
         let updater = UpdaterSpy()
         let monitor = SparkleUpdateMonitor()
@@ -98,6 +153,30 @@ final class SparkleUpdateMonitorTests: XCTestCase {
             didFinishUpdateCycleFor: .updateInformation,
             error: NSError(domain: "SparkleUpdateMonitorTests", code: 1)
         )
+
+        XCTAssertEqual(
+            monitor.status,
+            .updateAvailable(version: update.displayVersionString)
+        )
+    }
+
+    func testFailedCheckWhileMenuIsTrackedRestoresKnownUpdateAfterTrackingEnds() {
+        let updater = UpdaterSpy()
+        let monitor = SparkleUpdateMonitor()
+        let update = SUAppcastItem.empty()
+        monitor.handleScheduledUpdate(update)
+        monitor.startSilentCheck(using: updater)
+        monitor.menuTrackingDidBegin()
+
+        monitor.updater(
+            delegateUpdater,
+            didFinishUpdateCycleFor: .updateInformation,
+            error: NSError(domain: "SparkleUpdateMonitorTests", code: 1)
+        )
+
+        XCTAssertEqual(monitor.status, .checking)
+
+        monitor.menuTrackingDidEnd()
 
         XCTAssertEqual(
             monitor.status,
@@ -161,6 +240,41 @@ final class SparkleUpdateMonitorTests: XCTestCase {
         )
 
         XCTAssertEqual(monitor.status, .idle)
+        XCTAssertTrue(monitor.isMenuActionEnabled)
+    }
+
+    func testScheduledUpdateWhileMenuIsTrackedDefersVisibleStateUntilTrackingEnds() {
+        let updater = UpdaterSpy()
+        let monitor = SparkleUpdateMonitor()
+        let update = SUAppcastItem.empty()
+        monitor.menuTrackingDidBegin()
+
+        XCTAssertNoThrow(
+            try monitor.updater(delegateUpdater, mayPerform: .updatesInBackground)
+        )
+        monitor.showUpdate(using: updater)
+        monitor.updater(delegateUpdater, didFindValidUpdate: update)
+        monitor.handleScheduledUpdate(update)
+        monitor.updater(delegateUpdater, didFinishUpdateCycleFor: .updatesInBackground, error: nil)
+
+        XCTAssertEqual(monitor.status, .idle)
+        XCTAssertEqual(
+            monitor.menuTitle,
+            TypeSwitchStrings.Settings.General.checkForUpdates
+        )
+        XCTAssertTrue(monitor.isMenuActionEnabled)
+        XCTAssertEqual(updater.userCheckCount, 0)
+
+        monitor.menuTrackingDidEnd()
+
+        XCTAssertEqual(
+            monitor.status,
+            .updateAvailable(version: update.displayVersionString)
+        )
+        XCTAssertEqual(
+            monitor.menuTitle,
+            TypeSwitchStrings.Settings.General.updateAvailable(update.displayVersionString)
+        )
         XCTAssertTrue(monitor.isMenuActionEnabled)
     }
 
