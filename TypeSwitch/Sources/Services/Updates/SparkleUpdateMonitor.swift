@@ -38,68 +38,91 @@ final class SparkleUpdateMonitor: NSObject, ObservableObject {
     }
 
     private var availableVersionBeforeCheck: String?
+    private var canonicalStatus: Status = .idle
+    private var isMenuTracking = false
     private var pendingVersion: String?
 
     func startSilentCheck(using updater: SparkleUpdateChecking) {
-        guard status != .checking, !updater.sessionInProgress else { return }
+        guard canonicalStatus != .checking, !updater.sessionInProgress else { return }
 
         beginCheck()
         updater.checkForUpdateInformation()
     }
 
     func showUpdate(using updater: SparkleUpdateChecking) {
-        guard status != .checking, updater.canCheckForUpdates else { return }
+        guard canonicalStatus != .checking, updater.canCheckForUpdates else { return }
 
         updater.checkForUpdates()
     }
 
+    func menuTrackingDidBegin() {
+        isMenuTracking = true
+    }
+
+    func menuTrackingDidEnd() {
+        guard isMenuTracking else { return }
+        isMenuTracking = false
+        publishCanonicalStatus()
+    }
+
     private var availableVersion: String? {
-        guard case .updateAvailable(let version) = status else { return nil }
+        guard case .updateAvailable(let version) = canonicalStatus else { return nil }
         return version
     }
 
     private func beginCheck() {
-        guard status != .checking else { return }
+        guard canonicalStatus != .checking else { return }
 
         availableVersionBeforeCheck = availableVersion
         pendingVersion = nil
-        status = .checking
+        setCanonicalStatus(.checking)
     }
 
     private func recordAvailableUpdate(_ update: SUAppcastItem) {
         let version = update.displayVersionString
-        if status == .checking {
+        if canonicalStatus == .checking {
             pendingVersion = version
         } else {
-            status = .updateAvailable(version: version)
+            setCanonicalStatus(.updateAvailable(version: version))
         }
     }
 
     func handleScheduledUpdate(_ update: SUAppcastItem) {
         availableVersionBeforeCheck = nil
         pendingVersion = nil
-        status = .updateAvailable(version: update.displayVersionString)
+        setCanonicalStatus(.updateAvailable(version: update.displayVersionString))
     }
 
     private func finishCheck(error: Error?) {
-        guard status == .checking else { return }
+        guard canonicalStatus == .checking else { return }
 
         if isNoUpdateError(error) {
-            status = .idle
+            setCanonicalStatus(.idle)
         } else if error != nil {
             if let availableVersionBeforeCheck {
-                status = .updateAvailable(version: availableVersionBeforeCheck)
+                setCanonicalStatus(.updateAvailable(version: availableVersionBeforeCheck))
             } else {
-                status = .idle
+                setCanonicalStatus(.idle)
             }
         } else if let pendingVersion {
-            status = .updateAvailable(version: pendingVersion)
+            setCanonicalStatus(.updateAvailable(version: pendingVersion))
         } else {
-            status = .idle
+            setCanonicalStatus(.idle)
         }
 
         availableVersionBeforeCheck = nil
         pendingVersion = nil
+    }
+
+    private func setCanonicalStatus(_ newStatus: Status) {
+        canonicalStatus = newStatus
+        guard !isMenuTracking else { return }
+        publishCanonicalStatus()
+    }
+
+    private func publishCanonicalStatus() {
+        guard status != canonicalStatus else { return }
+        status = canonicalStatus
     }
 
     private func isNoUpdateError(_ error: Error?) -> Bool {

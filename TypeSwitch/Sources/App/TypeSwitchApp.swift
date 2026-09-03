@@ -59,6 +59,7 @@ struct TypeSwitchApp: App {
                         }
                     }
                     guard MenuBarView.isRootMenuTrackingNotification(notification) else { return }
+                    updateMonitor.menuTrackingDidBegin()
                     store.send(.menuPresented)
                 }
             },
@@ -69,6 +70,7 @@ struct TypeSwitchApp: App {
             ) { notification in
                 MainActor.assumeIsolated {
                     guard MenuBarView.isRootMenuTrackingNotification(notification) else { return }
+                    updateMonitor.menuTrackingDidEnd()
                     store.send(.menuDismissed)
                 }
             },
