@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.10.1
+
+### 🇨🇳 中文
+
+#### 修复
+
+- 修复更新检查状态在菜单展开期间变化时可能导致 TypeSwitch 闪退的问题；更新状态会延迟到菜单关闭后再显示。
+
+### 🇺🇸 English
+
+#### Fixes
+
+- Fixed a crash that could occur when the update-check status changed while the menu was open; the visible status is now deferred until the menu closes.
+
 ## v0.10.0
 
 ### 🇨🇳 中文
