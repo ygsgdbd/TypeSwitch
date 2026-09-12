@@ -5,39 +5,11 @@ import Sharing
 @Reducer
 struct AppFeature {
     @Dependency(\.date.now) var now
-    @Dependency(\.inputMethodClient) var inputMethodClient
     @Dependency(\.launchAtLoginClient) var launchAtLoginClient
     @Dependency(\.workspaceClient) var workspaceClient
 
     @ObservableState
     struct State: Equatable {
-        enum InputMethodCatalogStatus: Equatable, Sendable {
-            case loading
-            case ready
-            case failed(InputMethodService.InputMethodError)
-        }
-
-        enum RuleSource: Equatable, Sendable {
-            case app
-            case fallback
-        }
-
-        enum ProgrammaticSwitchOutcome: Equatable, Sendable {
-            case alreadySelected
-            case switched
-            case failed(InputMethodService.InputMethodError)
-        }
-
-        struct LastSwitchAttempt: Equatable, Sendable {
-            let appName: String
-            let bundleId: String
-            let inputMethodId: String
-            let inputMethodName: String?
-            let outcome: ProgrammaticSwitchOutcome
-            let ruleSource: RuleSource
-            let timestamp: Date
-        }
-
         struct AppMenuItem: Equatable, Identifiable {
             let bundleId: String
             let name: String
@@ -55,34 +27,6 @@ struct AppFeature {
             }
         }
 
-        struct PendingProgrammaticSwitch: Equatable {
-            let appName: String
-            let attemptID: Int
-            let bundleId: String
-            var didObserveTargetSelection: Bool
-            let inputMethodId: String
-            let inputMethodName: String?
-            let ruleSource: RuleSource
-
-            init(
-                appName: String = "",
-                attemptID: Int = 0,
-                bundleId: String,
-                didObserveTargetSelection: Bool = false,
-                inputMethodId: String,
-                inputMethodName: String? = nil,
-                ruleSource: RuleSource = .app
-            ) {
-                self.appName = appName
-                self.attemptID = attemptID
-                self.bundleId = bundleId
-                self.didObserveTargetSelection = didObserveTargetSelection
-                self.inputMethodId = inputMethodId
-                self.inputMethodName = inputMethodName
-                self.ruleSource = ruleSource
-            }
-        }
-
         struct SwitchStatisticsItem: Equatable, Identifiable {
             let bundleId: String
             let name: String
@@ -95,22 +39,12 @@ struct AppFeature {
         @Shared var appRulesStore: AppRulesStore
         @Shared var appSwitchStatisticsStore: AppSwitchStatisticsStore
         @Shared var fallbackRuleStore: FallbackRuleStore
-        var currentFrontmostBundleId: String?
-        var inputMethodCatalogStatus: InputMethodCatalogStatus = .loading
-        var inputMethods: [InputMethod] = []
+        var switching: SwitchingFeature.State
         var isMenuPresented = false
         var isReadmeDemo = false
-        var lastSwitchAttempt: LastSwitchAttempt?
         var launchAtLoginStatus: LaunchAtLoginStatus = .disabled
         var menuStrategiesAtPresentation: [String: InputMethodStrategy] = [:]
-        var nextFrontmostRetryID = 0
-        var nextInputMethodRefreshID = 0
-        var nextSwitchAttemptID = 0
-        var pendingFrontmostRetryID: Int?
-        var pendingInputMethodRefreshID: Int?
-        var pendingProgrammaticSwitch: PendingProgrammaticSwitch?
         var runningApps: [AppInfo] = []
-        var shouldRetryFrontmostAfterInputMethodRefresh = false
 
         init(
             appRulesStore: Shared<AppRulesStore> = Shared(
@@ -126,41 +60,32 @@ struct AppFeature {
                 .fileStorage(.fallbackRuleStoreURL)
             ),
             currentFrontmostBundleId: String? = nil,
-            inputMethodCatalogStatus: InputMethodCatalogStatus = .loading,
+            inputMethodCatalogStatus: SwitchingFeature.State.InputMethodCatalogStatus = .loading,
             inputMethods: [InputMethod] = [],
             isMenuPresented: Bool = false,
             isReadmeDemo: Bool = false,
-            lastSwitchAttempt: LastSwitchAttempt? = nil,
+            lastSwitchAttempt: SwitchingFeature.State.LastSwitchAttempt? = nil,
             launchAtLoginStatus: LaunchAtLoginStatus = .disabled,
             menuStrategiesAtPresentation: [String: InputMethodStrategy] = [:],
-            nextFrontmostRetryID: Int = 0,
-            nextInputMethodRefreshID: Int = 0,
-            nextSwitchAttemptID: Int = 0,
-            pendingFrontmostRetryID: Int? = nil,
-            pendingInputMethodRefreshID: Int? = nil,
-            pendingProgrammaticSwitch: PendingProgrammaticSwitch? = nil,
-            runningApps: [AppInfo] = [],
-            shouldRetryFrontmostAfterInputMethodRefresh: Bool = false
+            runningApps: [AppInfo] = []
         ) {
             self._appRulesStore = appRulesStore
             self._appSwitchStatisticsStore = appSwitchStatisticsStore
             self._fallbackRuleStore = fallbackRuleStore
-            self.currentFrontmostBundleId = currentFrontmostBundleId
-            self.inputMethodCatalogStatus = inputMethodCatalogStatus
-            self.inputMethods = inputMethods
+            self.switching = SwitchingFeature.State(
+                appRulesStore: appRulesStore,
+                appSwitchStatisticsStore: appSwitchStatisticsStore,
+                fallbackRuleStore: fallbackRuleStore,
+                currentFrontmostBundleId: currentFrontmostBundleId,
+                inputMethodCatalogStatus: inputMethodCatalogStatus,
+                inputMethods: inputMethods,
+                lastSwitchAttempt: lastSwitchAttempt
+            )
             self.isMenuPresented = isMenuPresented
             self.isReadmeDemo = isReadmeDemo
-            self.lastSwitchAttempt = lastSwitchAttempt
             self.launchAtLoginStatus = launchAtLoginStatus
             self.menuStrategiesAtPresentation = menuStrategiesAtPresentation
-            self.nextFrontmostRetryID = nextFrontmostRetryID
-            self.nextInputMethodRefreshID = nextInputMethodRefreshID
-            self.nextSwitchAttemptID = nextSwitchAttemptID
-            self.pendingFrontmostRetryID = pendingFrontmostRetryID
-            self.pendingInputMethodRefreshID = pendingInputMethodRefreshID
-            self.pendingProgrammaticSwitch = pendingProgrammaticSwitch
             self.runningApps = runningApps
-            self.shouldRetryFrontmostAfterInputMethodRefresh = shouldRetryFrontmostAfterInputMethodRefresh
         }
     }
 
@@ -179,20 +104,11 @@ struct AppFeature {
     }
 
     enum ResponseAction: Equatable, Sendable {
-        case frontmostApplicationLoaded(AppInfo?)
-        case frontmostApplicationRetried(retryID: Int, appInfo: AppInfo?)
-        case inputMethodsLoaded(
-            refreshID: Int,
-            result: Result<[InputMethod], InputMethodService.InputMethodError>
-        )
         case launchAtLoginLoaded(LaunchAtLoginStatus)
-        case programmaticSwitchFinished(attemptID: Int, outcome: State.ProgrammaticSwitchOutcome)
         case runningApps([AppInfo])
     }
 
     enum SystemAction: Equatable, Sendable {
-        case inputMethodAvailabilityChanged
-        case inputMethodSelectedChanged(String)
         case workspaceEvent(WorkspaceClient.Event)
     }
 
@@ -203,12 +119,10 @@ struct AppFeature {
         case view(ViewAction)
         case response(ResponseAction)
         case system(SystemAction)
+        case switching(SwitchingFeature.Action)
     }
 
     private enum CancelID {
-        case inputMethodAvailability
-        case inputMethodSelection
-        case programmaticSwitch
         case workspaceEvents
     }
 
@@ -229,16 +143,13 @@ struct AppFeature {
             case .task:
                 guard !state.isReadmeDemo else { return .none }
                 normalizeFallbackRule(in: &state)
-                let inputMethodRefreshEffect = beginInputMethodRefresh(in: &state)
+                let initialSwitchingEffect = reduceSwitching(.loadInitialState, state: &state)
                 return .merge(
                     .concatenate(
                         .run { send in
                             await send(.response(.launchAtLoginLoaded(await launchAtLoginClient.status())))
                         },
-                        .run { send in
-                            await send(.response(.frontmostApplicationLoaded(await workspaceClient.frontmostApplication())))
-                        },
-                        inputMethodRefreshEffect,
+                        initialSwitchingEffect,
                         refreshRunningAppsEffect()
                     ),
                     .run { send in
@@ -248,139 +159,14 @@ struct AppFeature {
                         }
                     }
                     .cancellable(id: CancelID.workspaceEvents, cancelInFlight: true),
-                    .run { send in
-                        let changes = await inputMethodClient.availabilityChanges()
-                        for await _ in changes {
-                            await send(.system(.inputMethodAvailabilityChanged))
-                        }
-                    }
-                    .cancellable(id: CancelID.inputMethodAvailability, cancelInFlight: true),
-                    .run { send in
-                        let changes = await inputMethodClient.selectionChanges()
-                        for await inputMethodId in changes {
-                            await send(.system(.inputMethodSelectedChanged(inputMethodId)))
-                        }
-                    }
-                    .cancellable(id: CancelID.inputMethodSelection, cancelInFlight: true)
+                    reduceSwitching(.observeInputMethods, state: &state)
                 )
 
             case .view where state.isReadmeDemo:
                 return .none
 
-            case .response(.frontmostApplicationLoaded(let appInfo)):
-                state.currentFrontmostBundleId = appInfo?.bundleId
-                if let appInfo {
-                    upsertRecord(for: appInfo, in: &state)
-                }
-                return .none
-
-            case let .response(.frontmostApplicationRetried(retryID, appInfo)):
-                guard state.pendingFrontmostRetryID == retryID else {
-                    return .none
-                }
-                state.pendingFrontmostRetryID = nil
-                guard let appInfo else { return .none }
-                return handleActivatedApplication(appInfo, state: &state)
-
-            case .system(.inputMethodAvailabilityChanged):
-                return beginInputMethodRefresh(in: &state)
-
-            case .system(.inputMethodSelectedChanged(let inputMethodId)):
-                if var pendingSwitch = state.pendingProgrammaticSwitch {
-                    if pendingSwitch.inputMethodId == inputMethodId {
-                        pendingSwitch.didObserveTargetSelection = true
-                        state.pendingProgrammaticSwitch = pendingSwitch
-                        return .none
-                    }
-                    if pendingSwitch.didObserveTargetSelection {
-                        pendingSwitch.didObserveTargetSelection = false
-                        state.pendingProgrammaticSwitch = pendingSwitch
-                    }
-                }
-
-                guard let bundleId = state.currentFrontmostBundleId else {
-                    return .none
-                }
-
-                if let lastSwitchAttempt = state.lastSwitchAttempt,
-                   lastSwitchAttempt.bundleId == bundleId,
-                   lastSwitchAttempt.inputMethodId == inputMethodId,
-                   case .failed = lastSwitchAttempt.outcome
-                {
-                    state.lastSwitchAttempt = nil
-                }
-
-                if case .followLast(let previousInputMethodId) = state.appRules[bundleId]?.strategy {
-                    guard previousInputMethodId != inputMethodId else {
-                        return .none
-                    }
-
-                    let updateDate = now
-                    state.$appRulesStore.withLock { store in
-                        guard var rule = store.rules[bundleId] else { return }
-                        rule.strategy = .followLast(lastInputMethodId: inputMethodId)
-                        rule.updatedAt = updateDate
-                        store.rules[bundleId] = rule
-                    }
-                    return .none
-                }
-
-                return .none
-
-            case let .response(.inputMethodsLoaded(refreshID, .success(inputMethods))):
-                guard state.pendingInputMethodRefreshID == refreshID else {
-                    return .none
-                }
-                state.pendingInputMethodRefreshID = nil
-                state.inputMethodCatalogStatus = .ready
-                state.inputMethods = inputMethods
-                guard state.shouldRetryFrontmostAfterInputMethodRefresh else {
-                    return .none
-                }
-                state.shouldRetryFrontmostAfterInputMethodRefresh = false
-                return retryFrontmostApplicationEffect(in: &state)
-
-            case let .response(.inputMethodsLoaded(refreshID, .failure(error))):
-                guard state.pendingInputMethodRefreshID == refreshID else {
-                    return .none
-                }
-                state.pendingInputMethodRefreshID = nil
-                state.inputMethodCatalogStatus = .failed(error)
-                return .none
-
             case .response(.launchAtLoginLoaded(let status)):
                 state.launchAtLoginStatus = status
-                return .none
-
-            case let .response(.programmaticSwitchFinished(attemptID, outcome)):
-                guard let pendingSwitch = state.pendingProgrammaticSwitch,
-                      pendingSwitch.attemptID == attemptID
-                else {
-                    return .none
-                }
-                state.pendingProgrammaticSwitch = nil
-                let resolvedOutcome: State.ProgrammaticSwitchOutcome
-                if pendingSwitch.didObserveTargetSelection,
-                   case .failed = outcome
-                {
-                    resolvedOutcome = .alreadySelected
-                } else {
-                    resolvedOutcome = outcome
-                }
-                state.lastSwitchAttempt = .init(
-                    appName: pendingSwitch.appName,
-                    bundleId: pendingSwitch.bundleId,
-                    inputMethodId: pendingSwitch.inputMethodId,
-                    inputMethodName: pendingSwitch.inputMethodName,
-                    outcome: resolvedOutcome,
-                    ruleSource: pendingSwitch.ruleSource,
-                    timestamp: now
-                )
-                if resolvedOutcome == .switched {
-                    state.$appSwitchStatisticsStore.withLock { store in
-                        store.counts[pendingSwitch.bundleId, default: 0] += 1
-                    }
-                }
                 return .none
 
             case .view(.clearSwitchStatisticsTapped):
@@ -390,8 +176,6 @@ struct AppFeature {
                 return .none
 
             case .view(.ignoreAppTapped(let appInfo)):
-                let shouldCancelProgrammaticSwitch = state.currentFrontmostBundleId == appInfo.bundleId
-                    || state.pendingProgrammaticSwitch?.bundleId == appInfo.bundleId
                 let updateDate = now
                 state.$appRulesStore.withLock { store in
                     let currentRule = store.rules[appInfo.bundleId] ?? AppRuleRecord(
@@ -412,12 +196,10 @@ struct AppFeature {
                     updatedRule.updatedAt = updateDate
                     store.rules[appInfo.bundleId] = updatedRule
                 }
-                guard shouldCancelProgrammaticSwitch else { return .none }
-                state.pendingProgrammaticSwitch = nil
-                return .cancel(id: CancelID.programmaticSwitch)
+                return reduceSwitching(.applicationIgnored(bundleId: appInfo.bundleId), state: &state)
 
             case .view(.reloadInputMethodsTapped):
-                return beginInputMethodRefresh(in: &state)
+                return reduceSwitching(.reloadInputMethods, state: &state)
 
             case .view(.removeMissingInputMethodRulesTapped):
                 guard state.inputMethodCatalogStatus == .ready else {
@@ -475,12 +257,12 @@ struct AppFeature {
                 return .none
 
             case .view(.retryCurrentAppTapped):
-                return retryFrontmostApplicationEffect(in: &state)
+                return reduceSwitching(.retryCurrentApp, state: &state)
 
             case .response(.runningApps(let runningApps)):
                 state.runningApps = runningApps
                 for appInfo in runningApps {
-                    upsertRecord(for: appInfo, in: &state)
+                    state.$appRulesStore.withLock { $0.upsertRecord(for: appInfo, at: now) }
                 }
                 return .none
 
@@ -530,175 +312,28 @@ struct AppFeature {
                 return refreshRunningAppsEffect()
 
             case .system(.workspaceEvent(.terminated(let bundleId))):
-                let wasCurrentApp = state.currentFrontmostBundleId == bundleId
-                if wasCurrentApp {
-                    state.currentFrontmostBundleId = nil
-                    state.pendingFrontmostRetryID = nil
-                    state.shouldRetryFrontmostAfterInputMethodRefresh = false
-                }
-                let shouldCancelProgrammaticSwitch = wasCurrentApp
-                    || state.pendingProgrammaticSwitch?.bundleId == bundleId
-                guard shouldCancelProgrammaticSwitch else {
-                    return refreshRunningAppsEffect()
-                }
-                state.pendingProgrammaticSwitch = nil
                 return .merge(
-                    .cancel(id: CancelID.programmaticSwitch),
+                    reduceSwitching(.applicationTerminated(bundleId: bundleId), state: &state),
                     refreshRunningAppsEffect()
                 )
 
             case .system(.workspaceEvent(.activated(let appInfo))):
-                state.pendingFrontmostRetryID = nil
-                return handleActivatedApplication(appInfo, state: &state)
+                return reduceSwitching(.applicationActivated(appInfo), state: &state)
+
+            case .switching(let action):
+                return reduceSwitching(action, state: &state)
             }
         }
     }
 
-    private func handleActivatedApplication(_ appInfo: AppInfo, state: inout State) -> Effect<Action> {
-        state.currentFrontmostBundleId = appInfo.bundleId
-        upsertRecord(for: appInfo, in: &state)
-
-        switch resolveSwitchTarget(for: appInfo.bundleId, state: state) {
-        case .none:
-            state.pendingProgrammaticSwitch = nil
-            state.shouldRetryFrontmostAfterInputMethodRefresh = false
-            return .cancel(id: CancelID.programmaticSwitch)
-        case .waitingForCatalog:
-            state.pendingProgrammaticSwitch = nil
-            state.shouldRetryFrontmostAfterInputMethodRefresh = true
-            return .cancel(id: CancelID.programmaticSwitch)
-        case let .unavailable(inputMethodId, ruleSource):
-            state.pendingProgrammaticSwitch = nil
-            state.shouldRetryFrontmostAfterInputMethodRefresh = false
-            state.lastSwitchAttempt = .init(
-                appName: appInfo.name,
-                bundleId: appInfo.bundleId,
-                inputMethodId: inputMethodId,
-                inputMethodName: nil,
-                outcome: .failed(.inputMethodNotFound(inputMethodId)),
-                ruleSource: ruleSource,
-                timestamp: now
-            )
-            return .cancel(id: CancelID.programmaticSwitch)
-        case let .target(inputMethod, ruleSource):
-            state.shouldRetryFrontmostAfterInputMethodRefresh = false
-            let attemptID = state.nextSwitchAttemptID
-            state.nextSwitchAttemptID += 1
-            state.pendingProgrammaticSwitch = .init(
-                appName: appInfo.name,
-                attemptID: attemptID,
-                bundleId: appInfo.bundleId,
-                inputMethodId: inputMethod.id,
-                inputMethodName: inputMethod.name,
-                ruleSource: ruleSource
-            )
-
-            return .run { send in
-                let outcome: State.ProgrammaticSwitchOutcome
-                do {
-                    if (try? await inputMethodClient.currentInputMethodId()) == inputMethod.id {
-                        outcome = .alreadySelected
-                    } else {
-                        guard !Task.isCancelled else { return }
-                        try await inputMethodClient.switchToInputMethod(inputMethod.id)
-                        outcome = .switched
-                    }
-                } catch {
-                    guard !Task.isCancelled else { return }
-                    outcome = .failed(.diagnostic(from: error))
-                }
-                guard !Task.isCancelled else { return }
-                await send(.response(.programmaticSwitchFinished(
-                    attemptID: attemptID,
-                    outcome: outcome
-                )))
-            }
-            .cancellable(id: CancelID.programmaticSwitch, cancelInFlight: true)
-        }
-    }
-
-    private func beginInputMethodRefresh(in state: inout State) -> Effect<Action> {
-        let refreshID = state.nextInputMethodRefreshID
-        state.nextInputMethodRefreshID += 1
-        state.pendingInputMethodRefreshID = refreshID
-        state.inputMethodCatalogStatus = .loading
-        return refreshInputMethodsEffect(refreshID: refreshID)
-    }
-
-    private func refreshInputMethodsEffect(refreshID: Int) -> Effect<Action> {
-        .run { send in
-            do {
-                let inputMethods = try await inputMethodClient.fetchInputMethods()
-                guard !Task.isCancelled else { return }
-                await send(.response(.inputMethodsLoaded(
-                    refreshID: refreshID,
-                    result: .success(inputMethods)
-                )))
-            } catch is CancellationError {
-                return
-            } catch {
-                guard !Task.isCancelled else { return }
-                await send(.response(.inputMethodsLoaded(
-                    refreshID: refreshID,
-                    result: .failure(.diagnostic(from: error))
-                )))
-            }
-        }
+    // Route synchronously so ignore/termination invalidate pending work in this turn.
+    private func reduceSwitching(_ action: SwitchingFeature.Action, state: inout State) -> Effect<Action> {
+        SwitchingFeature().reduce(into: &state.switching, action: action).map(Action.switching)
     }
 
     private func refreshRunningAppsEffect() -> Effect<Action> {
         .run { send in
             await send(.response(.runningApps(await workspaceClient.runningApplications())))
-        }
-    }
-
-    private enum SwitchTargetResolution {
-        case none
-        case target(InputMethod, State.RuleSource)
-        case unavailable(String, State.RuleSource)
-        case waitingForCatalog
-    }
-
-    private func resolveSwitchTarget(for bundleId: String, state: State) -> SwitchTargetResolution {
-        let appStrategy = state.strategy(for: bundleId)
-        let strategy = appStrategy == .none ? state.fallbackStrategy : appStrategy
-        let ruleSource: State.RuleSource = appStrategy == .none ? .fallback : .app
-        let candidateId: String?
-
-        switch strategy {
-        case .ignored, .none:
-            return .none
-        case .fixed(let inputMethodId):
-            candidateId = inputMethodId
-        case .followLast(let lastInputMethodId):
-            candidateId = lastInputMethodId
-        }
-
-        guard let candidateId else {
-            return .none
-        }
-        if let inputMethod = state.inputMethods.first(where: { $0.id == candidateId }) {
-            return .target(inputMethod, ruleSource)
-        }
-        switch state.inputMethodCatalogStatus {
-        case .loading:
-            return .waitingForCatalog
-        case .ready:
-            return .unavailable(candidateId, ruleSource)
-        case .failed:
-            return .waitingForCatalog
-        }
-    }
-
-    private func retryFrontmostApplicationEffect(in state: inout State) -> Effect<Action> {
-        let retryID = state.nextFrontmostRetryID
-        state.nextFrontmostRetryID += 1
-        state.pendingFrontmostRetryID = retryID
-        return .run { send in
-            await send(.response(.frontmostApplicationRetried(
-                retryID: retryID,
-                appInfo: await workspaceClient.frontmostApplication()
-            )))
         }
     }
 
@@ -718,32 +353,6 @@ struct AppFeature {
                 return
             }
             store.strategy = supportedStrategy
-        }
-    }
-
-    private func upsertRecord(for appInfo: AppInfo, in state: inout State) {
-        let updateDate = now
-        state.$appRulesStore.withLock { store in
-            guard var existingRule = store.rules[appInfo.bundleId] else {
-                store.rules[appInfo.bundleId] = AppRuleRecord(
-                    bundleId: appInfo.bundleId,
-                    lastKnownPath: appInfo.path,
-                    lastKnownName: appInfo.name,
-                    strategy: .none,
-                    createdAt: updateDate,
-                    updatedAt: updateDate
-                )
-                return
-            }
-
-            guard existingRule.lastKnownPath != appInfo.path || existingRule.lastKnownName != appInfo.name else {
-                return
-            }
-
-            existingRule.lastKnownPath = appInfo.path
-            existingRule.lastKnownName = appInfo.name
-            existingRule.updatedAt = updateDate
-            store.rules[appInfo.bundleId] = existingRule
         }
     }
 }
