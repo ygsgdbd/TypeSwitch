@@ -103,6 +103,10 @@ final class ReadmeScreenshotConfigurationTests: XCTestCase {
         let store = TestStore(initialState: initialState) {
             AppFeature()
         } withDependencies: {
+            $0.appAvailabilityClient.pathExists = { _ in
+                XCTFail("README demo mode must not inspect the file system")
+                return false
+            }
             $0.workspaceClient.frontmostApplication = {
                 XCTFail("README demo mode must not inspect the live frontmost app")
                 return nil
@@ -135,5 +139,11 @@ final class ReadmeScreenshotConfigurationTests: XCTestCase {
         await store.send(.view(.setLaunchAtLogin(false)))
 
         XCTAssertEqual(store.state, initialState)
+
+        await store.send(.menuPresented) {
+            $0.isMenuPresented = true
+            $0.menuStrategiesAtPresentation = initialState.appRules.mapValues(\.strategy)
+        }
+        XCTAssertEqual(store.state.configuredApps.map(\.name), ["Safari", "Terminal"])
     }
 }

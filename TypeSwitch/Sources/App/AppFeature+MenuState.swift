@@ -185,7 +185,7 @@ extension AppFeature.State {
         sortedRules
             .filter {
                 let strategy = strategyForMenu(bundleId: $0.bundleId)
-                return strategy != .none && strategy != .ignored && $0.isAvailable
+                return strategy != .none && strategy != .ignored && appAvailability.isAvailable($0)
             }
             .map { menuItem(from: $0, strategy: strategyForMenu(bundleId: $0.bundleId)) }
     }
@@ -217,7 +217,7 @@ extension AppFeature.State {
     var unavailableApps: [AppMenuItem] {
         sortedRules
             .filter {
-                !$0.isAvailable && strategyForMenu(bundleId: $0.bundleId) != .ignored
+                !appAvailability.isAvailable($0) && strategyForMenu(bundleId: $0.bundleId) != .ignored
             }
             .map {
                 menuItem(
@@ -273,7 +273,7 @@ extension AppFeature.State {
         menuItem(
             bundleId: rule.bundleId,
             name: rule.lastKnownName,
-            path: rule.isAvailable ? rule.lastKnownPath : nil,
+            path: appAvailability.availablePath(for: rule),
             strategy: strategy
         )
     }
@@ -306,7 +306,7 @@ extension AppFeature.State {
         }
 
         if let rule = appRules[bundleId] {
-            return rule.appInfo
+            return appAvailability.appInfo(for: rule)
         }
 
         return AppInfo(bundleId: bundleId, name: bundleId, path: nil)
@@ -317,7 +317,7 @@ extension AppFeature.State {
             return runningApp
         }
 
-        return appRules[bundleId]?.appInfo
+        return appRules[bundleId].map { appAvailability.appInfo(for: $0) }
     }
 
     private func menuItem(

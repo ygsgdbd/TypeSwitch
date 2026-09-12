@@ -1988,15 +1988,7 @@ final class AppFeatureTests: XCTestCase {
     }
 
     func testFollowLastMissingInputMethodShowsMissingLabelAndSkipsSwitch() async throws {
-        let appURL = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
-        try FileManager.default.createDirectory(
-            at: appURL,
-            withIntermediateDirectories: true,
-            attributes: nil
-        )
-        defer { try? FileManager.default.removeItem(at: appURL) }
-
-        let app = AppInfo(bundleId: "com.test.chat", name: "Chat", path: appURL.path)
+        let app = AppInfo(bundleId: "com.test.chat", name: "Chat", path: "/Applications/Chat.app")
         let missingInputMethod = "ime.deleted"
         let recorder = SwitchRecorder()
 
@@ -2013,6 +2005,8 @@ final class AppFeatureTests: XCTestCase {
                 updatedAt: Date(timeIntervalSince1970: 10)
             )
         }
+
+        initialState.appAvailability = AppAvailabilitySnapshot(availablePaths: [app.path!])
 
         XCTAssertEqual(
             initialState.configuredApps.first?.selectedLabel,
@@ -2323,19 +2317,11 @@ final class AppFeatureTests: XCTestCase {
     }
 
     func testRemoveUnavailableRulesTappedRemovesOnlyUnavailableRules() async throws {
-        let availableURL = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
-        try FileManager.default.createDirectory(
-            at: availableURL,
-            withIntermediateDirectories: true,
-            attributes: nil
-        )
-        defer { try? FileManager.default.removeItem(at: availableURL) }
-
         var initialState = AppFeature.State()
         initialState.$appRulesStore.withLock {
             $0.rules["available"] = AppRuleRecord(
                 bundleId: "available",
-                lastKnownPath: availableURL.path,
+                lastKnownPath: "/Applications/Available.app",
                 lastKnownName: "Available",
                 strategy: .fixed(inputMethodId: "ime.en"),
                 createdAt: Date(timeIntervalSince1970: 10),
@@ -2355,7 +2341,10 @@ final class AppFeatureTests: XCTestCase {
             AppFeature()
         }
 
+        store.dependencies.appAvailabilityClient.pathExists = { $0 == "/Applications/Available.app" }
+
         await store.send(.view(.removeUnavailableRulesTapped)) {
+            $0.appAvailability = AppAvailabilitySnapshot(availablePaths: ["/Applications/Available.app"])
             $0.$appRulesStore.withLock {
                 _ = $0.rules.removeValue(forKey: "missing")
             }
