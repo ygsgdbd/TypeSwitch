@@ -30,7 +30,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -265,7 +265,7 @@ jobs:
 
     steps:
       - name: Checkout release scripts
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ needs.publish.outputs.commit }}
 
@@ -288,7 +288,7 @@ jobs:
           fi
 
       - name: Checkout Homebrew tap
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ygsgdbd/homebrew-tap
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
