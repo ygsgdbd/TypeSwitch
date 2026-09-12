@@ -4,6 +4,7 @@ import Sharing
 
 @Reducer
 struct AppFeature {
+    @Dependency(\.appAvailabilityClient) var appAvailabilityClient
     @Dependency(\.date.now) var now
     @Dependency(\.launchAtLoginClient) var launchAtLoginClient
     @Dependency(\.workspaceClient) var workspaceClient
@@ -40,6 +41,7 @@ struct AppFeature {
         @Shared var appSwitchStatisticsStore: AppSwitchStatisticsStore
         @Shared var fallbackRuleStore: FallbackRuleStore
         var switching: SwitchingFeature.State
+        var appAvailability = AppAvailabilitySnapshot()
         var isMenuPresented = false
         var isReadmeDemo = false
         var launchAtLoginStatus: LaunchAtLoginStatus = .disabled
@@ -59,6 +61,7 @@ struct AppFeature {
                 wrappedValue: FallbackRuleStore(),
                 .fileStorage(.fallbackRuleStoreURL)
             ),
+            appAvailability: AppAvailabilitySnapshot = AppAvailabilitySnapshot(),
             currentFrontmostBundleId: String? = nil,
             inputMethodCatalogStatus: SwitchingFeature.State.InputMethodCatalogStatus = .loading,
             inputMethods: [InputMethod] = [],
@@ -81,6 +84,7 @@ struct AppFeature {
                 inputMethods: inputMethods,
                 lastSwitchAttempt: lastSwitchAttempt
             )
+            self.appAvailability = appAvailability
             self.isMenuPresented = isMenuPresented
             self.isReadmeDemo = isReadmeDemo
             self.launchAtLoginStatus = launchAtLoginStatus
@@ -131,6 +135,9 @@ struct AppFeature {
             switch action {
             case .menuPresented:
                 guard !state.isMenuPresented else { return .none }
+                if !state.isReadmeDemo {
+                    state.appAvailability = appAvailabilityClient.snapshot(for: state.appRules.values)
+                }
                 state.isMenuPresented = true
                 state.menuStrategiesAtPresentation = state.appRules.mapValues(\.strategy)
                 return .none
@@ -142,6 +149,7 @@ struct AppFeature {
 
             case .task:
                 guard !state.isReadmeDemo else { return .none }
+                state.appAvailability = appAvailabilityClient.snapshot(for: state.appRules.values)
                 normalizeFallbackRule(in: &state)
                 let initialSwitchingEffect = reduceSwitching(.loadInitialState, state: &state)
                 return .merge(
@@ -221,9 +229,12 @@ struct AppFeature {
                 return .none
 
             case .view(.removeUnavailableRulesTapped):
+                // Deletion must recheck paths rather than trust the menu snapshot.
+                let availability = appAvailabilityClient.snapshot(for: state.appRules.values)
+                state.appAvailability = availability
                 state.$appRulesStore.withLock { store in
                     store.rules = store.rules.filter {
-                        $0.value.isAvailable || $0.value.strategy == .ignored
+                        availability.isAvailable($0.value) || $0.value.strategy == .ignored
                     }
                 }
                 return .none

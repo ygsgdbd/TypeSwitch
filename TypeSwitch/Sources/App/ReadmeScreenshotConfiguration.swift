@@ -185,6 +185,7 @@ struct ReadmeScreenshotConfiguration: Equatable {
             fallbackRuleStore: Shared(
                 value: FallbackRuleStore(strategy: .fixed(inputMethodId: abcID))
             ),
+            appAvailability: AppAvailabilitySnapshot(availablePaths: Set(rules.values.compactMap(\.lastKnownPath))),
             currentFrontmostBundleId: safari.bundleId,
             inputMethods: [
                 InputMethod(id: abcID, name: "ABC"),
