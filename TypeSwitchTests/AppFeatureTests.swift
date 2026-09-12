@@ -6,6 +6,106 @@ import XCTest
 
 @MainActor
 final class AppFeatureTests: XCTestCase {
+    func testStartupLoadsConfiguredFrontmostAppWithoutSwitching() async {
+        let app = AppInfo(bundleId: "com.test.editor", name: "Editor", path: "/Applications/Editor.app")
+        let inputMethods = [InputMethod(id: "ime.en", name: "English")]
+        var initialState = AppFeature.State()
+        initialState.$appRulesStore.withLock {
+            $0.rules[app.bundleId] = makeRule(app: app, strategy: .fixed(inputMethodId: "ime.en"))
+        }
+        let store = TestStore(initialState: initialState) { AppFeature() }
+        store.dependencies.date = .constant(Date(timeIntervalSince1970: 10))
+        store.dependencies.workspaceClient.frontmostApplication = { app }
+        store.dependencies.workspaceClient.runningApplications = { [app] }
+        store.dependencies.workspaceClient.events = { AsyncStream { $0.finish() } }
+        store.dependencies.inputMethodClient.fetchInputMethods = { inputMethods }
+        store.dependencies.inputMethodClient.availabilityChanges = { AsyncStream { $0.finish() } }
+        store.dependencies.inputMethodClient.selectionChanges = { AsyncStream { $0.finish() } }
+        store.dependencies.inputMethodClient.currentInputMethodId = {
+            XCTFail("Startup records the frontmost app without attempting a switch")
+            return "ime.other"
+        }
+        store.dependencies.inputMethodClient.switchToInputMethod = { _ in
+            XCTFail("Startup must not reapply the configured rule")
+        }
+
+        await store.send(.task) {
+            $0.switching.nextInputMethodRefreshID = 1
+            $0.switching.pendingInputMethodRefreshID = 0
+        }
+        await store.receive(.response(.launchAtLoginLoaded(.disabled)))
+        await store.receive(.switching(.response(.frontmostApplicationLoaded(app)))) {
+            $0.switching.currentFrontmostBundleId = app.bundleId
+        }
+        await store.receive(.switching(.response(.inputMethodsLoaded(refreshID: 0, result: .success(inputMethods))))) {
+            $0.switching.pendingInputMethodRefreshID = nil
+            $0.switching.inputMethodCatalogStatus = .ready
+            $0.switching.inputMethods = inputMethods
+        }
+        await store.receive(.response(.runningApps([app]))) {
+            $0.runningApps = [app]
+        }
+        await store.finish()
+        XCTAssertEqual(store.state.currentFrontmostBundleId, app.bundleId)
+        XCTAssertEqual(store.state.inputMethods, inputMethods)
+        XCTAssertNil(store.state.lastSwitchAttempt)
+        XCTAssertEqual(store.state.totalSuccessfulSwitchCount, 0)
+    }
+
+    func testRuleEditsAndSwitchResultsShareStorageAcrossModules() async {
+        let app = AppInfo(bundleId: "com.test.editor", name: "Editor", path: "/Applications/Editor.app")
+        let timestamp = Date(timeIntervalSince1970: 10)
+        let recorder = SwitchRecorder()
+        var initialState = AppFeature.State(
+            inputMethodCatalogStatus: .ready,
+            inputMethods: [InputMethod(id: "ime.en", name: "English")]
+        )
+        initialState.$appRulesStore.withLock {
+            $0.rules[app.bundleId] = makeRule(app: app, strategy: .none, timestamp: timestamp)
+        }
+        let store = TestStore(initialState: initialState) { AppFeature() }
+        store.dependencies.date = .constant(timestamp)
+        store.dependencies.inputMethodClient.currentInputMethodId = { "ime.other" }
+        store.dependencies.inputMethodClient.switchToInputMethod = { await recorder.record($0) }
+
+        await store.send(.view(.setStrategy(bundleId: app.bundleId, strategy: .fixed(inputMethodId: "ime.en")))) {
+            $0.$appRulesStore.withLock { $0.rules[app.bundleId]?.strategy = .fixed(inputMethodId: "ime.en") }
+        }
+        await store.send(.system(.workspaceEvent(.activated(app)))) {
+            $0.switching.currentFrontmostBundleId = app.bundleId
+            $0.switching.nextSwitchAttemptID = 1
+            $0.switching.pendingProgrammaticSwitch = .init(
+                appName: app.name,
+                attemptID: 0,
+                bundleId: app.bundleId,
+                inputMethodId: "ime.en",
+                inputMethodName: "English"
+            )
+        }
+        await store.receive(.switching(.response(.programmaticSwitchFinished(attemptID: 0, outcome: .switched)))) {
+            $0.switching.pendingProgrammaticSwitch = nil
+            $0.switching.lastSwitchAttempt = .init(
+                appName: app.name,
+                bundleId: app.bundleId,
+                inputMethodId: "ime.en",
+                inputMethodName: "English",
+                outcome: .switched,
+                ruleSource: .app,
+                timestamp: timestamp
+            )
+            $0.$appSwitchStatisticsStore.withLock { $0.counts[app.bundleId] = 1 }
+        }
+        let switchedIds = await recorder.values
+        XCTAssertEqual(switchedIds, ["ime.en"])
+        XCTAssertEqual(store.state.totalSuccessfulSwitchCount, 1)
+        XCTAssertEqual(store.state.currentAppMenuItem?.strategy, .fixed(inputMethodId: "ime.en"))
+
+        await store.send(.view(.clearSwitchStatisticsTapped)) {
+            $0.$appSwitchStatisticsStore.withLock { $0.counts = [:] }
+        }
+        XCTAssertTrue(store.state.switching.appSwitchStatisticsStore.counts.isEmpty)
+    }
+
     func testFrontmostAndRunningAppsCreateDefaultRule() async {
         let now = Date(timeIntervalSince1970: 1_000)
         let app = AppInfo(bundleId: "com.test.notes", name: "Notes", path: "/Applications/Notes.app")
@@ -15,8 +115,8 @@ final class AppFeatureTests: XCTestCase {
         }
         store.dependencies.date = .constant(now)
 
-        await store.send(.response(.frontmostApplicationLoaded(app))) {
-            $0.currentFrontmostBundleId = app.bundleId
+        await store.send(.switching(.response(.frontmostApplicationLoaded(app)))) {
+            $0.switching.currentFrontmostBundleId = app.bundleId
             $0.$appRulesStore.withLock {
                 $0.rules[app.bundleId] = AppRuleRecord(
                     bundleId: app.bundleId,
@@ -183,7 +283,7 @@ final class AppFeatureTests: XCTestCase {
         let recorder = SwitchRecorder()
 
         var initialState = AppFeature.State()
-        initialState.inputMethods = [InputMethod(id: targetInputMethod, name: "English")]
+        initialState.switching.inputMethods = [InputMethod(id: targetInputMethod, name: "English")]
         initialState.$appRulesStore.withLock {
             $0.rules[app.bundleId] = AppRuleRecord(
                 bundleId: app.bundleId,
@@ -205,21 +305,21 @@ final class AppFeatureTests: XCTestCase {
         }
 
         await store.send(.system(.workspaceEvent(.activated(app)))) {
-            $0.currentFrontmostBundleId = app.bundleId
-            $0.nextSwitchAttemptID = 1
-            $0.pendingProgrammaticSwitch = .init(
+            $0.switching.currentFrontmostBundleId = app.bundleId
+            $0.switching.nextSwitchAttemptID = 1
+            $0.switching.pendingProgrammaticSwitch = .init(
                 appName: app.name,
                 bundleId: app.bundleId,
                 inputMethodId: targetInputMethod,
                 inputMethodName: "English"
             )
         }
-        await store.receive(.response(.programmaticSwitchFinished(
+        await store.receive(.switching(.response(.programmaticSwitchFinished(
             attemptID: 0,
             outcome: .switched
-        ))) {
-            $0.pendingProgrammaticSwitch = nil
-            $0.lastSwitchAttempt = .init(
+        )))) {
+            $0.switching.pendingProgrammaticSwitch = nil
+            $0.switching.lastSwitchAttempt = .init(
                 appName: app.name,
                 bundleId: app.bundleId,
                 inputMethodId: targetInputMethod,
@@ -244,7 +344,7 @@ final class AppFeatureTests: XCTestCase {
         let recorder = SwitchRecorder()
 
         var initialState = AppFeature.State()
-        initialState.inputMethods = [InputMethod(id: targetInputMethod, name: "English")]
+        initialState.switching.inputMethods = [InputMethod(id: targetInputMethod, name: "English")]
         initialState.$appRulesStore.withLock {
             $0.rules[app.bundleId] = AppRuleRecord(
                 bundleId: app.bundleId,
@@ -267,21 +367,21 @@ final class AppFeatureTests: XCTestCase {
         }
 
         await store.send(.system(.workspaceEvent(.activated(app)))) {
-            $0.currentFrontmostBundleId = app.bundleId
-            $0.nextSwitchAttemptID = 1
-            $0.pendingProgrammaticSwitch = .init(
+            $0.switching.currentFrontmostBundleId = app.bundleId
+            $0.switching.nextSwitchAttemptID = 1
+            $0.switching.pendingProgrammaticSwitch = .init(
                 appName: app.name,
                 bundleId: app.bundleId,
                 inputMethodId: targetInputMethod,
                 inputMethodName: "English"
             )
         }
-        await store.receive(.response(.programmaticSwitchFinished(
+        await store.receive(.switching(.response(.programmaticSwitchFinished(
             attemptID: 0,
             outcome: .alreadySelected
-        ))) {
-            $0.pendingProgrammaticSwitch = nil
-            $0.lastSwitchAttempt = .init(
+        )))) {
+            $0.switching.pendingProgrammaticSwitch = nil
+            $0.switching.lastSwitchAttempt = .init(
                 appName: app.name,
                 bundleId: app.bundleId,
                 inputMethodId: targetInputMethod,
@@ -303,7 +403,7 @@ final class AppFeatureTests: XCTestCase {
         let targetInputMethod = "ime.en"
 
         var initialState = AppFeature.State()
-        initialState.inputMethods = [InputMethod(id: targetInputMethod, name: "English")]
+        initialState.switching.inputMethods = [InputMethod(id: targetInputMethod, name: "English")]
         initialState.$appRulesStore.withLock {
             $0.rules[app.bundleId] = AppRuleRecord(
                 bundleId: app.bundleId,
@@ -325,21 +425,21 @@ final class AppFeatureTests: XCTestCase {
         }
 
         await store.send(.system(.workspaceEvent(.activated(app)))) {
-            $0.currentFrontmostBundleId = app.bundleId
-            $0.nextSwitchAttemptID = 1
-            $0.pendingProgrammaticSwitch = .init(
+            $0.switching.currentFrontmostBundleId = app.bundleId
+            $0.switching.nextSwitchAttemptID = 1
+            $0.switching.pendingProgrammaticSwitch = .init(
                 appName: app.name,
                 bundleId: app.bundleId,
                 inputMethodId: targetInputMethod,
                 inputMethodName: "English"
             )
         }
-        await store.receive(.response(.programmaticSwitchFinished(
+        await store.receive(.switching(.response(.programmaticSwitchFinished(
             attemptID: 0,
             outcome: .failed(.diagnostic(from: TestError.failed))
-        ))) {
-            $0.pendingProgrammaticSwitch = nil
-            $0.lastSwitchAttempt = .init(
+        )))) {
+            $0.switching.pendingProgrammaticSwitch = nil
+            $0.switching.lastSwitchAttempt = .init(
                 appName: app.name,
                 bundleId: app.bundleId,
                 inputMethodId: targetInputMethod,
@@ -354,71 +454,11 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertEqual(store.state.totalSuccessfulSwitchCount, 0)
     }
 
-    func testActivatedAppStillSwitchesWhenCurrentInputMethodLookupFails() async {
-        let app = AppInfo(bundleId: "com.test.browser", name: "Browser", path: "/Applications/Browser.app")
-        let targetInputMethod = "ime.en"
-        let recorder = SwitchRecorder()
-
-        var initialState = AppFeature.State()
-        initialState.inputMethods = [InputMethod(id: targetInputMethod, name: "English")]
-        initialState.$appRulesStore.withLock {
-            $0.rules[app.bundleId] = AppRuleRecord(
-                bundleId: app.bundleId,
-                lastKnownPath: app.path,
-                lastKnownName: app.name,
-                strategy: .fixed(inputMethodId: targetInputMethod),
-                createdAt: Date(timeIntervalSince1970: 10),
-                updatedAt: Date(timeIntervalSince1970: 10)
-            )
-        }
-
-        let store = TestStore(initialState: initialState) {
-            AppFeature()
-        }
-        store.dependencies.date = .constant(Date(timeIntervalSince1970: 10))
-        store.dependencies.inputMethodClient.currentInputMethodId = { throw TestError.failed }
-        store.dependencies.inputMethodClient.switchToInputMethod = { inputMethodId in
-            await recorder.record(inputMethodId)
-        }
-
-        await store.send(.system(.workspaceEvent(.activated(app)))) {
-            $0.currentFrontmostBundleId = app.bundleId
-            $0.nextSwitchAttemptID = 1
-            $0.pendingProgrammaticSwitch = .init(
-                appName: app.name,
-                bundleId: app.bundleId,
-                inputMethodId: targetInputMethod,
-                inputMethodName: "English"
-            )
-        }
-        await store.receive(.response(.programmaticSwitchFinished(
-            attemptID: 0,
-            outcome: .switched
-        ))) {
-            $0.pendingProgrammaticSwitch = nil
-            $0.lastSwitchAttempt = .init(
-                appName: app.name,
-                bundleId: app.bundleId,
-                inputMethodId: targetInputMethod,
-                inputMethodName: "English",
-                outcome: .switched,
-                ruleSource: .app,
-                timestamp: Date(timeIntervalSince1970: 10)
-            )
-            $0.$appSwitchStatisticsStore.withLock {
-                $0.counts[app.bundleId] = 1
-            }
-        }
-
-        let switchedInputMethods = await recorder.values
-        XCTAssertEqual(switchedInputMethods, [targetInputMethod])
-    }
-
     func testInputMethodRefreshFailurePreservesLastSuccessfulList() async {
         let inputMethods = [InputMethod(id: "ime.en", name: "English")]
         var initialState = AppFeature.State()
-        initialState.inputMethodCatalogStatus = .ready
-        initialState.inputMethods = inputMethods
+        initialState.switching.inputMethodCatalogStatus = .ready
+        initialState.switching.inputMethods = inputMethods
         initialState.$appRulesStore.withLock {
             $0.rules["com.test.editor"] = AppRuleRecord(
                 bundleId: "com.test.editor",
@@ -438,20 +478,20 @@ final class AppFeatureTests: XCTestCase {
             throw InputMethodService.InputMethodError.failedToFetchInputMethods
         }
 
-        await store.send(.system(.inputMethodAvailabilityChanged)) {
-            $0.inputMethodCatalogStatus = .loading
-            $0.nextInputMethodRefreshID = 1
-            $0.pendingInputMethodRefreshID = 0
+        await store.send(.switching(.system(.inputMethodAvailabilityChanged))) {
+            $0.switching.inputMethodCatalogStatus = .loading
+            $0.switching.nextInputMethodRefreshID = 1
+            $0.switching.pendingInputMethodRefreshID = 0
         }
-        await store.receive(.response(.inputMethodsLoaded(
+        await store.receive(.switching(.response(.inputMethodsLoaded(
             refreshID: 0,
             result: .failure(.failedToFetchInputMethods)
-        ))) {
-            $0.pendingInputMethodRefreshID = nil
-            $0.inputMethodCatalogStatus = .failed(.failedToFetchInputMethods)
+        )))) {
+            $0.switching.pendingInputMethodRefreshID = nil
+            $0.switching.inputMethodCatalogStatus = .failed(.failedToFetchInputMethods)
         }
 
-        XCTAssertEqual(store.state.inputMethods, inputMethods)
+        XCTAssertEqual(store.state.switching.inputMethods, inputMethods)
         XCTAssertEqual(store.state.inputMethodDiagnostic?.kind, .catalogFailed)
         XCTAssertFalse(store.state.hasMissingInputMethodRules)
 
@@ -465,7 +505,7 @@ final class AppFeatureTests: XCTestCase {
     func testReloadInputMethodsRecoversFromFailure() async {
         let inputMethods = [InputMethod(id: "ime.en", name: "English")]
         var initialState = AppFeature.State()
-        initialState.inputMethodCatalogStatus = .failed(.failedToFetchInputMethods)
+        initialState.switching.inputMethodCatalogStatus = .failed(.failedToFetchInputMethods)
 
         let store = TestStore(initialState: initialState) {
             AppFeature()
@@ -473,17 +513,17 @@ final class AppFeatureTests: XCTestCase {
         store.dependencies.inputMethodClient.fetchInputMethods = { inputMethods }
 
         await store.send(.view(.reloadInputMethodsTapped)) {
-            $0.inputMethodCatalogStatus = .loading
-            $0.nextInputMethodRefreshID = 1
-            $0.pendingInputMethodRefreshID = 0
+            $0.switching.inputMethodCatalogStatus = .loading
+            $0.switching.nextInputMethodRefreshID = 1
+            $0.switching.pendingInputMethodRefreshID = 0
         }
-        await store.receive(.response(.inputMethodsLoaded(
+        await store.receive(.switching(.response(.inputMethodsLoaded(
             refreshID: 0,
             result: .success(inputMethods)
-        ))) {
-            $0.pendingInputMethodRefreshID = nil
-            $0.inputMethodCatalogStatus = .ready
-            $0.inputMethods = inputMethods
+        )))) {
+            $0.switching.pendingInputMethodRefreshID = nil
+            $0.switching.inputMethodCatalogStatus = .ready
+            $0.switching.inputMethods = inputMethods
         }
 
         XCTAssertNil(store.state.inputMethodDiagnostic)
@@ -493,7 +533,7 @@ final class AppFeatureTests: XCTestCase {
         let latestInputMethods = [InputMethod(id: "ime.en", name: "English")]
         let refreshGate = InputMethodRefreshGate(latestInputMethods: latestInputMethods)
         var initialState = AppFeature.State()
-        initialState.inputMethodCatalogStatus = .failed(.failedToFetchInputMethods)
+        initialState.switching.inputMethodCatalogStatus = .failed(.failedToFetchInputMethods)
 
         let store = TestStore(initialState: initialState) {
             AppFeature()
@@ -503,252 +543,33 @@ final class AppFeatureTests: XCTestCase {
         }
 
         await store.send(.view(.reloadInputMethodsTapped)) {
-            $0.inputMethodCatalogStatus = .loading
-            $0.nextInputMethodRefreshID = 1
-            $0.pendingInputMethodRefreshID = 0
+            $0.switching.inputMethodCatalogStatus = .loading
+            $0.switching.nextInputMethodRefreshID = 1
+            $0.switching.pendingInputMethodRefreshID = 0
         }
         await refreshGate.waitUntilFirstStarted()
 
         await store.send(.view(.reloadInputMethodsTapped)) {
-            $0.nextInputMethodRefreshID = 2
-            $0.pendingInputMethodRefreshID = 1
+            $0.switching.nextInputMethodRefreshID = 2
+            $0.switching.pendingInputMethodRefreshID = 1
         }
-        await store.receive(.response(.inputMethodsLoaded(
+        await store.receive(.switching(.response(.inputMethodsLoaded(
             refreshID: 1,
             result: .success(latestInputMethods)
-        ))) {
-            $0.pendingInputMethodRefreshID = nil
-            $0.inputMethodCatalogStatus = .ready
-            $0.inputMethods = latestInputMethods
+        )))) {
+            $0.switching.pendingInputMethodRefreshID = nil
+            $0.switching.inputMethodCatalogStatus = .ready
+            $0.switching.inputMethods = latestInputMethods
         }
 
         await refreshGate.resumeFirst(with: .failure(.failedToFetchInputMethods))
-        await store.receive(.response(.inputMethodsLoaded(
+        await store.receive(.switching(.response(.inputMethodsLoaded(
             refreshID: 0,
             result: .failure(.failedToFetchInputMethods)
-        )))
+        ))))
 
-        XCTAssertEqual(store.state.inputMethodCatalogStatus, .ready)
-        XCTAssertEqual(store.state.inputMethods, latestInputMethods)
-    }
-
-    func testInputMethodRefreshRetriesActivationSkippedWhileCatalogIsLoading() async {
-        let app = AppInfo(bundleId: "com.test.editor", name: "Editor", path: "/Applications/Editor.app")
-        let inputMethod = InputMethod(id: "ime.en", name: "English")
-        let timestamp = Date(timeIntervalSince1970: 10)
-        let recorder = SwitchRecorder()
-        let switchGate = InputMethodSwitchGate()
-
-        var initialState = AppFeature.State()
-        initialState.nextInputMethodRefreshID = 1
-        initialState.pendingInputMethodRefreshID = 0
-        initialState.$appRulesStore.withLock {
-            $0.rules[app.bundleId] = makeRule(app: app, strategy: .fixed(inputMethodId: inputMethod.id))
-        }
-
-        let store = TestStore(initialState: initialState) {
-            AppFeature()
-        }
-        store.dependencies.date = .constant(timestamp)
-        store.dependencies.workspaceClient.frontmostApplication = { app }
-        store.dependencies.inputMethodClient.currentInputMethodId = { "ime.zh" }
-        store.dependencies.inputMethodClient.switchToInputMethod = { inputMethodId in
-            await recorder.record(inputMethodId)
-            await switchGate.wait()
-        }
-
-        await store.send(.system(.workspaceEvent(.activated(app)))) {
-            $0.currentFrontmostBundleId = app.bundleId
-            $0.shouldRetryFrontmostAfterInputMethodRefresh = true
-        }
-        await store.send(.response(.inputMethodsLoaded(
-            refreshID: 0,
-            result: .success([inputMethod])
-        ))) {
-            $0.pendingInputMethodRefreshID = nil
-            $0.inputMethodCatalogStatus = .ready
-            $0.inputMethods = [inputMethod]
-            $0.nextFrontmostRetryID = 1
-            $0.pendingFrontmostRetryID = 0
-            $0.shouldRetryFrontmostAfterInputMethodRefresh = false
-        }
-        await store.receive(.response(.frontmostApplicationRetried(retryID: 0, appInfo: app))) {
-            $0.pendingFrontmostRetryID = nil
-            $0.nextSwitchAttemptID = 1
-            $0.pendingProgrammaticSwitch = .init(
-                appName: app.name,
-                bundleId: app.bundleId,
-                inputMethodId: inputMethod.id,
-                inputMethodName: inputMethod.name
-            )
-        }
-        await switchGate.waitUntilStarted()
-        await switchGate.resume()
-        await store.receive(.response(.programmaticSwitchFinished(
-            attemptID: 0,
-            outcome: .switched
-        ))) {
-            $0.pendingProgrammaticSwitch = nil
-            $0.lastSwitchAttempt = .init(
-                appName: app.name,
-                bundleId: app.bundleId,
-                inputMethodId: inputMethod.id,
-                inputMethodName: inputMethod.name,
-                outcome: .switched,
-                ruleSource: .app,
-                timestamp: timestamp
-            )
-            $0.$appSwitchStatisticsStore.withLock {
-                $0.counts[app.bundleId] = 1
-            }
-        }
-
-        let switchedInputMethods = await recorder.values
-        XCTAssertEqual(switchedInputMethods, [inputMethod.id])
-    }
-
-    func testInputMethodRefreshRetriesOnlyLatestActivationSkippedWhileCatalogIsLoading() async {
-        let firstApp = AppInfo(bundleId: "com.test.first", name: "First", path: "/Applications/First.app")
-        let secondApp = AppInfo(bundleId: "com.test.second", name: "Second", path: "/Applications/Second.app")
-        let firstInputMethod = InputMethod(id: "ime.first", name: "First Input Method")
-        let secondInputMethod = InputMethod(id: "ime.second", name: "Second Input Method")
-        let timestamp = Date(timeIntervalSince1970: 10)
-        let recorder = SwitchRecorder()
-        let switchGate = InputMethodSwitchGate()
-
-        var initialState = AppFeature.State()
-        initialState.nextInputMethodRefreshID = 1
-        initialState.pendingInputMethodRefreshID = 0
-        initialState.$appRulesStore.withLock {
-            $0.rules[firstApp.bundleId] = makeRule(
-                app: firstApp,
-                strategy: .fixed(inputMethodId: firstInputMethod.id)
-            )
-            $0.rules[secondApp.bundleId] = makeRule(
-                app: secondApp,
-                strategy: .fixed(inputMethodId: secondInputMethod.id)
-            )
-        }
-
-        let store = TestStore(initialState: initialState) {
-            AppFeature()
-        }
-        store.dependencies.date = .constant(timestamp)
-        store.dependencies.workspaceClient.frontmostApplication = { secondApp }
-        store.dependencies.inputMethodClient.currentInputMethodId = { "ime.other" }
-        store.dependencies.inputMethodClient.switchToInputMethod = { inputMethodId in
-            await recorder.record(inputMethodId)
-            await switchGate.wait()
-        }
-
-        await store.send(.system(.workspaceEvent(.activated(firstApp)))) {
-            $0.currentFrontmostBundleId = firstApp.bundleId
-            $0.shouldRetryFrontmostAfterInputMethodRefresh = true
-        }
-        await store.send(.system(.workspaceEvent(.activated(secondApp)))) {
-            $0.currentFrontmostBundleId = secondApp.bundleId
-        }
-        await store.send(.response(.inputMethodsLoaded(
-            refreshID: 0,
-            result: .success([firstInputMethod, secondInputMethod])
-        ))) {
-            $0.pendingInputMethodRefreshID = nil
-            $0.inputMethodCatalogStatus = .ready
-            $0.inputMethods = [firstInputMethod, secondInputMethod]
-            $0.nextFrontmostRetryID = 1
-            $0.pendingFrontmostRetryID = 0
-            $0.shouldRetryFrontmostAfterInputMethodRefresh = false
-        }
-        await store.receive(.response(.frontmostApplicationRetried(retryID: 0, appInfo: secondApp))) {
-            $0.pendingFrontmostRetryID = nil
-            $0.nextSwitchAttemptID = 1
-            $0.pendingProgrammaticSwitch = .init(
-                appName: secondApp.name,
-                bundleId: secondApp.bundleId,
-                inputMethodId: secondInputMethod.id,
-                inputMethodName: secondInputMethod.name
-            )
-        }
-        await switchGate.waitUntilStarted()
-        await switchGate.resume()
-        await store.receive(.response(.programmaticSwitchFinished(
-            attemptID: 0,
-            outcome: .switched
-        ))) {
-            $0.pendingProgrammaticSwitch = nil
-            $0.lastSwitchAttempt = .init(
-                appName: secondApp.name,
-                bundleId: secondApp.bundleId,
-                inputMethodId: secondInputMethod.id,
-                inputMethodName: secondInputMethod.name,
-                outcome: .switched,
-                ruleSource: .app,
-                timestamp: timestamp
-            )
-            $0.$appSwitchStatisticsStore.withLock {
-                $0.counts[secondApp.bundleId] = 1
-            }
-        }
-
-        let switchedInputMethods = await recorder.values
-        XCTAssertEqual(switchedInputMethods, [secondInputMethod.id])
-    }
-
-    func testActivationWithoutSwitchTargetClearsPendingCatalogRetry() async {
-        let configuredApp = AppInfo(
-            bundleId: "com.test.configured",
-            name: "Configured",
-            path: "/Applications/Configured.app"
-        )
-        let unconfiguredApp = AppInfo(
-            bundleId: "com.test.unconfigured",
-            name: "Unconfigured",
-            path: "/Applications/Unconfigured.app"
-        )
-        let inputMethod = InputMethod(id: "ime.en", name: "English")
-        let timestamp = Date(timeIntervalSince1970: 10)
-
-        var initialState = AppFeature.State()
-        initialState.nextInputMethodRefreshID = 1
-        initialState.pendingInputMethodRefreshID = 0
-        initialState.$appRulesStore.withLock {
-            $0.rules[configuredApp.bundleId] = makeRule(
-                app: configuredApp,
-                strategy: .fixed(inputMethodId: inputMethod.id)
-            )
-        }
-
-        let store = TestStore(initialState: initialState) {
-            AppFeature()
-        }
-        store.dependencies.date = .constant(timestamp)
-        store.dependencies.workspaceClient.frontmostApplication = {
-            XCTFail("A cleared catalog retry must not query the frontmost application")
-            return unconfiguredApp
-        }
-        store.dependencies.inputMethodClient.switchToInputMethod = { _ in
-            XCTFail("An unconfigured app must not trigger a compensated switch")
-        }
-
-        await store.send(.system(.workspaceEvent(.activated(configuredApp)))) {
-            $0.currentFrontmostBundleId = configuredApp.bundleId
-            $0.shouldRetryFrontmostAfterInputMethodRefresh = true
-        }
-        await store.send(.system(.workspaceEvent(.activated(unconfiguredApp)))) {
-            $0.currentFrontmostBundleId = unconfiguredApp.bundleId
-            $0.shouldRetryFrontmostAfterInputMethodRefresh = false
-            $0.$appRulesStore.withLock {
-                $0.rules[unconfiguredApp.bundleId] = self.makeRule(app: unconfiguredApp, strategy: .none)
-            }
-        }
-        await store.send(.response(.inputMethodsLoaded(
-            refreshID: 0,
-            result: .success([inputMethod])
-        ))) {
-            $0.pendingInputMethodRefreshID = nil
-            $0.inputMethodCatalogStatus = .ready
-            $0.inputMethods = [inputMethod]
-        }
+        XCTAssertEqual(store.state.switching.inputMethodCatalogStatus, .ready)
+        XCTAssertEqual(store.state.switching.inputMethods, latestInputMethods)
     }
 
     func testFailedInputMethodRefreshPreservesCatalogRetryAfterReactivationUntilReloadSucceeds() async {
@@ -757,8 +578,8 @@ final class AppFeatureTests: XCTestCase {
         let timestamp = Date(timeIntervalSince1970: 10)
 
         var initialState = AppFeature.State()
-        initialState.nextInputMethodRefreshID = 1
-        initialState.pendingInputMethodRefreshID = 0
+        initialState.switching.nextInputMethodRefreshID = 1
+        initialState.switching.pendingInputMethodRefreshID = 0
         initialState.$fallbackRuleStore.withLock {
             $0.strategy = .fixed(inputMethodId: inputMethod.id)
         }
@@ -772,40 +593,40 @@ final class AppFeatureTests: XCTestCase {
         store.dependencies.inputMethodClient.currentInputMethodId = { inputMethod.id }
 
         await store.send(.system(.workspaceEvent(.activated(app)))) {
-            $0.currentFrontmostBundleId = app.bundleId
-            $0.shouldRetryFrontmostAfterInputMethodRefresh = true
+            $0.switching.currentFrontmostBundleId = app.bundleId
+            $0.switching.shouldRetryFrontmostAfterInputMethodRefresh = true
             $0.$appRulesStore.withLock {
                 $0.rules[app.bundleId] = self.makeRule(app: app, strategy: .none)
             }
         }
-        await store.send(.response(.inputMethodsLoaded(
+        await store.send(.switching(.response(.inputMethodsLoaded(
             refreshID: 0,
             result: .failure(.failedToFetchInputMethods)
-        ))) {
-            $0.pendingInputMethodRefreshID = nil
-            $0.inputMethodCatalogStatus = .failed(.failedToFetchInputMethods)
+        )))) {
+            $0.switching.pendingInputMethodRefreshID = nil
+            $0.switching.inputMethodCatalogStatus = .failed(.failedToFetchInputMethods)
         }
         await store.send(.system(.workspaceEvent(.activated(app))))
         await store.send(.view(.reloadInputMethodsTapped)) {
-            $0.inputMethodCatalogStatus = .loading
-            $0.nextInputMethodRefreshID = 2
-            $0.pendingInputMethodRefreshID = 1
+            $0.switching.inputMethodCatalogStatus = .loading
+            $0.switching.nextInputMethodRefreshID = 2
+            $0.switching.pendingInputMethodRefreshID = 1
         }
-        await store.receive(.response(.inputMethodsLoaded(
+        await store.receive(.switching(.response(.inputMethodsLoaded(
             refreshID: 1,
             result: .success([inputMethod])
-        ))) {
-            $0.pendingInputMethodRefreshID = nil
-            $0.inputMethodCatalogStatus = .ready
-            $0.inputMethods = [inputMethod]
-            $0.nextFrontmostRetryID = 1
-            $0.pendingFrontmostRetryID = 0
-            $0.shouldRetryFrontmostAfterInputMethodRefresh = false
+        )))) {
+            $0.switching.pendingInputMethodRefreshID = nil
+            $0.switching.inputMethodCatalogStatus = .ready
+            $0.switching.inputMethods = [inputMethod]
+            $0.switching.nextFrontmostRetryID = 1
+            $0.switching.pendingFrontmostRetryID = 0
+            $0.switching.shouldRetryFrontmostAfterInputMethodRefresh = false
         }
-        await store.receive(.response(.frontmostApplicationRetried(retryID: 0, appInfo: app))) {
-            $0.pendingFrontmostRetryID = nil
-            $0.nextSwitchAttemptID = 1
-            $0.pendingProgrammaticSwitch = .init(
+        await store.receive(.switching(.response(.frontmostApplicationRetried(retryID: 0, appInfo: app)))) {
+            $0.switching.pendingFrontmostRetryID = nil
+            $0.switching.nextSwitchAttemptID = 1
+            $0.switching.pendingProgrammaticSwitch = .init(
                 appName: app.name,
                 bundleId: app.bundleId,
                 inputMethodId: inputMethod.id,
@@ -813,12 +634,12 @@ final class AppFeatureTests: XCTestCase {
                 ruleSource: .fallback
             )
         }
-        await store.receive(.response(.programmaticSwitchFinished(
+        await store.receive(.switching(.response(.programmaticSwitchFinished(
             attemptID: 0,
             outcome: .alreadySelected
-        ))) {
-            $0.pendingProgrammaticSwitch = nil
-            $0.lastSwitchAttempt = .init(
+        )))) {
+            $0.switching.pendingProgrammaticSwitch = nil
+            $0.switching.lastSwitchAttempt = .init(
                 appName: app.name,
                 bundleId: app.bundleId,
                 inputMethodId: inputMethod.id,
@@ -868,32 +689,32 @@ final class AppFeatureTests: XCTestCase {
         }
 
         await store.send(.system(.workspaceEvent(.activated(firstApp)))) {
-            $0.currentFrontmostBundleId = firstApp.bundleId
-            $0.shouldRetryFrontmostAfterInputMethodRefresh = true
+            $0.switching.currentFrontmostBundleId = firstApp.bundleId
+            $0.switching.shouldRetryFrontmostAfterInputMethodRefresh = true
         }
         await store.send(.system(.workspaceEvent(.activated(secondApp)))) {
-            $0.currentFrontmostBundleId = secondApp.bundleId
+            $0.switching.currentFrontmostBundleId = secondApp.bundleId
         }
         await store.send(.view(.reloadInputMethodsTapped)) {
-            $0.inputMethodCatalogStatus = .loading
-            $0.nextInputMethodRefreshID = 1
-            $0.pendingInputMethodRefreshID = 0
+            $0.switching.inputMethodCatalogStatus = .loading
+            $0.switching.nextInputMethodRefreshID = 1
+            $0.switching.pendingInputMethodRefreshID = 0
         }
-        await store.receive(.response(.inputMethodsLoaded(
+        await store.receive(.switching(.response(.inputMethodsLoaded(
             refreshID: 0,
             result: .success([firstInputMethod, secondInputMethod])
-        ))) {
-            $0.pendingInputMethodRefreshID = nil
-            $0.inputMethodCatalogStatus = .ready
-            $0.inputMethods = [firstInputMethod, secondInputMethod]
-            $0.nextFrontmostRetryID = 1
-            $0.pendingFrontmostRetryID = 0
-            $0.shouldRetryFrontmostAfterInputMethodRefresh = false
+        )))) {
+            $0.switching.pendingInputMethodRefreshID = nil
+            $0.switching.inputMethodCatalogStatus = .ready
+            $0.switching.inputMethods = [firstInputMethod, secondInputMethod]
+            $0.switching.nextFrontmostRetryID = 1
+            $0.switching.pendingFrontmostRetryID = 0
+            $0.switching.shouldRetryFrontmostAfterInputMethodRefresh = false
         }
-        await store.receive(.response(.frontmostApplicationRetried(retryID: 0, appInfo: secondApp))) {
-            $0.pendingFrontmostRetryID = nil
-            $0.nextSwitchAttemptID = 1
-            $0.pendingProgrammaticSwitch = .init(
+        await store.receive(.switching(.response(.frontmostApplicationRetried(retryID: 0, appInfo: secondApp)))) {
+            $0.switching.pendingFrontmostRetryID = nil
+            $0.switching.nextSwitchAttemptID = 1
+            $0.switching.pendingProgrammaticSwitch = .init(
                 appName: secondApp.name,
                 bundleId: secondApp.bundleId,
                 inputMethodId: secondInputMethod.id,
@@ -902,12 +723,12 @@ final class AppFeatureTests: XCTestCase {
         }
         await switchGate.waitUntilStarted()
         await switchGate.resume()
-        await store.receive(.response(.programmaticSwitchFinished(
+        await store.receive(.switching(.response(.programmaticSwitchFinished(
             attemptID: 0,
             outcome: .switched
-        ))) {
-            $0.pendingProgrammaticSwitch = nil
-            $0.lastSwitchAttempt = .init(
+        )))) {
+            $0.switching.pendingProgrammaticSwitch = nil
+            $0.switching.lastSwitchAttempt = .init(
                 appName: secondApp.name,
                 bundleId: secondApp.bundleId,
                 inputMethodId: secondInputMethod.id,
@@ -978,202 +799,44 @@ final class AppFeatureTests: XCTestCase {
         }
 
         await store.send(.system(.workspaceEvent(.activated(configuredApp)))) {
-            $0.currentFrontmostBundleId = configuredApp.bundleId
-            $0.shouldRetryFrontmostAfterInputMethodRefresh = true
+            $0.switching.currentFrontmostBundleId = configuredApp.bundleId
+            $0.switching.shouldRetryFrontmostAfterInputMethodRefresh = true
         }
         await store.send(.system(.workspaceEvent(.activated(unconfiguredApp)))) {
-            $0.currentFrontmostBundleId = unconfiguredApp.bundleId
-            $0.shouldRetryFrontmostAfterInputMethodRefresh = false
+            $0.switching.currentFrontmostBundleId = unconfiguredApp.bundleId
+            $0.switching.shouldRetryFrontmostAfterInputMethodRefresh = false
             $0.$appRulesStore.withLock {
                 $0.rules[unconfiguredApp.bundleId] = self.makeRule(app: unconfiguredApp, strategy: .none)
             }
         }
         await store.send(.system(.workspaceEvent(.activated(configuredApp)))) {
-            $0.currentFrontmostBundleId = configuredApp.bundleId
-            $0.shouldRetryFrontmostAfterInputMethodRefresh = true
+            $0.switching.currentFrontmostBundleId = configuredApp.bundleId
+            $0.switching.shouldRetryFrontmostAfterInputMethodRefresh = true
         }
         await store.send(.system(.workspaceEvent(.activated(ignoredApp)))) {
-            $0.currentFrontmostBundleId = ignoredApp.bundleId
-            $0.shouldRetryFrontmostAfterInputMethodRefresh = false
+            $0.switching.currentFrontmostBundleId = ignoredApp.bundleId
+            $0.switching.shouldRetryFrontmostAfterInputMethodRefresh = false
         }
         await store.send(.system(.workspaceEvent(.activated(configuredApp)))) {
-            $0.currentFrontmostBundleId = configuredApp.bundleId
-            $0.shouldRetryFrontmostAfterInputMethodRefresh = true
+            $0.switching.currentFrontmostBundleId = configuredApp.bundleId
+            $0.switching.shouldRetryFrontmostAfterInputMethodRefresh = true
         }
         await store.send(.system(.workspaceEvent(.activated(followLastApp)))) {
-            $0.currentFrontmostBundleId = followLastApp.bundleId
-            $0.shouldRetryFrontmostAfterInputMethodRefresh = false
+            $0.switching.currentFrontmostBundleId = followLastApp.bundleId
+            $0.switching.shouldRetryFrontmostAfterInputMethodRefresh = false
         }
         await store.send(.view(.reloadInputMethodsTapped)) {
-            $0.inputMethodCatalogStatus = .loading
-            $0.nextInputMethodRefreshID = 1
-            $0.pendingInputMethodRefreshID = 0
+            $0.switching.inputMethodCatalogStatus = .loading
+            $0.switching.nextInputMethodRefreshID = 1
+            $0.switching.pendingInputMethodRefreshID = 0
         }
-        await store.receive(.response(.inputMethodsLoaded(
+        await store.receive(.switching(.response(.inputMethodsLoaded(
             refreshID: 0,
             result: .success([inputMethod])
-        ))) {
-            $0.pendingInputMethodRefreshID = nil
-            $0.inputMethodCatalogStatus = .ready
-            $0.inputMethods = [inputMethod]
-        }
-    }
-
-    func testStaleInputMethodRefreshDoesNotConsumePendingCatalogRetry() async {
-        let app = AppInfo(bundleId: "com.test.editor", name: "Editor", path: "/Applications/Editor.app")
-        let inputMethod = InputMethod(id: "ime.en", name: "English")
-        let timestamp = Date(timeIntervalSince1970: 10)
-
-        var initialState = AppFeature.State()
-        initialState.nextInputMethodRefreshID = 2
-        initialState.pendingInputMethodRefreshID = 1
-        initialState.$appRulesStore.withLock {
-            $0.rules[app.bundleId] = makeRule(app: app, strategy: .fixed(inputMethodId: inputMethod.id))
-        }
-
-        let store = TestStore(initialState: initialState) {
-            AppFeature()
-        }
-        store.dependencies.date = .constant(timestamp)
-        store.dependencies.workspaceClient.frontmostApplication = { app }
-        store.dependencies.inputMethodClient.currentInputMethodId = { inputMethod.id }
-
-        await store.send(.system(.workspaceEvent(.activated(app)))) {
-            $0.currentFrontmostBundleId = app.bundleId
-            $0.shouldRetryFrontmostAfterInputMethodRefresh = true
-        }
-        await store.send(.response(.inputMethodsLoaded(
-            refreshID: 0,
-            result: .success([inputMethod])
-        )))
-        XCTAssertTrue(store.state.shouldRetryFrontmostAfterInputMethodRefresh)
-
-        await store.send(.response(.inputMethodsLoaded(
-            refreshID: 1,
-            result: .success([inputMethod])
-        ))) {
-            $0.pendingInputMethodRefreshID = nil
-            $0.inputMethodCatalogStatus = .ready
-            $0.inputMethods = [inputMethod]
-            $0.nextFrontmostRetryID = 1
-            $0.pendingFrontmostRetryID = 0
-            $0.shouldRetryFrontmostAfterInputMethodRefresh = false
-        }
-        await store.receive(.response(.frontmostApplicationRetried(retryID: 0, appInfo: app))) {
-            $0.pendingFrontmostRetryID = nil
-            $0.nextSwitchAttemptID = 1
-            $0.pendingProgrammaticSwitch = .init(
-                appName: app.name,
-                bundleId: app.bundleId,
-                inputMethodId: inputMethod.id,
-                inputMethodName: inputMethod.name
-            )
-        }
-        await store.receive(.response(.programmaticSwitchFinished(
-            attemptID: 0,
-            outcome: .alreadySelected
-        ))) {
-            $0.pendingProgrammaticSwitch = nil
-            $0.lastSwitchAttempt = .init(
-                appName: app.name,
-                bundleId: app.bundleId,
-                inputMethodId: inputMethod.id,
-                inputMethodName: inputMethod.name,
-                outcome: .alreadySelected,
-                ruleSource: .app,
-                timestamp: timestamp
-            )
-        }
-    }
-
-    func testCatalogRetryIgnoresFrontmostSnapshotAfterNewActivation() async {
-        let firstApp = AppInfo(bundleId: "com.test.first", name: "First", path: "/Applications/First.app")
-        let secondApp = AppInfo(bundleId: "com.test.second", name: "Second", path: "/Applications/Second.app")
-        let inputMethod = InputMethod(id: "ime.en", name: "English")
-        let frontmostGate = FrontmostApplicationGate(appInfo: firstApp)
-
-        var initialState = AppFeature.State()
-        initialState.nextInputMethodRefreshID = 1
-        initialState.pendingInputMethodRefreshID = 0
-        initialState.$appRulesStore.withLock {
-            $0.rules[firstApp.bundleId] = makeRule(
-                app: firstApp,
-                strategy: .fixed(inputMethodId: inputMethod.id)
-            )
-        }
-
-        let store = TestStore(initialState: initialState) {
-            AppFeature()
-        }
-        store.dependencies.date = .constant(Date(timeIntervalSince1970: 10))
-        store.dependencies.workspaceClient.frontmostApplication = {
-            await frontmostGate.value()
-        }
-        store.dependencies.inputMethodClient.switchToInputMethod = { _ in
-            XCTFail("A stale frontmost snapshot must not switch input methods")
-        }
-
-        await store.send(.system(.workspaceEvent(.activated(firstApp)))) {
-            $0.currentFrontmostBundleId = firstApp.bundleId
-            $0.shouldRetryFrontmostAfterInputMethodRefresh = true
-        }
-        await store.send(.response(.inputMethodsLoaded(
-            refreshID: 0,
-            result: .success([inputMethod])
-        ))) {
-            $0.pendingInputMethodRefreshID = nil
-            $0.inputMethodCatalogStatus = .ready
-            $0.inputMethods = [inputMethod]
-            $0.nextFrontmostRetryID = 1
-            $0.pendingFrontmostRetryID = 0
-            $0.shouldRetryFrontmostAfterInputMethodRefresh = false
-        }
-        await frontmostGate.waitUntilStarted()
-
-        await store.send(.system(.workspaceEvent(.activated(secondApp)))) {
-            $0.currentFrontmostBundleId = secondApp.bundleId
-            $0.pendingFrontmostRetryID = nil
-            $0.$appRulesStore.withLock {
-                $0.rules[secondApp.bundleId] = self.makeRule(app: secondApp, strategy: .none)
-            }
-        }
-
-        await frontmostGate.resume()
-        await store.receive(.response(.frontmostApplicationRetried(retryID: 0, appInfo: firstApp)))
-
-        XCTAssertEqual(store.state.currentFrontmostBundleId, secondApp.bundleId)
-    }
-
-    func testSuccessfulInputMethodRefreshWithoutPendingCatalogRetryDoesNotReapplyCurrentRule() async {
-        let app = AppInfo(bundleId: "com.test.editor", name: "Editor", path: "/Applications/Editor.app")
-        let inputMethod = InputMethod(id: "ime.en", name: "English")
-
-        var initialState = AppFeature.State()
-        initialState.currentFrontmostBundleId = app.bundleId
-        initialState.nextInputMethodRefreshID = 1
-        initialState.pendingInputMethodRefreshID = 0
-        initialState.$appRulesStore.withLock {
-            $0.rules[app.bundleId] = makeRule(app: app, strategy: .fixed(inputMethodId: inputMethod.id))
-        }
-
-        let store = TestStore(initialState: initialState) {
-            AppFeature()
-        }
-        store.dependencies.workspaceClient.frontmostApplication = {
-            XCTFail("A normal catalog refresh must not query the frontmost application")
-            return app
-        }
-        store.dependencies.inputMethodClient.switchToInputMethod = { _ in
-            XCTFail("A normal catalog refresh must not reapply the current rule")
-        }
-
-        await store.send(.response(.inputMethodsLoaded(
-            refreshID: 0,
-            result: .success([inputMethod])
-        ))) {
-            $0.pendingInputMethodRefreshID = nil
-            $0.inputMethodCatalogStatus = .ready
-            $0.inputMethods = [inputMethod]
+        )))) {
+            $0.switching.pendingInputMethodRefreshID = nil
+            $0.switching.inputMethodCatalogStatus = .ready
+            $0.switching.inputMethods = [inputMethod]
         }
     }
 
@@ -1182,7 +845,7 @@ final class AppFeatureTests: XCTestCase {
         let inputMethod = InputMethod(id: "ime.en", name: "English")
         let timestamp = Date(timeIntervalSince1970: 10)
         var initialState = AppFeature.State()
-        initialState.inputMethods = [inputMethod]
+        initialState.switching.inputMethods = [inputMethod]
         initialState.$appRulesStore.withLock {
             $0.rules[app.bundleId] = AppRuleRecord(
                 bundleId: app.bundleId,
@@ -1202,26 +865,26 @@ final class AppFeatureTests: XCTestCase {
         store.dependencies.inputMethodClient.currentInputMethodId = { inputMethod.id }
 
         await store.send(.view(.retryCurrentAppTapped)) {
-            $0.nextFrontmostRetryID = 1
-            $0.pendingFrontmostRetryID = 0
+            $0.switching.nextFrontmostRetryID = 1
+            $0.switching.pendingFrontmostRetryID = 0
         }
-        await store.receive(.response(.frontmostApplicationRetried(retryID: 0, appInfo: app))) {
-            $0.pendingFrontmostRetryID = nil
-            $0.currentFrontmostBundleId = app.bundleId
-            $0.nextSwitchAttemptID = 1
-            $0.pendingProgrammaticSwitch = .init(
+        await store.receive(.switching(.response(.frontmostApplicationRetried(retryID: 0, appInfo: app)))) {
+            $0.switching.pendingFrontmostRetryID = nil
+            $0.switching.currentFrontmostBundleId = app.bundleId
+            $0.switching.nextSwitchAttemptID = 1
+            $0.switching.pendingProgrammaticSwitch = .init(
                 appName: app.name,
                 bundleId: app.bundleId,
                 inputMethodId: inputMethod.id,
                 inputMethodName: inputMethod.name
             )
         }
-        await store.receive(.response(.programmaticSwitchFinished(
+        await store.receive(.switching(.response(.programmaticSwitchFinished(
             attemptID: 0,
             outcome: .alreadySelected
-        ))) {
-            $0.pendingProgrammaticSwitch = nil
-            $0.lastSwitchAttempt = .init(
+        )))) {
+            $0.switching.pendingProgrammaticSwitch = nil
+            $0.switching.lastSwitchAttempt = .init(
                 appName: app.name,
                 bundleId: app.bundleId,
                 inputMethodId: inputMethod.id,
@@ -1240,7 +903,7 @@ final class AppFeatureTests: XCTestCase {
         let timestamp = Date(timeIntervalSince1970: 10)
 
         var initialState = AppFeature.State()
-        initialState.currentFrontmostBundleId = firstApp.bundleId
+        initialState.switching.currentFrontmostBundleId = firstApp.bundleId
         initialState.$appRulesStore.withLock {
             $0.rules[firstApp.bundleId] = AppRuleRecord(
                 bundleId: firstApp.bundleId,
@@ -1269,20 +932,20 @@ final class AppFeatureTests: XCTestCase {
         }
 
         await store.send(.view(.retryCurrentAppTapped)) {
-            $0.nextFrontmostRetryID = 1
-            $0.pendingFrontmostRetryID = 0
+            $0.switching.nextFrontmostRetryID = 1
+            $0.switching.pendingFrontmostRetryID = 0
         }
         await frontmostGate.waitUntilStarted()
 
         await store.send(.system(.workspaceEvent(.activated(secondApp)))) {
-            $0.currentFrontmostBundleId = secondApp.bundleId
-            $0.pendingFrontmostRetryID = nil
+            $0.switching.currentFrontmostBundleId = secondApp.bundleId
+            $0.switching.pendingFrontmostRetryID = nil
         }
 
         await frontmostGate.resume()
-        await store.receive(.response(.frontmostApplicationRetried(retryID: 0, appInfo: firstApp)))
+        await store.receive(.switching(.response(.frontmostApplicationRetried(retryID: 0, appInfo: firstApp))))
 
-        XCTAssertEqual(store.state.currentFrontmostBundleId, secondApp.bundleId)
+        XCTAssertEqual(store.state.switching.currentFrontmostBundleId, secondApp.bundleId)
     }
 
     func testRetryCurrentAppContinuesAfterUnrelatedAppTerminates() async {
@@ -1294,7 +957,7 @@ final class AppFeatureTests: XCTestCase {
         let timestamp = Date(timeIntervalSince1970: 10)
 
         var initialState = AppFeature.State()
-        initialState.currentFrontmostBundleId = firstApp.bundleId
+        initialState.switching.currentFrontmostBundleId = firstApp.bundleId
         initialState.runningApps = runningApps
         initialState.$appRulesStore.withLock { store in
             for app in runningApps {
@@ -1319,8 +982,8 @@ final class AppFeatureTests: XCTestCase {
         store.dependencies.workspaceClient.runningApplications = { [firstApp, secondApp] }
 
         await store.send(.view(.retryCurrentAppTapped)) {
-            $0.nextFrontmostRetryID = 1
-            $0.pendingFrontmostRetryID = 0
+            $0.switching.nextFrontmostRetryID = 1
+            $0.switching.pendingFrontmostRetryID = 0
         }
         await frontmostGate.waitUntilStarted()
 
@@ -1330,75 +993,12 @@ final class AppFeatureTests: XCTestCase {
         }
 
         await frontmostGate.resume()
-        await store.receive(.response(.frontmostApplicationRetried(retryID: 0, appInfo: secondApp))) {
-            $0.currentFrontmostBundleId = secondApp.bundleId
-            $0.pendingFrontmostRetryID = nil
+        await store.receive(.switching(.response(.frontmostApplicationRetried(retryID: 0, appInfo: secondApp)))) {
+            $0.switching.currentFrontmostBundleId = secondApp.bundleId
+            $0.switching.pendingFrontmostRetryID = nil
         }
 
-        XCTAssertEqual(store.state.currentFrontmostBundleId, secondApp.bundleId)
-    }
-
-    func testStaleProgrammaticSwitchResultIsIgnored() async {
-        var initialState = AppFeature.State()
-        initialState.pendingProgrammaticSwitch = .init(
-            appName: "Editor",
-            attemptID: 1,
-            bundleId: "com.test.editor",
-            inputMethodId: "ime.en",
-            inputMethodName: "English"
-        )
-
-        let store = TestStore(initialState: initialState) {
-            AppFeature()
-        }
-
-        await store.send(.response(.programmaticSwitchFinished(
-            attemptID: 0,
-            outcome: .switched
-        )))
-
-        XCTAssertNotNil(store.state.pendingProgrammaticSwitch)
-        XCTAssertNil(store.state.lastSwitchAttempt)
-        XCTAssertTrue(store.state.appSwitchStatisticsStore.counts.isEmpty)
-    }
-
-    func testSelectionNotificationDoesNotDiscardSuccessfulSwitchResult() async {
-        let timestamp = Date(timeIntervalSince1970: 10)
-        let bundleId = "com.test.editor"
-        var initialState = AppFeature.State()
-        initialState.pendingProgrammaticSwitch = .init(
-            appName: "Editor",
-            bundleId: bundleId,
-            inputMethodId: "ime.en",
-            inputMethodName: "English"
-        )
-
-        let store = TestStore(initialState: initialState) {
-            AppFeature()
-        }
-        store.dependencies.date = .constant(timestamp)
-
-        await store.send(.system(.inputMethodSelectedChanged("ime.en"))) {
-            $0.pendingProgrammaticSwitch?.didObserveTargetSelection = true
-        }
-        await store.send(.response(.programmaticSwitchFinished(
-            attemptID: 0,
-            outcome: .switched
-        ))) {
-            $0.pendingProgrammaticSwitch = nil
-            $0.lastSwitchAttempt = .init(
-                appName: "Editor",
-                bundleId: bundleId,
-                inputMethodId: "ime.en",
-                inputMethodName: "English",
-                outcome: .switched,
-                ruleSource: .app,
-                timestamp: timestamp
-            )
-            $0.$appSwitchStatisticsStore.withLock {
-                $0.counts[bundleId] = 1
-            }
-        }
+        XCTAssertEqual(store.state.switching.currentFrontmostBundleId, secondApp.bundleId)
     }
 
     func testSelectionNotificationPreventsFailureFromOverwritingConfirmedSuccess() async {
@@ -1406,8 +1006,8 @@ final class AppFeatureTests: XCTestCase {
         let bundleId = "com.test.editor"
         let inputMethodId = "ime.en"
         var initialState = AppFeature.State()
-        initialState.currentFrontmostBundleId = bundleId
-        initialState.pendingProgrammaticSwitch = .init(
+        initialState.switching.currentFrontmostBundleId = bundleId
+        initialState.switching.pendingProgrammaticSwitch = .init(
             appName: "Editor",
             bundleId: bundleId,
             inputMethodId: inputMethodId,
@@ -1429,15 +1029,15 @@ final class AppFeatureTests: XCTestCase {
         }
         store.dependencies.date = .constant(timestamp)
 
-        await store.send(.system(.inputMethodSelectedChanged(inputMethodId))) {
-            $0.pendingProgrammaticSwitch?.didObserveTargetSelection = true
+        await store.send(.switching(.system(.inputMethodSelectedChanged(inputMethodId)))) {
+            $0.switching.pendingProgrammaticSwitch?.didObserveTargetSelection = true
         }
-        await store.send(.response(.programmaticSwitchFinished(
+        await store.send(.switching(.response(.programmaticSwitchFinished(
             attemptID: 0,
             outcome: .failed(.failedToVerifyInputMethod(inputMethodId))
-        ))) {
-            $0.pendingProgrammaticSwitch = nil
-            $0.lastSwitchAttempt = .init(
+        )))) {
+            $0.switching.pendingProgrammaticSwitch = nil
+            $0.switching.lastSwitchAttempt = .init(
                 appName: "Editor",
                 bundleId: bundleId,
                 inputMethodId: inputMethodId,
@@ -1452,70 +1052,13 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertTrue(store.state.appSwitchStatisticsStore.counts.isEmpty)
     }
 
-    func testNonTargetSelectionRevokesConfirmedProgrammaticSwitch() async {
-        let timestamp = Date(timeIntervalSince1970: 10)
-        let bundleId = "com.test.editor"
-        let targetInputMethodId = "ime.en"
-        var initialState = AppFeature.State()
-        initialState.currentFrontmostBundleId = bundleId
-        initialState.pendingProgrammaticSwitch = .init(
-            appName: "Editor",
-            bundleId: bundleId,
-            inputMethodId: targetInputMethodId,
-            inputMethodName: "English"
-        )
-        initialState.$appRulesStore.withLock {
-            $0.rules[bundleId] = AppRuleRecord(
-                bundleId: bundleId,
-                lastKnownPath: "/Applications/Editor.app",
-                lastKnownName: "Editor",
-                strategy: .fixed(inputMethodId: targetInputMethodId),
-                createdAt: timestamp,
-                updatedAt: timestamp
-            )
-        }
-
-        let store = TestStore(initialState: initialState) {
-            AppFeature()
-        }
-        store.dependencies.date = .constant(timestamp)
-
-        await store.send(.system(.inputMethodSelectedChanged(targetInputMethodId))) {
-            $0.pendingProgrammaticSwitch?.didObserveTargetSelection = true
-        }
-        await store.send(.system(.inputMethodSelectedChanged("ime.jp"))) {
-            $0.pendingProgrammaticSwitch?.didObserveTargetSelection = false
-        }
-        await store.send(.response(.programmaticSwitchFinished(
-            attemptID: 0,
-            outcome: .failed(.failedToVerifyInputMethod(targetInputMethodId))
-        ))) {
-            $0.pendingProgrammaticSwitch = nil
-            $0.lastSwitchAttempt = .init(
-                appName: "Editor",
-                bundleId: bundleId,
-                inputMethodId: targetInputMethodId,
-                inputMethodName: "English",
-                outcome: .failed(.failedToVerifyInputMethod(targetInputMethodId)),
-                ruleSource: .app,
-                timestamp: timestamp
-            )
-        }
-
-        XCTAssertEqual(
-            store.state.lastSwitchAttempt?.outcome,
-            .failed(.failedToVerifyInputMethod(targetInputMethodId))
-        )
-        XCTAssertTrue(store.state.appSwitchStatisticsStore.counts.isEmpty)
-    }
-
     func testVerificationFailureProducesSwitchDiagnostic() async {
         let app = AppInfo(bundleId: "com.test.browser", name: "Browser", path: "/Applications/Browser.app")
         let targetInputMethod = "ime.en"
         let timestamp = Date(timeIntervalSince1970: 10)
 
         var initialState = AppFeature.State()
-        initialState.inputMethods = [InputMethod(id: targetInputMethod, name: "English")]
+        initialState.switching.inputMethods = [InputMethod(id: targetInputMethod, name: "English")]
         initialState.$appRulesStore.withLock {
             $0.rules[app.bundleId] = AppRuleRecord(
                 bundleId: app.bundleId,
@@ -1537,21 +1080,21 @@ final class AppFeatureTests: XCTestCase {
         }
 
         await store.send(.system(.workspaceEvent(.activated(app)))) {
-            $0.currentFrontmostBundleId = app.bundleId
-            $0.nextSwitchAttemptID = 1
-            $0.pendingProgrammaticSwitch = .init(
+            $0.switching.currentFrontmostBundleId = app.bundleId
+            $0.switching.nextSwitchAttemptID = 1
+            $0.switching.pendingProgrammaticSwitch = .init(
                 appName: app.name,
                 bundleId: app.bundleId,
                 inputMethodId: targetInputMethod,
                 inputMethodName: "English"
             )
         }
-        await store.receive(.response(.programmaticSwitchFinished(
+        await store.receive(.switching(.response(.programmaticSwitchFinished(
             attemptID: 0,
             outcome: .failed(.failedToVerifyInputMethod(targetInputMethod))
-        ))) {
-            $0.pendingProgrammaticSwitch = nil
-            $0.lastSwitchAttempt = .init(
+        )))) {
+            $0.switching.pendingProgrammaticSwitch = nil
+            $0.switching.lastSwitchAttempt = .init(
                 appName: app.name,
                 bundleId: app.bundleId,
                 inputMethodId: targetInputMethod,
@@ -1569,8 +1112,8 @@ final class AppFeatureTests: XCTestCase {
     func testSwitchDiagnosticDisappearsWhenRuleNoLongerTargetsFailedInputMethod() {
         let bundleId = "com.test.browser"
         var state = AppFeature.State()
-        state.currentFrontmostBundleId = bundleId
-        state.lastSwitchAttempt = .init(
+        state.switching.currentFrontmostBundleId = bundleId
+        state.switching.lastSwitchAttempt = .init(
             appName: "Browser",
             bundleId: bundleId,
             inputMethodId: "ime.en",
@@ -1608,175 +1151,6 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertNil(state.inputMethodDiagnostic)
     }
 
-    func testActivatedAppUsesAppRuleBeforeFallbackRule() async {
-        let app = AppInfo(bundleId: "com.test.browser", name: "Browser", path: "/Applications/Browser.app")
-        let appInputMethod = "ime.app"
-        let fallbackInputMethod = "ime.fallback"
-        let recorder = SwitchRecorder()
-
-        var initialState = AppFeature.State()
-        initialState.inputMethods = [
-            InputMethod(id: appInputMethod, name: "App"),
-            InputMethod(id: fallbackInputMethod, name: "Fallback"),
-        ]
-        initialState.$fallbackRuleStore.withLock {
-            $0.strategy = .fixed(inputMethodId: fallbackInputMethod)
-        }
-        initialState.$appRulesStore.withLock {
-            $0.rules[app.bundleId] = AppRuleRecord(
-                bundleId: app.bundleId,
-                lastKnownPath: app.path,
-                lastKnownName: app.name,
-                strategy: .fixed(inputMethodId: appInputMethod),
-                createdAt: Date(timeIntervalSince1970: 10),
-                updatedAt: Date(timeIntervalSince1970: 10)
-            )
-        }
-
-        let store = TestStore(initialState: initialState) {
-            AppFeature()
-        }
-        store.dependencies.date = .constant(Date(timeIntervalSince1970: 10))
-        store.dependencies.inputMethodClient.currentInputMethodId = { "ime.other" }
-        store.dependencies.inputMethodClient.switchToInputMethod = { inputMethodId in
-            await recorder.record(inputMethodId)
-        }
-
-        await store.send(.system(.workspaceEvent(.activated(app)))) {
-            $0.currentFrontmostBundleId = app.bundleId
-            $0.nextSwitchAttemptID = 1
-            $0.pendingProgrammaticSwitch = .init(
-                appName: app.name,
-                bundleId: app.bundleId,
-                inputMethodId: appInputMethod,
-                inputMethodName: "App"
-            )
-        }
-        await store.receive(.response(.programmaticSwitchFinished(
-            attemptID: 0,
-            outcome: .switched
-        ))) {
-            $0.pendingProgrammaticSwitch = nil
-            $0.lastSwitchAttempt = .init(
-                appName: app.name,
-                bundleId: app.bundleId,
-                inputMethodId: appInputMethod,
-                inputMethodName: "App",
-                outcome: .switched,
-                ruleSource: .app,
-                timestamp: Date(timeIntervalSince1970: 10)
-            )
-            $0.$appSwitchStatisticsStore.withLock {
-                $0.counts[app.bundleId] = 1
-            }
-        }
-
-        let switchedInputMethods = await recorder.values
-        XCTAssertEqual(switchedInputMethods, [appInputMethod])
-    }
-
-    func testActivatedAppUsesFallbackRuleWhenAppRuleIsNone() async {
-        let app = AppInfo(bundleId: "com.test.browser", name: "Browser", path: "/Applications/Browser.app")
-        let fallbackInputMethod = "ime.fallback"
-        let recorder = SwitchRecorder()
-
-        var initialState = AppFeature.State()
-        initialState.inputMethods = [InputMethod(id: fallbackInputMethod, name: "Fallback")]
-        initialState.$fallbackRuleStore.withLock {
-            $0.strategy = .fixed(inputMethodId: fallbackInputMethod)
-        }
-        initialState.$appRulesStore.withLock {
-            $0.rules[app.bundleId] = AppRuleRecord(
-                bundleId: app.bundleId,
-                lastKnownPath: app.path,
-                lastKnownName: app.name,
-                strategy: .none,
-                createdAt: Date(timeIntervalSince1970: 10),
-                updatedAt: Date(timeIntervalSince1970: 10)
-            )
-        }
-
-        let store = TestStore(initialState: initialState) {
-            AppFeature()
-        }
-        store.dependencies.date = .constant(Date(timeIntervalSince1970: 10))
-        store.dependencies.inputMethodClient.currentInputMethodId = { "ime.other" }
-        store.dependencies.inputMethodClient.switchToInputMethod = { inputMethodId in
-            await recorder.record(inputMethodId)
-        }
-
-        await store.send(.system(.workspaceEvent(.activated(app)))) {
-            $0.currentFrontmostBundleId = app.bundleId
-            $0.nextSwitchAttemptID = 1
-            $0.pendingProgrammaticSwitch = .init(
-                appName: app.name,
-                bundleId: app.bundleId,
-                inputMethodId: fallbackInputMethod,
-                inputMethodName: "Fallback",
-                ruleSource: .fallback
-            )
-        }
-        await store.receive(.response(.programmaticSwitchFinished(
-            attemptID: 0,
-            outcome: .switched
-        ))) {
-            $0.pendingProgrammaticSwitch = nil
-            $0.lastSwitchAttempt = .init(
-                appName: app.name,
-                bundleId: app.bundleId,
-                inputMethodId: fallbackInputMethod,
-                inputMethodName: "Fallback",
-                outcome: .switched,
-                ruleSource: .fallback,
-                timestamp: Date(timeIntervalSince1970: 10)
-            )
-            $0.$appSwitchStatisticsStore.withLock {
-                $0.counts[app.bundleId] = 1
-            }
-        }
-
-        let switchedInputMethods = await recorder.values
-        XCTAssertEqual(switchedInputMethods, [fallbackInputMethod])
-    }
-
-    func testActivatedIgnoredAppOverridesFixedFallback() async {
-        let app = AppInfo(bundleId: "com.test.passwords", name: "Passwords", path: "/Applications/Passwords.app")
-
-        var initialState = AppFeature.State()
-        initialState.inputMethods = [InputMethod(id: "ime.fallback", name: "Fallback")]
-        initialState.$fallbackRuleStore.withLock {
-            $0.strategy = .fixed(inputMethodId: "ime.fallback")
-        }
-        initialState.$appRulesStore.withLock {
-            $0.rules[app.bundleId] = AppRuleRecord(
-                bundleId: app.bundleId,
-                lastKnownPath: app.path,
-                lastKnownName: app.name,
-                strategy: .ignored,
-                createdAt: Date(timeIntervalSince1970: 10),
-                updatedAt: Date(timeIntervalSince1970: 10)
-            )
-        }
-
-        let store = TestStore(initialState: initialState) {
-            AppFeature()
-        }
-        store.dependencies.date = .constant(Date(timeIntervalSince1970: 10))
-        store.dependencies.inputMethodClient.currentInputMethodId = {
-            XCTFail("Ignored apps must not query the current input method")
-            return "ime.other"
-        }
-        store.dependencies.inputMethodClient.switchToInputMethod = { _ in
-            XCTFail("Ignored apps must not switch input methods")
-        }
-
-        await store.send(.system(.workspaceEvent(.activated(app)))) {
-            $0.currentFrontmostBundleId = app.bundleId
-        }
-
-        XCTAssertTrue(store.state.appSwitchStatisticsStore.counts.isEmpty)
-    }
-
     func testIgnoringCurrentAppCancelsPendingProgrammaticSwitch() async {
         let app = AppInfo(bundleId: "com.test.browser", name: "Browser", path: "/Applications/Browser.app")
         let targetInputMethod = "ime.en"
@@ -1785,7 +1159,7 @@ final class AppFeatureTests: XCTestCase {
         let recorder = SwitchRecorder()
 
         var initialState = AppFeature.State()
-        initialState.inputMethods = [InputMethod(id: targetInputMethod, name: "English")]
+        initialState.switching.inputMethods = [InputMethod(id: targetInputMethod, name: "English")]
         initialState.$appRulesStore.withLock {
             $0.rules[app.bundleId] = AppRuleRecord(
                 bundleId: app.bundleId,
@@ -1809,9 +1183,9 @@ final class AppFeatureTests: XCTestCase {
         }
 
         await store.send(.system(.workspaceEvent(.activated(app)))) {
-            $0.currentFrontmostBundleId = app.bundleId
-            $0.nextSwitchAttemptID = 1
-            $0.pendingProgrammaticSwitch = .init(
+            $0.switching.currentFrontmostBundleId = app.bundleId
+            $0.switching.nextSwitchAttemptID = 1
+            $0.switching.pendingProgrammaticSwitch = .init(
                 appName: app.name,
                 bundleId: app.bundleId,
                 inputMethodId: targetInputMethod,
@@ -1821,7 +1195,7 @@ final class AppFeatureTests: XCTestCase {
         await lookupGate.waitForFirstCall()
 
         await store.send(.view(.ignoreAppTapped(app))) {
-            $0.pendingProgrammaticSwitch = nil
+            $0.switching.pendingProgrammaticSwitch = nil
             $0.$appRulesStore.withLock {
                 guard var rule = $0.rules[app.bundleId] else { return }
                 rule.strategyBeforeIgnoring = .fixed(inputMethodId: targetInputMethod)
@@ -1839,167 +1213,6 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertTrue(store.state.appSwitchStatisticsStore.counts.isEmpty)
     }
 
-    func testActivatingIgnoredAppCancelsPreviousProgrammaticSwitch() async {
-        let firstApp = AppInfo(bundleId: "com.test.first", name: "First", path: "/Applications/First.app")
-        let ignoredApp = AppInfo(bundleId: "com.test.ignored", name: "Ignored", path: "/Applications/Ignored.app")
-        let targetInputMethod = "ime.en"
-        let lookupGate = InputMethodLookupGate(firstValue: "ime.other")
-        let recorder = SwitchRecorder()
-
-        var initialState = AppFeature.State()
-        initialState.inputMethods = [InputMethod(id: targetInputMethod, name: "English")]
-        initialState.$appRulesStore.withLock {
-            $0.rules[firstApp.bundleId] = AppRuleRecord(
-                bundleId: firstApp.bundleId,
-                lastKnownPath: firstApp.path,
-                lastKnownName: firstApp.name,
-                strategy: .fixed(inputMethodId: targetInputMethod),
-                createdAt: Date(timeIntervalSince1970: 10),
-                updatedAt: Date(timeIntervalSince1970: 10)
-            )
-            $0.rules[ignoredApp.bundleId] = AppRuleRecord(
-                bundleId: ignoredApp.bundleId,
-                lastKnownPath: ignoredApp.path,
-                lastKnownName: ignoredApp.name,
-                strategy: .ignored,
-                createdAt: Date(timeIntervalSince1970: 10),
-                updatedAt: Date(timeIntervalSince1970: 10)
-            )
-        }
-
-        let store = TestStore(initialState: initialState) {
-            AppFeature()
-        }
-        store.dependencies.date = .constant(Date(timeIntervalSince1970: 10))
-        store.dependencies.inputMethodClient.currentInputMethodId = {
-            await lookupGate.value()
-        }
-        store.dependencies.inputMethodClient.switchToInputMethod = { inputMethodId in
-            await recorder.record(inputMethodId)
-        }
-
-        await store.send(.system(.workspaceEvent(.activated(firstApp)))) {
-            $0.currentFrontmostBundleId = firstApp.bundleId
-            $0.nextSwitchAttemptID = 1
-            $0.pendingProgrammaticSwitch = .init(
-                appName: firstApp.name,
-                bundleId: firstApp.bundleId,
-                inputMethodId: targetInputMethod,
-                inputMethodName: "English"
-            )
-        }
-        await lookupGate.waitForFirstCall()
-
-        await store.send(.system(.workspaceEvent(.activated(ignoredApp)))) {
-            $0.currentFrontmostBundleId = ignoredApp.bundleId
-            $0.pendingProgrammaticSwitch = nil
-        }
-
-        await lookupGate.resumeFirst()
-        await store.finish()
-
-        let switchedInputMethods = await recorder.values
-        XCTAssertTrue(switchedInputMethods.isEmpty)
-        XCTAssertTrue(store.state.appSwitchStatisticsStore.counts.isEmpty)
-    }
-
-    func testConsecutiveActivationsOnlyCompleteLatestProgrammaticSwitch() async {
-        let firstApp = AppInfo(bundleId: "com.test.first", name: "First", path: "/Applications/First.app")
-        let secondApp = AppInfo(bundleId: "com.test.second", name: "Second", path: "/Applications/Second.app")
-        let firstInputMethod = "ime.first"
-        let secondInputMethod = "ime.second"
-        let lookupGate = InputMethodLookupGate(
-            firstValue: "ime.other",
-            subsequentValue: "ime.other"
-        )
-        let recorder = SwitchRecorder()
-
-        var initialState = AppFeature.State()
-        initialState.inputMethods = [
-            InputMethod(id: firstInputMethod, name: "First"),
-            InputMethod(id: secondInputMethod, name: "Second"),
-        ]
-        initialState.$appRulesStore.withLock {
-            $0.rules[firstApp.bundleId] = AppRuleRecord(
-                bundleId: firstApp.bundleId,
-                lastKnownPath: firstApp.path,
-                lastKnownName: firstApp.name,
-                strategy: .fixed(inputMethodId: firstInputMethod),
-                createdAt: Date(timeIntervalSince1970: 10),
-                updatedAt: Date(timeIntervalSince1970: 10)
-            )
-            $0.rules[secondApp.bundleId] = AppRuleRecord(
-                bundleId: secondApp.bundleId,
-                lastKnownPath: secondApp.path,
-                lastKnownName: secondApp.name,
-                strategy: .fixed(inputMethodId: secondInputMethod),
-                createdAt: Date(timeIntervalSince1970: 10),
-                updatedAt: Date(timeIntervalSince1970: 10)
-            )
-        }
-
-        let store = TestStore(initialState: initialState) {
-            AppFeature()
-        }
-        store.dependencies.date = .constant(Date(timeIntervalSince1970: 10))
-        store.dependencies.inputMethodClient.currentInputMethodId = {
-            await lookupGate.value()
-        }
-        store.dependencies.inputMethodClient.switchToInputMethod = { inputMethodId in
-            await recorder.record(inputMethodId)
-        }
-
-        await store.send(.system(.workspaceEvent(.activated(firstApp)))) {
-            $0.currentFrontmostBundleId = firstApp.bundleId
-            $0.nextSwitchAttemptID = 1
-            $0.pendingProgrammaticSwitch = .init(
-                appName: firstApp.name,
-                bundleId: firstApp.bundleId,
-                inputMethodId: firstInputMethod,
-                inputMethodName: "First"
-            )
-        }
-        await lookupGate.waitForFirstCall()
-
-        await store.send(.system(.workspaceEvent(.activated(secondApp)))) {
-            $0.currentFrontmostBundleId = secondApp.bundleId
-            $0.nextSwitchAttemptID = 2
-            $0.pendingProgrammaticSwitch = .init(
-                appName: secondApp.name,
-                attemptID: 1,
-                bundleId: secondApp.bundleId,
-                inputMethodId: secondInputMethod,
-                inputMethodName: "Second"
-            )
-        }
-        await store.receive(.response(.programmaticSwitchFinished(
-            attemptID: 1,
-            outcome: .switched
-        ))) {
-            $0.pendingProgrammaticSwitch = nil
-            $0.lastSwitchAttempt = .init(
-                appName: secondApp.name,
-                bundleId: secondApp.bundleId,
-                inputMethodId: secondInputMethod,
-                inputMethodName: "Second",
-                outcome: .switched,
-                ruleSource: .app,
-                timestamp: Date(timeIntervalSince1970: 10)
-            )
-            $0.$appSwitchStatisticsStore.withLock {
-                $0.counts[secondApp.bundleId] = 1
-            }
-        }
-
-        await lookupGate.resumeFirst()
-        await store.finish()
-
-        let switchedInputMethods = await recorder.values
-        XCTAssertEqual(switchedInputMethods, [secondInputMethod])
-        XCTAssertNil(store.state.appSwitchStatisticsStore.counts[firstApp.bundleId])
-        XCTAssertEqual(store.state.appSwitchStatisticsStore.counts[secondApp.bundleId], 1)
-    }
-
     func testTerminatingCurrentAppCancelsSwitchAfterSelectionNotification() async {
         let app = AppInfo(bundleId: "com.test.browser", name: "Browser", path: "/Applications/Browser.app")
         let targetInputMethod = "ime.en"
@@ -2007,7 +1220,7 @@ final class AppFeatureTests: XCTestCase {
         let recorder = SwitchRecorder()
 
         var initialState = AppFeature.State()
-        initialState.inputMethods = [InputMethod(id: targetInputMethod, name: "English")]
+        initialState.switching.inputMethods = [InputMethod(id: targetInputMethod, name: "English")]
         initialState.runningApps = [app]
         initialState.$appRulesStore.withLock {
             $0.rules[app.bundleId] = AppRuleRecord(
@@ -2032,9 +1245,9 @@ final class AppFeatureTests: XCTestCase {
         store.dependencies.workspaceClient.runningApplications = { [] }
 
         await store.send(.system(.workspaceEvent(.activated(app)))) {
-            $0.currentFrontmostBundleId = app.bundleId
-            $0.nextSwitchAttemptID = 1
-            $0.pendingProgrammaticSwitch = .init(
+            $0.switching.currentFrontmostBundleId = app.bundleId
+            $0.switching.nextSwitchAttemptID = 1
+            $0.switching.pendingProgrammaticSwitch = .init(
                 appName: app.name,
                 bundleId: app.bundleId,
                 inputMethodId: targetInputMethod,
@@ -2043,12 +1256,12 @@ final class AppFeatureTests: XCTestCase {
         }
         await switchGate.waitUntilStarted()
 
-        await store.send(.system(.inputMethodSelectedChanged(targetInputMethod))) {
-            $0.pendingProgrammaticSwitch?.didObserveTargetSelection = true
+        await store.send(.switching(.system(.inputMethodSelectedChanged(targetInputMethod)))) {
+            $0.switching.pendingProgrammaticSwitch?.didObserveTargetSelection = true
         }
         await store.send(.system(.workspaceEvent(.terminated(bundleId: app.bundleId)))) {
-            $0.currentFrontmostBundleId = nil
-            $0.pendingProgrammaticSwitch = nil
+            $0.switching.currentFrontmostBundleId = nil
+            $0.switching.pendingProgrammaticSwitch = nil
         }
         await store.receive(.response(.runningApps([]))) {
             $0.runningApps = []
@@ -2062,116 +1275,12 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertTrue(store.state.appSwitchStatisticsStore.counts.isEmpty)
     }
 
-    func testActivatedAppUsesFallbackRuleWhenAppRuleIsMissing() async {
-        let now = Date(timeIntervalSince1970: 10)
-        let app = AppInfo(bundleId: "com.test.browser", name: "Browser", path: "/Applications/Browser.app")
-        let fallbackInputMethod = "ime.fallback"
-        let recorder = SwitchRecorder()
-
-        var initialState = AppFeature.State()
-        initialState.inputMethods = [InputMethod(id: fallbackInputMethod, name: "Fallback")]
-        initialState.$fallbackRuleStore.withLock {
-            $0.strategy = .fixed(inputMethodId: fallbackInputMethod)
-        }
-
-        let store = TestStore(initialState: initialState) {
-            AppFeature()
-        }
-        store.dependencies.date = .constant(now)
-        store.dependencies.inputMethodClient.currentInputMethodId = { "ime.other" }
-        store.dependencies.inputMethodClient.switchToInputMethod = { inputMethodId in
-            await recorder.record(inputMethodId)
-        }
-
-        await store.send(.system(.workspaceEvent(.activated(app)))) {
-            $0.currentFrontmostBundleId = app.bundleId
-            $0.nextSwitchAttemptID = 1
-            $0.pendingProgrammaticSwitch = .init(
-                appName: app.name,
-                bundleId: app.bundleId,
-                inputMethodId: fallbackInputMethod,
-                inputMethodName: "Fallback",
-                ruleSource: .fallback
-            )
-            $0.$appRulesStore.withLock {
-                $0.rules[app.bundleId] = AppRuleRecord(
-                    bundleId: app.bundleId,
-                    lastKnownPath: app.path,
-                    lastKnownName: app.name,
-                    strategy: .none,
-                    createdAt: now,
-                    updatedAt: now
-                )
-            }
-        }
-        await store.receive(.response(.programmaticSwitchFinished(
-            attemptID: 0,
-            outcome: .switched
-        ))) {
-            $0.pendingProgrammaticSwitch = nil
-            $0.lastSwitchAttempt = .init(
-                appName: app.name,
-                bundleId: app.bundleId,
-                inputMethodId: fallbackInputMethod,
-                inputMethodName: "Fallback",
-                outcome: .switched,
-                ruleSource: .fallback,
-                timestamp: now
-            )
-            $0.$appSwitchStatisticsStore.withLock {
-                $0.counts[app.bundleId] = 1
-            }
-        }
-
-        let switchedInputMethods = await recorder.values
-        XCTAssertEqual(switchedInputMethods, [fallbackInputMethod])
-    }
-
-    func testActivatedAppSkipsSwitchWhenFallbackRuleIsNone() async {
-        let app = AppInfo(bundleId: "com.test.browser", name: "Browser", path: "/Applications/Browser.app")
-        let recorder = SwitchRecorder()
-
-        var initialState = AppFeature.State()
-        initialState.$fallbackRuleStore.withLock {
-            $0.strategy = .none
-        }
-        initialState.$appRulesStore.withLock {
-            $0.rules[app.bundleId] = AppRuleRecord(
-                bundleId: app.bundleId,
-                lastKnownPath: app.path,
-                lastKnownName: app.name,
-                strategy: .none,
-                createdAt: Date(timeIntervalSince1970: 10),
-                updatedAt: Date(timeIntervalSince1970: 10)
-            )
-        }
-
-        let store = TestStore(initialState: initialState) {
-            AppFeature()
-        }
-        store.dependencies.date = .constant(Date(timeIntervalSince1970: 10))
-        store.dependencies.inputMethodClient.currentInputMethodId = {
-            XCTFail("Fallback .none should not trigger current input method lookup")
-            return "ime.en"
-        }
-        store.dependencies.inputMethodClient.switchToInputMethod = { inputMethodId in
-            await recorder.record(inputMethodId)
-        }
-
-        await store.send(.system(.workspaceEvent(.activated(app)))) {
-            $0.currentFrontmostBundleId = app.bundleId
-        }
-
-        let switchedInputMethods = await recorder.values
-        XCTAssertTrue(switchedInputMethods.isEmpty)
-    }
-
     func testActivatedAppSkipsSwitchWhenFallbackRuleIsLegacyFollowLast() async {
         let app = AppInfo(bundleId: "com.test.browser", name: "Browser", path: "/Applications/Browser.app")
         let recorder = SwitchRecorder()
 
         var initialState = AppFeature.State()
-        initialState.inputMethods = [InputMethod(id: "ime.jp", name: "Japanese")]
+        initialState.switching.inputMethods = [InputMethod(id: "ime.jp", name: "Japanese")]
         initialState.$fallbackRuleStore.withLock {
             $0.strategy = .followLast(lastInputMethodId: "ime.jp")
         }
@@ -2199,7 +1308,7 @@ final class AppFeatureTests: XCTestCase {
         }
 
         await store.send(.system(.workspaceEvent(.activated(app)))) {
-            $0.currentFrontmostBundleId = app.bundleId
+            $0.switching.currentFrontmostBundleId = app.bundleId
         }
 
         let switchedInputMethods = await recorder.values
@@ -2212,8 +1321,8 @@ final class AppFeatureTests: XCTestCase {
         let recorder = SwitchRecorder()
 
         var initialState = AppFeature.State()
-        initialState.inputMethodCatalogStatus = .ready
-        initialState.inputMethods = [InputMethod(id: "ime.en", name: "English")]
+        initialState.switching.inputMethodCatalogStatus = .ready
+        initialState.switching.inputMethods = [InputMethod(id: "ime.en", name: "English")]
         initialState.$fallbackRuleStore.withLock {
             $0.strategy = .fixed(inputMethodId: "ime.deleted")
         }
@@ -2241,8 +1350,8 @@ final class AppFeatureTests: XCTestCase {
         }
 
         await store.send(.system(.workspaceEvent(.activated(app)))) {
-            $0.currentFrontmostBundleId = app.bundleId
-            $0.lastSwitchAttempt = .init(
+            $0.switching.currentFrontmostBundleId = app.bundleId
+            $0.switching.lastSwitchAttempt = .init(
                 appName: app.name,
                 bundleId: app.bundleId,
                 inputMethodId: "ime.deleted",
@@ -2262,8 +1371,8 @@ final class AppFeatureTests: XCTestCase {
         let missingPath = "/tmp/\(UUID().uuidString)"
 
         var initialState = AppFeature.State()
-        initialState.inputMethodCatalogStatus = .ready
-        initialState.inputMethods = [InputMethod(id: "ime.en", name: "English")]
+        initialState.switching.inputMethodCatalogStatus = .ready
+        initialState.switching.inputMethods = [InputMethod(id: "ime.en", name: "English")]
         initialState.$appRulesStore.withLock {
             $0.rules["com.test.missing"] = AppRuleRecord(
                 bundleId: "com.test.missing",
@@ -2279,63 +1388,11 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertEqual(initialState.unavailableApps.map(\.bundleId), ["com.test.missing"])
     }
 
-    func testActivatedAppSkipsMissingFixedInputMethod() async {
-        let app = AppInfo(bundleId: "com.test.browser", name: "Browser", path: "/Applications/Browser.app")
-        let missingInputMethod = "ime.deleted"
-        let recorder = SwitchRecorder()
-
-        var initialState = AppFeature.State()
-        initialState.inputMethodCatalogStatus = .ready
-        initialState.inputMethods = [InputMethod(id: "ime.en", name: "English")]
-        initialState.$appRulesStore.withLock {
-            $0.rules[app.bundleId] = AppRuleRecord(
-                bundleId: app.bundleId,
-                lastKnownPath: app.path,
-                lastKnownName: app.name,
-                strategy: .fixed(inputMethodId: missingInputMethod),
-                createdAt: Date(timeIntervalSince1970: 10),
-                updatedAt: Date(timeIntervalSince1970: 10)
-            )
-        }
-
-        let store = TestStore(initialState: initialState) {
-            AppFeature()
-        }
-        store.dependencies.date = .constant(Date(timeIntervalSince1970: 10))
-        store.dependencies.inputMethodClient.currentInputMethodId = {
-            XCTFail("Missing input methods should not trigger current input method lookup")
-            return "ime.en"
-        }
-        store.dependencies.inputMethodClient.switchToInputMethod = { inputMethodId in
-            await recorder.record(inputMethodId)
-        }
-
-        await store.send(.system(.workspaceEvent(.activated(app)))) {
-            $0.currentFrontmostBundleId = app.bundleId
-            $0.lastSwitchAttempt = .init(
-                appName: app.name,
-                bundleId: app.bundleId,
-                inputMethodId: missingInputMethod,
-                inputMethodName: nil,
-                outcome: .failed(.inputMethodNotFound(missingInputMethod)),
-                ruleSource: .app,
-                timestamp: Date(timeIntervalSince1970: 10)
-            )
-        }
-
-        let switchedInputMethods = await recorder.values
-        XCTAssertTrue(switchedInputMethods.isEmpty)
-        XCTAssertEqual(
-            store.state.appRules[app.bundleId]?.strategy,
-            .fixed(inputMethodId: missingInputMethod)
-        )
-    }
-
     func testFollowLastAvailableInputMethodShowsCurrentInputMethodInMenuOption() {
         let app = AppInfo(bundleId: "com.test.chat", name: "Chat", path: "/Applications/Chat.app")
 
         var state = AppFeature.State()
-        state.inputMethods = [InputMethod(id: "ime.zh", name: "Pinyin")]
+        state.switching.inputMethods = [InputMethod(id: "ime.zh", name: "Pinyin")]
         state.runningApps = [app]
         state.$appRulesStore.withLock {
             $0.rules[app.bundleId] = AppRuleRecord(
@@ -2379,7 +1436,7 @@ final class AppFeatureTests: XCTestCase {
         let app = AppInfo(bundleId: "com.test.chat", name: "Chat", path: "/Applications/Chat.app")
 
         var state = AppFeature.State()
-        state.inputMethods = [InputMethod(id: "ime.zh", name: "Pinyin")]
+        state.switching.inputMethods = [InputMethod(id: "ime.zh", name: "Pinyin")]
         state.runningApps = [app]
         state.$fallbackRuleStore.withLock {
             $0.strategy = .fixed(inputMethodId: "ime.zh")
@@ -2440,7 +1497,7 @@ final class AppFeatureTests: XCTestCase {
         let app = AppInfo(bundleId: "com.test.passwords", name: "Passwords", path: "/Applications/Passwords.app")
 
         var state = AppFeature.State()
-        state.currentFrontmostBundleId = app.bundleId
+        state.switching.currentFrontmostBundleId = app.bundleId
         state.runningApps = [app]
         state.$appSwitchStatisticsStore.withLock {
             $0.counts[app.bundleId] = 4
@@ -2740,7 +1797,7 @@ final class AppFeatureTests: XCTestCase {
         let notes = AppInfo(bundleId: "com.test.notes", name: "Notes", path: "/Applications/Notes.app")
 
         var state = AppFeature.State()
-        state.currentFrontmostBundleId = chat.bundleId
+        state.switching.currentFrontmostBundleId = chat.bundleId
         state.runningApps = [chat, notes]
 
         XCTAssertEqual(state.currentAppMenuItem?.bundleId, chat.bundleId)
@@ -2757,7 +1814,7 @@ final class AppFeatureTests: XCTestCase {
 
     func testMenuBarIconUsesUnconfiguredIconForFrontmostAppWithoutRule() {
         var state = AppFeature.State()
-        state.currentFrontmostBundleId = "com.test.chat"
+        state.switching.currentFrontmostBundleId = "com.test.chat"
 
         XCTAssertEqual(state.menuBarIconSystemName, "keyboard.badge.ellipsis")
         XCTAssertEqual(state.menuBarAccessibilityLabel, TypeSwitchStrings.Menu.accessibilityUnconfigured)
@@ -2767,7 +1824,7 @@ final class AppFeatureTests: XCTestCase {
         let app = AppInfo(bundleId: "com.test.chat", name: "Chat", path: "/Applications/Chat.app")
 
         var state = AppFeature.State()
-        state.currentFrontmostBundleId = app.bundleId
+        state.switching.currentFrontmostBundleId = app.bundleId
         state.$appRulesStore.withLock {
             $0.rules[app.bundleId] = AppRuleRecord(
                 bundleId: app.bundleId,
@@ -2787,7 +1844,7 @@ final class AppFeatureTests: XCTestCase {
         let app = AppInfo(bundleId: "com.test.chat", name: "Chat", path: "/Applications/Chat.app")
 
         var state = AppFeature.State()
-        state.currentFrontmostBundleId = app.bundleId
+        state.switching.currentFrontmostBundleId = app.bundleId
         state.$appRulesStore.withLock {
             $0.rules[app.bundleId] = AppRuleRecord(
                 bundleId: app.bundleId,
@@ -2807,7 +1864,7 @@ final class AppFeatureTests: XCTestCase {
         let app = AppInfo(bundleId: "com.test.chat", name: "Chat", path: "/Applications/Chat.app")
 
         var state = AppFeature.State()
-        state.currentFrontmostBundleId = app.bundleId
+        state.switching.currentFrontmostBundleId = app.bundleId
         state.$appRulesStore.withLock {
             $0.rules[app.bundleId] = AppRuleRecord(
                 bundleId: app.bundleId,
@@ -2827,7 +1884,7 @@ final class AppFeatureTests: XCTestCase {
         let app = AppInfo(bundleId: "com.test.chat", name: "Chat", path: "/Applications/Chat.app")
 
         var state = AppFeature.State()
-        state.currentFrontmostBundleId = app.bundleId
+        state.switching.currentFrontmostBundleId = app.bundleId
         state.$appRulesStore.withLock {
             $0.rules[app.bundleId] = AppRuleRecord(
                 bundleId: app.bundleId,
@@ -2845,10 +1902,10 @@ final class AppFeatureTests: XCTestCase {
 
     func testMenuBarAccessibilityLabelUsesWarningWithoutFrontmostApp() {
         var catalogEmptyState = AppFeature.State()
-        catalogEmptyState.inputMethodCatalogStatus = .ready
+        catalogEmptyState.switching.inputMethodCatalogStatus = .ready
 
         var catalogFailedState = AppFeature.State()
-        catalogFailedState.inputMethodCatalogStatus = .failed(.failedToFetchInputMethods)
+        catalogFailedState.switching.inputMethodCatalogStatus = .failed(.failedToFetchInputMethods)
 
         for state in [catalogEmptyState, catalogFailedState] {
             XCTAssertNotNil(state.inputMethodDiagnostic)
@@ -2944,8 +2001,8 @@ final class AppFeatureTests: XCTestCase {
         let recorder = SwitchRecorder()
 
         var initialState = AppFeature.State()
-        initialState.inputMethodCatalogStatus = .ready
-        initialState.inputMethods = [InputMethod(id: "ime.en", name: "English")]
+        initialState.switching.inputMethodCatalogStatus = .ready
+        initialState.switching.inputMethods = [InputMethod(id: "ime.en", name: "English")]
         initialState.$appRulesStore.withLock {
             $0.rules[app.bundleId] = AppRuleRecord(
                 bundleId: app.bundleId,
@@ -2980,8 +2037,8 @@ final class AppFeatureTests: XCTestCase {
         }
 
         await store.send(.system(.workspaceEvent(.activated(app)))) {
-            $0.currentFrontmostBundleId = app.bundleId
-            $0.lastSwitchAttempt = .init(
+            $0.switching.currentFrontmostBundleId = app.bundleId
+            $0.switching.lastSwitchAttempt = .init(
                 appName: app.name,
                 bundleId: app.bundleId,
                 inputMethodId: missingInputMethod,
@@ -3000,47 +2057,15 @@ final class AppFeatureTests: XCTestCase {
         )
     }
 
-    func testManualSelectionUpdatesFollowLastStrategy() async {
-        let bundleId = "com.test.chat"
-        let updateDate = Date(timeIntervalSince1970: 888)
-
-        var initialState = AppFeature.State()
-        initialState.currentFrontmostBundleId = bundleId
-        initialState.$appRulesStore.withLock {
-            $0.rules[bundleId] = AppRuleRecord(
-                bundleId: bundleId,
-                lastKnownPath: "/Applications/Chat.app",
-                lastKnownName: "Chat",
-                strategy: .followLast(lastInputMethodId: nil),
-                createdAt: Date(timeIntervalSince1970: 100),
-                updatedAt: Date(timeIntervalSince1970: 100)
-            )
-        }
-
-        let store = TestStore(initialState: initialState) {
-            AppFeature()
-        }
-        store.dependencies.date = .constant(updateDate)
-
-        await store.send(.system(.inputMethodSelectedChanged("ime.jp"))) {
-            $0.$appRulesStore.withLock {
-                guard var rule = $0.rules[bundleId] else { return }
-                rule.strategy = .followLast(lastInputMethodId: "ime.jp")
-                rule.updatedAt = updateDate
-                $0.rules[bundleId] = rule
-            }
-        }
-    }
-
     func testManualSelectionOfFailedTargetClearsDiagnosticWithoutIncrementingStatistics() async {
         let bundleId = "com.test.chat"
         let targetInputMethod = "ime.zh"
 
         var initialState = AppFeature.State()
-        initialState.currentFrontmostBundleId = bundleId
-        initialState.inputMethodCatalogStatus = .ready
-        initialState.inputMethods = [InputMethod(id: targetInputMethod, name: "Pinyin")]
-        initialState.lastSwitchAttempt = .init(
+        initialState.switching.currentFrontmostBundleId = bundleId
+        initialState.switching.inputMethodCatalogStatus = .ready
+        initialState.switching.inputMethods = [InputMethod(id: targetInputMethod, name: "Pinyin")]
+        initialState.switching.lastSwitchAttempt = .init(
             appName: "Chat",
             bundleId: bundleId,
             inputMethodId: targetInputMethod,
@@ -3069,8 +2094,8 @@ final class AppFeatureTests: XCTestCase {
 
         XCTAssertEqual(store.state.inputMethodDiagnostic?.kind, .switchFailed)
 
-        await store.send(.system(.inputMethodSelectedChanged(targetInputMethod))) {
-            $0.lastSwitchAttempt = nil
+        await store.send(.switching(.system(.inputMethodSelectedChanged(targetInputMethod)))) {
+            $0.switching.lastSwitchAttempt = nil
         }
 
         XCTAssertNil(store.state.inputMethodDiagnostic)
@@ -3084,13 +2109,13 @@ final class AppFeatureTests: XCTestCase {
         let updateDate = Date(timeIntervalSince1970: 888)
 
         var initialState = AppFeature.State()
-        initialState.currentFrontmostBundleId = bundleId
-        initialState.inputMethodCatalogStatus = .ready
-        initialState.inputMethods = [
+        initialState.switching.currentFrontmostBundleId = bundleId
+        initialState.switching.inputMethodCatalogStatus = .ready
+        initialState.switching.inputMethods = [
             InputMethod(id: failedInputMethod, name: "Pinyin"),
             InputMethod(id: otherInputMethod, name: "Japanese"),
         ]
-        initialState.lastSwitchAttempt = .init(
+        initialState.switching.lastSwitchAttempt = .init(
             appName: "Chat",
             bundleId: bundleId,
             inputMethodId: failedInputMethod,
@@ -3120,7 +2145,7 @@ final class AppFeatureTests: XCTestCase {
 
         XCTAssertEqual(store.state.inputMethodDiagnostic?.kind, .switchFailed)
 
-        await store.send(.system(.inputMethodSelectedChanged(otherInputMethod))) {
+        await store.send(.switching(.system(.inputMethodSelectedChanged(otherInputMethod)))) {
             $0.$appRulesStore.withLock {
                 guard var rule = $0.rules[bundleId] else { return }
                 rule.strategy = .followLast(lastInputMethodId: otherInputMethod)
@@ -3130,10 +2155,10 @@ final class AppFeatureTests: XCTestCase {
         }
 
         XCTAssertNil(store.state.inputMethodDiagnostic)
-        XCTAssertNotNil(store.state.lastSwitchAttempt)
+        XCTAssertNotNil(store.state.switching.lastSwitchAttempt)
 
-        await store.send(.system(.inputMethodSelectedChanged(failedInputMethod))) {
-            $0.lastSwitchAttempt = nil
+        await store.send(.switching(.system(.inputMethodSelectedChanged(failedInputMethod)))) {
+            $0.switching.lastSwitchAttempt = nil
             $0.$appRulesStore.withLock {
                 guard var rule = $0.rules[bundleId] else { return }
                 rule.strategy = .followLast(lastInputMethodId: failedInputMethod)
@@ -3154,7 +2179,7 @@ final class AppFeatureTests: XCTestCase {
         let bundleId = "com.test.chat"
 
         var initialState = AppFeature.State()
-        initialState.currentFrontmostBundleId = bundleId
+        initialState.switching.currentFrontmostBundleId = bundleId
         initialState.$fallbackRuleStore.withLock {
             $0.strategy = .followLast(lastInputMethodId: nil)
         }
@@ -3173,7 +2198,7 @@ final class AppFeatureTests: XCTestCase {
             AppFeature()
         }
 
-        await store.send(.system(.inputMethodSelectedChanged("ime.jp")))
+        await store.send(.switching(.system(.inputMethodSelectedChanged("ime.jp"))))
 
         XCTAssertEqual(store.state.appRules[bundleId]?.strategy, InputMethodStrategy.none)
         XCTAssertEqual(
@@ -3187,7 +2212,7 @@ final class AppFeatureTests: XCTestCase {
         let bundleId = "com.test.chat"
 
         var initialState = AppFeature.State()
-        initialState.currentFrontmostBundleId = bundleId
+        initialState.switching.currentFrontmostBundleId = bundleId
         initialState.$fallbackRuleStore.withLock {
             $0.strategy = .followLast(lastInputMethodId: nil)
         }
@@ -3196,7 +2221,7 @@ final class AppFeatureTests: XCTestCase {
             AppFeature()
         }
 
-        await store.send(.system(.inputMethodSelectedChanged("ime.jp")))
+        await store.send(.switching(.system(.inputMethodSelectedChanged("ime.jp"))))
 
         XCTAssertTrue(store.state.appRules.isEmpty)
         XCTAssertEqual(
@@ -3206,45 +2231,13 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertEqual(store.state.fallbackStrategy, .none)
     }
 
-    func testProgrammaticSelectionDoesNotOverwriteFollowLastStrategy() async {
-        let bundleId = "com.test.terminal"
-        let targetInputMethod = "ime.en"
-
-        var initialState = AppFeature.State()
-        initialState.currentFrontmostBundleId = bundleId
-        initialState.pendingProgrammaticSwitch = .init(bundleId: bundleId, inputMethodId: targetInputMethod)
-        initialState.$appRulesStore.withLock {
-            $0.rules[bundleId] = AppRuleRecord(
-                bundleId: bundleId,
-                lastKnownPath: "/Applications/Terminal.app",
-                lastKnownName: "Terminal",
-                strategy: .followLast(lastInputMethodId: nil),
-                createdAt: Date(timeIntervalSince1970: 100),
-                updatedAt: Date(timeIntervalSince1970: 100)
-            )
-        }
-
-        let store = TestStore(initialState: initialState) {
-            AppFeature()
-        }
-
-        await store.send(.system(.inputMethodSelectedChanged(targetInputMethod))) {
-            $0.pendingProgrammaticSwitch?.didObserveTargetSelection = true
-        }
-
-        XCTAssertEqual(
-            store.state.appRules[bundleId]?.strategy,
-            .followLast(lastInputMethodId: nil)
-        )
-    }
-
     func testProgrammaticSelectionDoesNotOverwriteFallbackFollowLastStrategy() async {
         let bundleId = "com.test.terminal"
         let targetInputMethod = "ime.en"
 
         var initialState = AppFeature.State()
-        initialState.currentFrontmostBundleId = bundleId
-        initialState.pendingProgrammaticSwitch = .init(bundleId: bundleId, inputMethodId: targetInputMethod)
+        initialState.switching.currentFrontmostBundleId = bundleId
+        initialState.switching.pendingProgrammaticSwitch = .init(bundleId: bundleId, inputMethodId: targetInputMethod)
         initialState.$fallbackRuleStore.withLock {
             $0.strategy = .followLast(lastInputMethodId: nil)
         }
@@ -3253,8 +2246,8 @@ final class AppFeatureTests: XCTestCase {
             AppFeature()
         }
 
-        await store.send(.system(.inputMethodSelectedChanged(targetInputMethod))) {
-            $0.pendingProgrammaticSwitch?.didObserveTargetSelection = true
+        await store.send(.switching(.system(.inputMethodSelectedChanged(targetInputMethod)))) {
+            $0.switching.pendingProgrammaticSwitch?.didObserveTargetSelection = true
         }
 
         XCTAssertEqual(
@@ -3271,8 +2264,8 @@ final class AppFeatureTests: XCTestCase {
         let newUpdatedAt = Date(timeIntervalSince1970: 300)
 
         var initialState = AppFeature.State()
-        initialState.inputMethodCatalogStatus = .ready
-        initialState.inputMethods = [InputMethod(id: "ime.en", name: "English")]
+        initialState.switching.inputMethodCatalogStatus = .ready
+        initialState.switching.inputMethods = [InputMethod(id: "ime.en", name: "English")]
         initialState.$appRulesStore.withLock {
             $0.rules["missing-fixed"] = AppRuleRecord(
                 bundleId: "missing-fixed",
@@ -3379,7 +2372,7 @@ final class AppFeatureTests: XCTestCase {
         initialState.$appSwitchStatisticsStore.withLock {
             $0.counts[bundleId] = 1
         }
-        initialState.pendingProgrammaticSwitch = .init(
+        initialState.switching.pendingProgrammaticSwitch = .init(
             appName: "Browser",
             bundleId: bundleId,
             inputMethodId: "ime.en"
@@ -3390,12 +2383,12 @@ final class AppFeatureTests: XCTestCase {
         }
         store.dependencies.date = .constant(Date(timeIntervalSince1970: 10))
 
-        await store.send(.response(.programmaticSwitchFinished(
+        await store.send(.switching(.response(.programmaticSwitchFinished(
             attemptID: 0,
             outcome: .switched
-        ))) {
-            $0.pendingProgrammaticSwitch = nil
-            $0.lastSwitchAttempt = .init(
+        )))) {
+            $0.switching.pendingProgrammaticSwitch = nil
+            $0.switching.lastSwitchAttempt = .init(
                 appName: "Browser",
                 bundleId: bundleId,
                 inputMethodId: "ime.en",
@@ -3417,7 +2410,7 @@ final class AppFeatureTests: XCTestCase {
         initialState.$appSwitchStatisticsStore.withLock {
             $0.counts["com.test.browser"] = 2
         }
-        initialState.pendingProgrammaticSwitch = .init(
+        initialState.switching.pendingProgrammaticSwitch = .init(
             appName: "Editor",
             bundleId: "com.test.editor",
             inputMethodId: "ime.en"
@@ -3428,12 +2421,12 @@ final class AppFeatureTests: XCTestCase {
         }
         store.dependencies.date = .constant(Date(timeIntervalSince1970: 10))
 
-        await store.send(.response(.programmaticSwitchFinished(
+        await store.send(.switching(.response(.programmaticSwitchFinished(
             attemptID: 0,
             outcome: .switched
-        ))) {
-            $0.pendingProgrammaticSwitch = nil
-            $0.lastSwitchAttempt = .init(
+        )))) {
+            $0.switching.pendingProgrammaticSwitch = nil
+            $0.switching.lastSwitchAttempt = .init(
                 appName: "Editor",
                 bundleId: "com.test.editor",
                 inputMethodId: "ime.en",
@@ -3547,14 +2540,14 @@ final class AppFeatureTests: XCTestCase {
 
     private func receiveStartupResponses(from store: TestStoreOf<AppFeature>) async {
         await store.receive(.response(.launchAtLoginLoaded(.disabled)))
-        await store.receive(.response(.frontmostApplicationLoaded(nil)))
-        let refreshID = store.state.pendingInputMethodRefreshID
-        await store.receive(.response(.inputMethodsLoaded(
+        await store.receive(.switching(.response(.frontmostApplicationLoaded(nil))))
+        let refreshID = store.state.switching.pendingInputMethodRefreshID
+        await store.receive(.switching(.response(.inputMethodsLoaded(
             refreshID: refreshID ?? -1,
             result: .success([])
-        ))) {
-            $0.pendingInputMethodRefreshID = nil
-            $0.inputMethodCatalogStatus = .ready
+        )))) {
+            $0.switching.pendingInputMethodRefreshID = nil
+            $0.switching.inputMethodCatalogStatus = .ready
         }
         await store.receive(.response(.runningApps([])))
     }
@@ -3564,153 +2557,4 @@ final class AppFeatureTests: XCTestCase {
             continuation.finish()
         }
     }
-}
-
-private actor SwitchRecorder {
-    private(set) var values: [String] = []
-
-    func record(_ inputMethodId: String) {
-        values.append(inputMethodId)
-    }
-}
-
-private actor InputMethodRefreshGate {
-    private let latestInputMethods: [InputMethod]
-    private var callCount = 0
-    private var firstContinuation: CheckedContinuation<
-        Result<[InputMethod], InputMethodService.InputMethodError>,
-        Never
-    >?
-    private var firstStartedContinuation: CheckedContinuation<Void, Never>?
-    private var hasStartedFirstCall = false
-
-    init(latestInputMethods: [InputMethod]) {
-        self.latestInputMethods = latestInputMethods
-    }
-
-    func value() async throws -> [InputMethod] {
-        callCount += 1
-        guard callCount == 1 else { return latestInputMethods }
-
-        let result = await withCheckedContinuation { continuation in
-            firstContinuation = continuation
-            hasStartedFirstCall = true
-            firstStartedContinuation?.resume()
-            firstStartedContinuation = nil
-        }
-        return try result.get()
-    }
-
-    func waitUntilFirstStarted() async {
-        guard !hasStartedFirstCall else { return }
-        await withCheckedContinuation { continuation in
-            firstStartedContinuation = continuation
-        }
-    }
-
-    func resumeFirst(with result: Result<[InputMethod], InputMethodService.InputMethodError>) {
-        firstContinuation?.resume(returning: result)
-        firstContinuation = nil
-    }
-}
-
-private actor InputMethodLookupGate {
-    private let firstValue: String
-    private let subsequentValue: String
-    private var callCount = 0
-    private var firstContinuation: CheckedContinuation<String, Never>?
-    private var firstStartedContinuation: CheckedContinuation<Void, Never>?
-    private var hasStartedFirstCall = false
-
-    init(firstValue: String, subsequentValue: String = "") {
-        self.firstValue = firstValue
-        self.subsequentValue = subsequentValue
-    }
-
-    func value() async -> String {
-        callCount += 1
-        guard callCount == 1 else { return subsequentValue }
-
-        return await withCheckedContinuation { continuation in
-            firstContinuation = continuation
-            hasStartedFirstCall = true
-            firstStartedContinuation?.resume()
-            firstStartedContinuation = nil
-        }
-    }
-
-    func waitForFirstCall() async {
-        guard !hasStartedFirstCall else { return }
-        await withCheckedContinuation { continuation in
-            firstStartedContinuation = continuation
-        }
-    }
-
-    func resumeFirst() {
-        firstContinuation?.resume(returning: firstValue)
-        firstContinuation = nil
-    }
-}
-
-private actor InputMethodSwitchGate {
-    private var continuation: CheckedContinuation<Void, Never>?
-    private var startedContinuation: CheckedContinuation<Void, Never>?
-    private var hasStarted = false
-
-    func wait() async {
-        await withCheckedContinuation { continuation in
-            self.continuation = continuation
-            hasStarted = true
-            startedContinuation?.resume()
-            startedContinuation = nil
-        }
-    }
-
-    func waitUntilStarted() async {
-        guard !hasStarted else { return }
-        await withCheckedContinuation { continuation in
-            startedContinuation = continuation
-        }
-    }
-
-    func resume() {
-        continuation?.resume()
-        continuation = nil
-    }
-}
-
-private actor FrontmostApplicationGate {
-    private let appInfo: AppInfo?
-    private var continuation: CheckedContinuation<AppInfo?, Never>?
-    private var startedContinuation: CheckedContinuation<Void, Never>?
-    private var hasStarted = false
-
-    init(appInfo: AppInfo?) {
-        self.appInfo = appInfo
-    }
-
-    func value() async -> AppInfo? {
-        await withCheckedContinuation { continuation in
-            self.continuation = continuation
-            hasStarted = true
-            startedContinuation?.resume()
-            startedContinuation = nil
-        }
-    }
-
-    func waitUntilStarted() async {
-        guard !hasStarted else { return }
-        await withCheckedContinuation { continuation in
-            startedContinuation = continuation
-        }
-    }
-
-    func resume() {
-        continuation?.resume(returning: appInfo)
-        continuation = nil
-    }
-}
-
-private enum TestError: Error {
-    case failed
 }

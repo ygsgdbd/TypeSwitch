@@ -1,6 +1,11 @@
 import Foundation
 
 extension AppFeature.State {
+    var currentFrontmostBundleId: String? { switching.currentFrontmostBundleId }
+    var inputMethodCatalogStatus: SwitchingFeature.State.InputMethodCatalogStatus { switching.inputMethodCatalogStatus }
+    var inputMethods: [InputMethod] { switching.inputMethods }
+    var lastSwitchAttempt: SwitchingFeature.State.LastSwitchAttempt? { switching.lastSwitchAttempt }
+
     struct InputMethodDiagnostic: Equatable {
         enum Kind: Equatable {
             case catalogEmpty
@@ -70,14 +75,7 @@ extension AppFeature.State {
         }
     }
 
-    var fallbackStrategy: InputMethodStrategy {
-        switch fallbackRuleStore.strategy {
-        case .followLast, .ignored:
-            return .none
-        case .none, .fixed:
-            return fallbackRuleStore.strategy
-        }
-    }
+    var fallbackStrategy: InputMethodStrategy { switching.fallbackStrategy }
 
     var fallbackSelectedLabel: String? {
         if fallbackStrategy == .none {
@@ -112,7 +110,7 @@ extension AppFeature.State {
 
         guard let lastSwitchAttempt,
               currentFrontmostBundleId == lastSwitchAttempt.bundleId,
-              isCurrentTarget(lastSwitchAttempt),
+              switching.isCurrentTarget(lastSwitchAttempt),
               case .failed(let error) = lastSwitchAttempt.outcome
         else {
             return nil
@@ -397,28 +395,6 @@ extension AppFeature.State {
 
     private func inputMethodName(for inputMethodId: String) -> String? {
         inputMethods.first(where: { $0.id == inputMethodId })?.name
-    }
-
-    func isCurrentTarget(_ attempt: LastSwitchAttempt) -> Bool {
-        let appStrategy = strategy(for: attempt.bundleId)
-        switch attempt.ruleSource {
-        case .app:
-            return inputMethodId(for: appStrategy) == attempt.inputMethodId
-        case .fallback:
-            return appStrategy == .none
-                && inputMethodId(for: fallbackStrategy) == attempt.inputMethodId
-        }
-    }
-
-    private func inputMethodId(for strategy: InputMethodStrategy) -> String? {
-        switch strategy {
-        case .fixed(let inputMethodId):
-            return inputMethodId
-        case .followLast(let lastInputMethodId):
-            return lastInputMethodId
-        case .ignored, .none:
-            return nil
-        }
     }
 
     private var unavailableInputMethodLabel: String {
