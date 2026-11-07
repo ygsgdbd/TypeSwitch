@@ -2,6 +2,7 @@ import Dependencies
 import Foundation
 
 /// Seeded at startup and replaced on each menu opening or before rule cleanup.
+/// New and changed rule paths are refreshed as records are updated.
 /// Keying by path prevents a rule's changed path from reusing its old result.
 struct AppAvailabilitySnapshot: Equatable, Sendable {
     var availablePaths: Set<String> = []

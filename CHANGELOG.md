@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### 🇨🇳 中文
+
+#### 修复
+
+- 修复菜单打开期间新增应用或更新应用路径后，正常应用被误列为不可用的问题；规则路径变化时会同步更新可用性。
+
+### 🇺🇸 English
+
+#### Fixes
+
+- Fixed available apps being listed as unavailable when app records were added or their paths changed while the menu was open; availability now updates with rule path changes.
+
 ## v0.10.1
 
 ### 🇨🇳 中文
