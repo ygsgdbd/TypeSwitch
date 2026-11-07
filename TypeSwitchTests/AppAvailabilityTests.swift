@@ -43,6 +43,154 @@ final class AppAvailabilityTests: XCTestCase {
         XCTAssertNil(store.state.unavailableApps.first?.path)
     }
 
+    func testNewRunningAppRemainsAvailableWhileMenuIsOpen() async {
+        let timestamp = Date(timeIntervalSince1970: 10)
+        let path = "/apps/Editor.app"
+        let app = AppInfo(bundleId: "editor", name: "Editor", path: path)
+        let store = TestStore(initialState: AppFeature.State(
+            appRulesStore: Shared(value: AppRulesStore())
+        )) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(timestamp)
+        store.dependencies.appAvailabilityClient.pathExists = { $0 == path }
+
+        await store.send(.menuPresented) {
+            $0.isMenuPresented = true
+        }
+        await store.send(.response(.runningApps([app]))) {
+            $0.runningApps = [app]
+            $0.$appRulesStore.withLock {
+                $0.rules[app.bundleId] = AppRuleRecord(
+                    bundleId: app.bundleId,
+                    lastKnownPath: path,
+                    lastKnownName: app.name,
+                    strategy: .none,
+                    createdAt: timestamp,
+                    updatedAt: timestamp
+                )
+            }
+            $0.appAvailability = AppAvailabilitySnapshot(availablePaths: [path])
+        }
+        XCTAssertEqual(store.state.runningUnconfiguredMenuItems.map(\.bundleId), [app.bundleId])
+        XCTAssertTrue(store.state.unavailableApps.isEmpty)
+    }
+
+    func testChangedRunningAppPathRemainsAvailableWhileMenuIsOpen() async {
+        let rule = makeRule("editor", path: "/apps/Editor.app")
+        let newPath = "/moved/Editor.app"
+        let app = AppInfo(bundleId: rule.bundleId, name: rule.lastKnownName, path: newPath)
+        let store = TestStore(initialState: AppFeature.State(
+            appRulesStore: Shared(value: AppRulesStore(rules: [rule.bundleId: rule]))
+        )) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(rule.updatedAt)
+        store.dependencies.appAvailabilityClient.pathExists = { _ in true }
+
+        await store.send(.menuPresented) {
+            $0.isMenuPresented = true
+            $0.menuStrategiesAtPresentation = [rule.bundleId: rule.strategy]
+            $0.appAvailability = AppAvailabilitySnapshot(availablePaths: [rule.lastKnownPath!])
+        }
+        await store.send(.response(.runningApps([app]))) {
+            $0.runningApps = [app]
+            $0.$appRulesStore.withLock { $0.rules[rule.bundleId]?.lastKnownPath = newPath }
+            $0.appAvailability.availablePaths.insert(newPath)
+        }
+        XCTAssertEqual(store.state.configuredApps.map(\.bundleId), [rule.bundleId])
+        XCTAssertEqual(store.state.configuredApps.first?.path, newPath)
+        XCTAssertTrue(store.state.unavailableApps.isEmpty)
+    }
+
+    func testActivationRefreshesAvailabilityForChangedPath() async {
+        let rule = makeRule("editor", path: "/apps/Editor.app", strategy: .none)
+        let newPath = "/moved/Editor.app"
+        let app = AppInfo(bundleId: rule.bundleId, name: rule.lastKnownName, path: newPath)
+        let store = TestStore(initialState: AppFeature.State(
+            appRulesStore: Shared(value: AppRulesStore(rules: [rule.bundleId: rule]))
+        )) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(rule.updatedAt)
+        store.dependencies.appAvailabilityClient.pathExists = { _ in true }
+
+        await store.send(.menuPresented) {
+            $0.isMenuPresented = true
+            $0.menuStrategiesAtPresentation = [rule.bundleId: rule.strategy]
+            $0.appAvailability = AppAvailabilitySnapshot(availablePaths: [rule.lastKnownPath!])
+        }
+        await store.send(.system(.workspaceEvent(.activated(app)))) {
+            $0.switching.currentFrontmostBundleId = rule.bundleId
+            $0.$appRulesStore.withLock { $0.rules[rule.bundleId]?.lastKnownPath = newPath }
+            $0.appAvailability.availablePaths.insert(newPath)
+        }
+        XCTAssertEqual(store.state.currentAppMenuItem?.path, newPath)
+        XCTAssertTrue(store.state.unavailableApps.isEmpty)
+    }
+
+    func testNameAndStrategyChangesDoNotProbeUnchangedPaths() async {
+        let rule = makeRule("editor", path: "/apps/Editor.app")
+        let app = AppInfo(bundleId: rule.bundleId, name: "Renamed Editor", path: rule.lastKnownPath)
+        let store = TestStore(initialState: AppFeature.State(
+            appRulesStore: Shared(value: AppRulesStore(rules: [rule.bundleId: rule]))
+        )) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(rule.updatedAt)
+        store.dependencies.appAvailabilityClient.pathExists = { _ in true }
+
+        await store.send(.menuPresented) {
+            $0.isMenuPresented = true
+            $0.menuStrategiesAtPresentation = [rule.bundleId: rule.strategy]
+            $0.appAvailability = AppAvailabilitySnapshot(availablePaths: [rule.lastKnownPath!])
+        }
+        store.dependencies.appAvailabilityClient.pathExists = { _ in
+            XCTFail("Unchanged paths must not be probed again")
+            return false
+        }
+        await store.send(.response(.runningApps([app]))) {
+            $0.runningApps = [app]
+            $0.$appRulesStore.withLock { $0.rules[rule.bundleId]?.lastKnownName = app.name }
+        }
+        await store.send(.view(.setStrategy(bundleId: rule.bundleId, strategy: .none))) {
+            $0.$appRulesStore.withLock { $0.rules[rule.bundleId]?.strategy = .none }
+        }
+        XCTAssertEqual(store.state.configuredApps.first?.strategy, rule.strategy)
+        XCTAssertTrue(store.state.unavailableApps.isEmpty)
+    }
+
+    func testChangedPathRechecksPreviouslyAvailablePath() async {
+        let rule = makeRule("editor", path: "/apps/Editor.app")
+        let otherRule = makeRule("other", path: "/moved/Editor.app")
+        let newPath = otherRule.lastKnownPath!
+        let app = AppInfo(bundleId: rule.bundleId, name: rule.lastKnownName, path: newPath)
+        let store = TestStore(initialState: AppFeature.State(
+            appRulesStore: Shared(value: AppRulesStore(rules: [rule.bundleId: rule, otherRule.bundleId: otherRule]))
+        )) {
+            AppFeature()
+        }
+        store.dependencies.date = .constant(rule.updatedAt)
+        store.dependencies.appAvailabilityClient.pathExists = { _ in true }
+
+        await store.send(.menuPresented) {
+            $0.isMenuPresented = true
+            $0.menuStrategiesAtPresentation = [rule.bundleId: rule.strategy, otherRule.bundleId: otherRule.strategy]
+            $0.appAvailability = AppAvailabilitySnapshot(availablePaths: [rule.lastKnownPath!, newPath])
+        }
+        store.dependencies.appAvailabilityClient.pathExists = { path in
+            XCTAssertEqual(path, newPath)
+            return false
+        }
+        await store.send(.response(.runningApps([app]))) {
+            $0.runningApps = [app]
+            $0.$appRulesStore.withLock { $0.rules[rule.bundleId]?.lastKnownPath = newPath }
+            $0.appAvailability.availablePaths.remove(newPath)
+        }
+        XCTAssertTrue(store.state.configuredApps.isEmpty)
+        XCTAssertEqual(Set(store.state.unavailableApps.map(\.bundleId)), [rule.bundleId, otherRule.bundleId])
+    }
+
     func testCleanupRechecksRestoredAndRemovedAppsAndPreservesIgnoredRules() async {
         let restored = makeRule("restored", path: "/apps/Restored.app")
         let removed = makeRule("removed", path: "/apps/Removed.app")

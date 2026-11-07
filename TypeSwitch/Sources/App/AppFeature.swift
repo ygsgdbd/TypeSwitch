@@ -335,6 +335,21 @@ struct AppFeature {
                 return reduceSwitching(action, state: &state)
             }
         }
+        .onChange(of: { $0.appRules.compactMapValues(\.lastKnownPath) }) { previousPaths, state in
+            guard !state.isReadmeDemo else { return .none }
+            let changedPaths = Set(state.appRules.compactMap { bundleId, rule -> String? in
+                guard let path = rule.lastKnownPath, previousPaths[bundleId] != path else { return nil }
+                return path
+            })
+            for path in changedPaths {
+                if appAvailabilityClient.pathExists(path) {
+                    state.appAvailability.availablePaths.insert(path)
+                } else {
+                    state.appAvailability.availablePaths.remove(path)
+                }
+            }
+            return .none
+        }
     }
 
     // Route synchronously so ignore/termination invalidate pending work in this turn.
