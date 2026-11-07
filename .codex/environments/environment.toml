@@ -7,8 +7,14 @@ script = ""
 
 [setup.darwin]
 script = '''
+set -e
 tuist generate --no-open
-codegraph init'''
+if command -v codegraph >/dev/null 2>&1; then
+    codegraph init
+else
+    echo "Skipping optional CodeGraph indexing: codegraph is not installed."
+fi
+'''
 
 [[actions]]
 name = "Generate"
