@@ -7,12 +7,16 @@
 #### 修复
 
 - 修复菜单打开期间新增应用或更新应用路径后，正常应用被误列为不可用的问题；规则路径变化时会同步更新可用性。
+- 修复 App 输入法和默认规则菜单的选中标识，使用原生勾选并保留失效固定项；恢复 App 行和统计明细的图标显示。
+- 将默认和记忆策略的输入法名及异常说明拆为副标题，让继承默认规则的 App 也能显示异常；统一状态文案，并明确重试、项目主页和开发者主页入口。
 
 ### 🇺🇸 English
 
 #### Fixes
 
 - Fixed available apps being listed as unavailable when app records were added or their paths changed while the menu was open; availability now updates with rule path changes.
+- Fixed selection indicators in per-app input method and default-rule menus with native checkmarks, retained unavailable fixed selections, and restored app icons in app rows and switch statistics.
+- Separated input method names and status messages into subtitles for default and remembered rules, propagated inherited default-rule errors to app rows, and clarified status text, retry actions, and project and developer links.
 
 ## v0.10.1
 

@@ -21,8 +21,21 @@ struct ReadmeScreenshotConfiguration: Equatable {
         case dark
     }
 
+    enum Scenario: String, Equatable {
+        case fixed
+        case appDefault = "default"
+        case noAutomaticSwitch = "no-automatic-switch"
+        case followLast = "follow-last"
+        case unrecorded
+        case missingFixed = "missing-fixed"
+        case missingDefault = "missing-default"
+        case loading
+        case unknown
+    }
+
     let appearance: Appearance
     let requestedDisplayID: CGDirectDisplayID?
+    let scenario: Scenario
 
     var appAppearance: NSAppearance {
         NSAppearance(named: appearance == .dark ? .darkAqua : .aqua)!
@@ -53,6 +66,15 @@ struct ReadmeScreenshotConfiguration: Equatable {
             self.requestedDisplayID = displayID
         } else {
             self.requestedDisplayID = nil
+        }
+
+        if let optionIndex = arguments.firstIndex(of: "--readme-scenario"),
+           arguments.indices.contains(optionIndex + 1),
+           let scenario = Scenario(rawValue: arguments[optionIndex + 1])
+        {
+            self.scenario = scenario
+        } else {
+            self.scenario = .fixed
         }
     }
 
@@ -117,6 +139,34 @@ struct ReadmeScreenshotConfiguration: Equatable {
     func initialState(now: Date) -> AppFeature.State {
         let abcID = "com.apple.keylayout.ABC"
         let pinyinID = "com.apple.inputmethod.SCIM.ITABC"
+        let missingID = "com.example.missing-input-method"
+        var safariStrategy = InputMethodStrategy.fixed(inputMethodId: pinyinID)
+        var fallbackStrategy = InputMethodStrategy.fixed(inputMethodId: abcID)
+        var catalogStatus = SwitchingFeature.State.InputMethodCatalogStatus.ready
+        switch scenario {
+        case .fixed:
+            catalogStatus = .loading
+        case .appDefault:
+            safariStrategy = .none
+        case .noAutomaticSwitch:
+            safariStrategy = .none
+            fallbackStrategy = .none
+        case .followLast:
+            safariStrategy = .followLast(lastInputMethodId: pinyinID)
+        case .unrecorded:
+            safariStrategy = .followLast(lastInputMethodId: nil)
+        case .missingFixed:
+            safariStrategy = .fixed(inputMethodId: missingID)
+        case .missingDefault:
+            safariStrategy = .none
+            fallbackStrategy = .fixed(inputMethodId: missingID)
+        case .loading:
+            safariStrategy = .fixed(inputMethodId: missingID)
+            catalogStatus = .loading
+        case .unknown:
+            safariStrategy = .fixed(inputMethodId: missingID)
+            catalogStatus = .failed(.failedToFetchInputMethods)
+        }
         let safari = AppInfo(
             bundleId: "com.apple.Safari",
             name: "Safari",
@@ -142,7 +192,7 @@ struct ReadmeScreenshotConfiguration: Equatable {
                 bundleId: safari.bundleId,
                 lastKnownPath: safari.path,
                 lastKnownName: safari.name,
-                strategy: .fixed(inputMethodId: pinyinID),
+                strategy: safariStrategy,
                 createdAt: now,
                 updatedAt: now
             ),
@@ -166,7 +216,7 @@ struct ReadmeScreenshotConfiguration: Equatable {
                 bundleId: "com.example.LegacyEditor",
                 lastKnownPath: nil,
                 lastKnownName: "Legacy Editor",
-                strategy: .fixed(inputMethodId: "com.example.missing-input-method"),
+                strategy: .fixed(inputMethodId: missingID),
                 createdAt: now,
                 updatedAt: now
             ),
@@ -183,10 +233,11 @@ struct ReadmeScreenshotConfiguration: Equatable {
                 )
             ),
             fallbackRuleStore: Shared(
-                value: FallbackRuleStore(strategy: .fixed(inputMethodId: abcID))
+                value: FallbackRuleStore(strategy: fallbackStrategy)
             ),
             appAvailability: AppAvailabilitySnapshot(availablePaths: Set(rules.values.compactMap(\.lastKnownPath))),
             currentFrontmostBundleId: safari.bundleId,
+            inputMethodCatalogStatus: catalogStatus,
             inputMethods: [
                 InputMethod(id: abcID, name: "ABC"),
                 InputMethod(id: pinyinID, name: "Pinyin"),

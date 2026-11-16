@@ -160,7 +160,7 @@ Run the same formatting and test checks required by pull requests:
 just check
 ```
 
-To regenerate the deterministic, privacy-safe README screenshots, grant your terminal or Codex Screen Recording and Accessibility permissions, quit other running TypeSwitch instances, and run:
+To regenerate the deterministic, privacy-safe README screenshots, grant your terminal or Codex Screen Recording and Accessibility permissions, then run the command below. The script uses an isolated `TypeSwitchScreenshots` demo copy, so your usual TypeSwitch can stay running.
 
 ```bash
 ./script/generate_readme_screenshots.sh

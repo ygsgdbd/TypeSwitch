@@ -28,18 +28,20 @@ struct AppInfoView: View {
                     AppInfoService.openGitHubRepository()
                 } label: {
                     Label(
-                        TypeSwitchStrings.Support.version(diagnostics.version),
+                        TypeSwitchStrings.Support.projectHomepage,
                         systemImage: "chevron.left.forwardslash.chevron.right"
                     )
+                    Text(TypeSwitchStrings.Support.version(diagnostics.version))
                 }
 
                 Button {
                     AppInfoService.openGitHubProfile()
                 } label: {
                     Label(
-                        TypeSwitchStrings.Support.developer("ygsgdbd"),
+                        TypeSwitchStrings.Support.developerHomepage,
                         systemImage: "person.crop.circle"
                     )
+                    Text("ygsgdbd")
                 }
 
                 Divider()

@@ -23,6 +23,8 @@
 // Support
 "support.version" = "TypeSwitch v%@";
 "support.help_and_about" = "Help & About";
+"support.project_homepage" = "Project Homepage";
+"support.developer_homepage" = "Developer Profile";
 "support.developer" = "Developer: %@";
 "support.help" = "Help";
 "support.copy_diagnostics" = "Copy Diagnostics";
@@ -65,9 +67,11 @@
 "input_method.follow_last_fallback_section" = "Last Switch";
 "input_method.follow_last_option" = "Last Switch";
 "input_method.follow_last_empty_option" = "Last Switch";
+"input_method.follow_last_unrecorded_option" = "Not Recorded";
 "input_method.follow_last_with_input_method" = "Last Switch (%@)";
 "input_method.fixed_section" = "Specific Input Method";
-"input_method.deleted_option" = "Deleted input method";
+"input_method.deleted_option" = "Input Method Unavailable";
+"input_method.catalog_loading_option" = "Loading Input Methods…";
 "input_method.catalog_unavailable_option" = "Input Method Status Unknown";
 "input_method.follow_last_missing_option" = "Last Switch (Unavailable)";
 "input_method.clear_missing_configuration" = "Clear unavailable settings";
@@ -82,7 +86,7 @@
 "input_method_diagnostics.app" = "App: %@";
 "input_method_diagnostics.target" = "Target Input Method: %@";
 "input_method_diagnostics.reload" = "Reload Input Methods";
-"input_method_diagnostics.retry_current_app" = "Retry Current App";
+"input_method_diagnostics.retry_current_app" = "Retry Input Method Switch";
 "input_method_diagnostics.open_keyboard_settings" = "Open Keyboard Settings";
 
 // Error Messages

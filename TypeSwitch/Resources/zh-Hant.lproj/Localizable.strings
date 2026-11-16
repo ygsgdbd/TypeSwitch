@@ -23,6 +23,8 @@
 // 支援
 "support.version" = "TypeSwitch v%@";
 "support.help_and_about" = "說明與關於";
+"support.project_homepage" = "專案主頁";
+"support.developer_homepage" = "開發者主頁";
 "support.developer" = "開發者：%@";
 "support.help" = "使用說明";
 "support.copy_diagnostics" = "複製診斷資訊";
@@ -65,9 +67,11 @@
 "input_method.follow_last_fallback_section" = "記住上次切換";
 "input_method.follow_last_option" = "記住上次切換";
 "input_method.follow_last_empty_option" = "記住上次切換";
+"input_method.follow_last_unrecorded_option" = "尚未記錄";
 "input_method.follow_last_with_input_method" = "記住上次切換（%@）";
 "input_method.fixed_section" = "指定輸入法";
-"input_method.deleted_option" = "已刪除的輸入法";
+"input_method.deleted_option" = "輸入法不可用";
+"input_method.catalog_loading_option" = "正在讀取輸入法…";
 "input_method.catalog_unavailable_option" = "輸入法狀態未知";
 "input_method.follow_last_missing_option" = "記住上次切換（不可用）";
 "input_method.clear_missing_configuration" = "清理失效設定";
@@ -82,7 +86,7 @@
 "input_method_diagnostics.app" = "App：%@";
 "input_method_diagnostics.target" = "目標輸入法：%@";
 "input_method_diagnostics.reload" = "重新載入輸入法";
-"input_method_diagnostics.retry_current_app" = "重新檢查目前 App";
+"input_method_diagnostics.retry_current_app" = "重試輸入法切換";
 "input_method_diagnostics.open_keyboard_settings" = "開啟鍵盤設定";
 
 // 錯誤訊息

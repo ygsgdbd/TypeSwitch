@@ -23,6 +23,8 @@
 // 支持
 "support.version" = "TypeSwitch v%@";
 "support.help_and_about" = "帮助与关于";
+"support.project_homepage" = "项目主页";
+"support.developer_homepage" = "开发者主页";
 "support.developer" = "开发者：%@";
 "support.help" = "使用帮助";
 "support.copy_diagnostics" = "复制诊断信息";
@@ -65,9 +67,11 @@
 "input_method.follow_last_fallback_section" = "记住上次切换";
 "input_method.follow_last_option" = "记住上次切换";
 "input_method.follow_last_empty_option" = "记住上次切换";
+"input_method.follow_last_unrecorded_option" = "未记录";
 "input_method.follow_last_with_input_method" = "记住上次切换（%@）";
 "input_method.fixed_section" = "指定输入法";
-"input_method.deleted_option" = "已删除的输入法";
+"input_method.deleted_option" = "输入法不可用";
+"input_method.catalog_loading_option" = "正在读取输入法…";
 "input_method.catalog_unavailable_option" = "输入法状态未知";
 "input_method.follow_last_missing_option" = "记住上次切换（不可用）";
 "input_method.clear_missing_configuration" = "清理失效设置";
@@ -82,7 +86,7 @@
 "input_method_diagnostics.app" = "App：%@";
 "input_method_diagnostics.target" = "目标输入法：%@";
 "input_method_diagnostics.reload" = "重新加载输入法";
-"input_method_diagnostics.retry_current_app" = "重新检查当前 App";
+"input_method_diagnostics.retry_current_app" = "重试输入法切换";
 "input_method_diagnostics.open_keyboard_settings" = "打开键盘设置";
 
 // 错误信息

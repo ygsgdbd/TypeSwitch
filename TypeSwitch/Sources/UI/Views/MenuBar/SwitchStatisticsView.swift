@@ -13,9 +13,14 @@ struct SwitchStatisticsView: View {
                 ForEach(store.switchStatisticsItems) { item in
                     Button {} label: {
                         if item.path != nil {
-                            AppInfo(bundleId: item.bundleId, name: item.name, path: item.path).icon
+                            Label {
+                                Text(item.name)
+                            } icon: {
+                                AppInfo(bundleId: item.bundleId, name: item.name, path: item.path).icon
+                            }
+                        } else {
+                            Text(item.name)
                         }
-                        Text(item.name)
                         Text(TypeSwitchStrings.SwitchStatistics.appCount(item.count))
                     }
                     .disabled(true)

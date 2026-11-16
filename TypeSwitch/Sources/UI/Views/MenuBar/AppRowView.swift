@@ -14,8 +14,9 @@ struct AppRowView: View {
                 context: .appRule,
                 strategy: item.strategy,
                 inputMethods: inputMethods,
-                defaultOptionLabel: item.defaultOptionLabel,
-                followLastOptionLabel: item.followLastOptionLabel,
+                defaultOptionSubtitle: item.defaultOptionSubtitle,
+                followLastOptionSubtitle: item.followLastOptionSubtitle,
+                unavailableFixedOptionLabel: item.selectedLabel,
                 onSelectStrategy: onSelectStrategy
             )
 
@@ -26,12 +27,17 @@ struct AppRowView: View {
             }
         } label: {
             if item.path != nil {
-                AppInfo(bundleId: item.bundleId, name: item.name, path: item.path).icon
+                Label {
+                    Text(item.name)
+                } icon: {
+                    AppInfo(bundleId: item.bundleId, name: item.name, path: item.path).icon
+                }
+            } else {
+                Text(item.name)
             }
-            Text(item.name)
             if let selectedLabel = item.selectedLabel {
                 Text(selectedLabel)
-                    .foregroundStyle(item.hasMissingInputMethod ? .secondary : .primary)
+                    .foregroundStyle(item.isSelectedSubtitleSecondary ? .secondary : .primary)
             }
         }
     }
@@ -41,44 +47,71 @@ struct InputMethodStrategyMenuContent: View {
     let context: InputMethodStrategyMenuContext
     let strategy: InputMethodStrategy
     let inputMethods: [InputMethod]
-    let defaultOptionLabel: String
-    let followLastOptionLabel: String
+    let defaultOptionSubtitle: String?
+    let followLastOptionSubtitle: String?
+    let unavailableFixedOptionLabel: String?
     let onSelectStrategy: (InputMethodStrategy) -> Void
 
     var body: some View {
-        Button(action: {
-            onSelectStrategy(.none)
-        }) {
-            if strategy == .none {
-                Image(systemName: "checkmark")
-            }
-            Text(defaultOptionLabel)
-        }
+        strategyOption(defaultOptionTitle, subtitle: defaultOptionSubtitle, option: .none)
 
         Divider()
 
         if context.supportsFollowLast {
-            Button(action: {
-                onSelectStrategy(followLastStrategy)
-            }) {
-                if case .followLast = strategy {
-                    Image(systemName: "checkmark")
-                }
-                Text(followLastOptionLabel)
-            }
+            strategyOption(
+                TypeSwitchStrings.InputMethod.followLastOption,
+                subtitle: followLastOptionSubtitle,
+                option: followLastStrategy
+            )
 
             Divider()
         }
 
+        if case .fixed(let inputMethodId) = strategy,
+           !inputMethods.contains(where: { $0.id == inputMethodId })
+        {
+            strategyOption(
+                unavailableFixedOptionLabel ?? TypeSwitchStrings.InputMethod.deletedOption,
+                option: strategy
+            )
+            .disabled(true)
+        }
+
         ForEach(inputMethods, id: \.id) { inputMethod in
-            Button(action: {
-                onSelectStrategy(.fixed(inputMethodId: inputMethod.id))
-            }) {
-                if strategy == .fixed(inputMethodId: inputMethod.id) {
-                    Image(systemName: "checkmark")
-                }
-                Text(inputMethod.name)
+            strategyOption(inputMethod.name, option: .fixed(inputMethodId: inputMethod.id))
+        }
+    }
+
+    func selectionBinding(for option: InputMethodStrategy) -> Binding<Bool> {
+        Binding(
+            get: { strategy == option },
+            set: { isSelected in
+                guard isSelected else { return }
+                onSelectStrategy(option)
             }
+        )
+    }
+
+    private func strategyOption(
+        _ title: String,
+        subtitle: String? = nil,
+        option: InputMethodStrategy
+    ) -> some View {
+        Toggle(isOn: selectionBinding(for: option)) {
+            Text(title)
+            if let subtitle {
+                Text(subtitle)
+            }
+        }
+        .toggleStyle(.checkbox)
+    }
+
+    private var defaultOptionTitle: String {
+        switch context {
+        case .appRule:
+            return TypeSwitchStrings.InputMethod.appDefaultOption
+        case .fallbackRule:
+            return TypeSwitchStrings.InputMethod.fallbackDefaultOption
         }
     }
 
