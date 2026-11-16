@@ -160,7 +160,7 @@ open TypeSwitch.xcworkspace
 just check
 ```
 
-如需重新生成内容固定且不包含用户真实规则、输入法或统计信息的 README 截图，请先为终端或 Codex 授予“屏幕与系统音频录制”和“辅助功能”权限，退出其他正在运行的 TypeSwitch 实例，然后执行：
+如需重新生成内容固定且不包含用户真实规则、输入法或统计信息的 README 截图，请先为终端或 Codex 授予“屏幕与系统音频录制”和“辅助功能”权限，然后执行下面的命令。脚本使用隔离的 `TypeSwitchScreenshots` 演示副本，日常使用的 TypeSwitch 可以保持运行。
 
 ```bash
 ./script/generate_readme_screenshots.sh

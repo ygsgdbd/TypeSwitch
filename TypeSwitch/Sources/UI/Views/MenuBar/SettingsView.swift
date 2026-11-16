@@ -11,8 +11,9 @@ struct SettingsView: View {
                 context: .fallbackRule,
                 strategy: store.fallbackStrategy,
                 inputMethods: store.inputMethods,
-                defaultOptionLabel: TypeSwitchStrings.InputMethod.fallbackDefaultOption,
-                followLastOptionLabel: TypeSwitchStrings.InputMethod.followLastEmptyOption
+                defaultOptionSubtitle: nil,
+                followLastOptionSubtitle: nil,
+                unavailableFixedOptionLabel: store.fallbackSelectedLabel
             ) { strategy in
                 store.send(.view(.setFallbackStrategy(strategy)))
             }
@@ -23,7 +24,7 @@ struct SettingsView: View {
             )
             if let selectedLabel = store.fallbackSelectedLabel {
                 Text(selectedLabel)
-                    .foregroundStyle(store.fallbackHasMissingInputMethod ? .secondary : .primary)
+                    .foregroundStyle(store.fallbackIsSelectedSubtitleSecondary ? .secondary : .primary)
             }
         }
 

@@ -4,8 +4,9 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DERIVED_DATA_DIR="${TMPDIR:-/tmp}/TypeSwitchReadmeScreenshotsDerived"
-APP_PATH="$DERIVED_DATA_DIR/Build/Products/Debug/TypeSwitch.app"
-BINARY_PATH="$APP_PATH/Contents/MacOS/TypeSwitch"
+BUILT_APP_PATH="$DERIVED_DATA_DIR/Build/Products/Debug/TypeSwitch.app"
+APP_PATH="$DERIVED_DATA_DIR/TypeSwitchScreenshots.app"
+BINARY_PATH="$APP_PATH/Contents/MacOS/TypeSwitchScreenshots"
 RAW_DIR="$ROOT_DIR/Documentation/Screenshots/raw"
 OUTPUT_DIR="$ROOT_DIR/Documentation/Screenshots"
 MENU_WINDOWS_HELPER="${TMPDIR:-/tmp}/typeswitch-readme-menu-windows"
@@ -54,8 +55,8 @@ if ! /usr/bin/swift -e 'import ApplicationServices; exit(AXIsProcessTrusted() ? 
     fail "Accessibility permission is required for the terminal or Codex. Enable it in System Settings > Privacy & Security > Accessibility."
 fi
 
-if pgrep -x TypeSwitch >/dev/null 2>&1; then
-    fail "Quit all running TypeSwitch instances before generating screenshots."
+if pgrep -x TypeSwitchScreenshots >/dev/null 2>&1; then
+    fail "A TypeSwitchScreenshots demo is already running. Quit that demo before generating screenshots."
 fi
 
 mkdir -p "$RAW_DIR"
@@ -77,7 +78,23 @@ rtk xcodebuild build \
     CODE_SIGNING_ALLOWED=NO \
     CODE_SIGNING_REQUIRED=NO
 
-[[ -x "$BINARY_PATH" ]] || fail "Built TypeSwitch executable was not found at $BINARY_PATH."
+[[ -x "$BUILT_APP_PATH/Contents/MacOS/TypeSwitch" ]] \
+    || fail "Built TypeSwitch executable was not found at $BUILT_APP_PATH."
+
+print "Preparing isolated screenshot demo..."
+if [[ -e "$APP_PATH" ]]; then
+    rm -r "$APP_PATH"
+fi
+/usr/bin/ditto "$BUILT_APP_PATH" "$APP_PATH"
+mv "$APP_PATH/Contents/MacOS/TypeSwitch" "$BINARY_PATH"
+for key in CFBundleExecutable CFBundleName CFBundleDisplayName; do
+    /usr/libexec/PlistBuddy -c "Set :$key TypeSwitchScreenshots" "$APP_PATH/Contents/Info.plist" 2>/dev/null \
+        || /usr/libexec/PlistBuddy -c "Add :$key string TypeSwitchScreenshots" "$APP_PATH/Contents/Info.plist"
+done
+/usr/libexec/PlistBuddy \
+    -c 'Set :CFBundleIdentifier top.ygsgdbd.TypeSwitch.readme-screenshots' \
+    "$APP_PATH/Contents/Info.plist"
+/usr/bin/codesign --force --deep --sign - "$APP_PATH"
 
 print "Building window bounds helper..."
 /usr/bin/xcrun swiftc \
@@ -103,11 +120,11 @@ apply_display_info "$($MENU_WINDOWS_HELPER display)"
 wait_for_process() {
     local attempt
     for attempt in {1..100}; do
-        APP_PID="$(pgrep -x TypeSwitch | head -n 1 || true)"
+        APP_PID="$(pgrep -x TypeSwitchScreenshots | head -n 1 || true)"
         [[ -n "$APP_PID" ]] && return 0
         sleep 0.1
     done
-    fail "TypeSwitch did not launch."
+    fail "TypeSwitchScreenshots did not launch."
 }
 
 wait_for_menu_item() {
@@ -281,9 +298,68 @@ APPLESCRIPT
     sleep 0.5
 }
 
-close_menu() {
-    /usr/bin/osascript -e 'tell application "System Events" to key code 53'
-    sleep 0.2
+capture_native_menu_fallback() {
+    local output_path="$1"
+    local background="$2"
+    local window_list="$3"
+    local row
+    local index=0
+    local pixel_min_x pixel_min_y pixel_max_x pixel_max_y
+    local point_min_x point_min_y point_max_x point_max_y
+
+    for row in "${(@f)window_list}"; do
+        local fields=("${(@s:,:)row}")
+        [[ ${#fields[@]} -eq 9 ]] || fail "Invalid menu window description: $row"
+        if (( index == 0 )); then
+            pixel_min_x=${fields[2]}
+            pixel_min_y=${fields[3]}
+            pixel_max_x=$((fields[2] + fields[4]))
+            pixel_max_y=$((fields[3] + fields[5]))
+            point_min_x=${fields[6]}
+            point_min_y=${fields[7]}
+            point_max_x=$((fields[6] + fields[8]))
+            point_max_y=$((fields[7] + fields[9]))
+        else
+            (( fields[2] < pixel_min_x )) && pixel_min_x=${fields[2]}
+            (( fields[3] < pixel_min_y )) && pixel_min_y=${fields[3]}
+            (( fields[2] + fields[4] > pixel_max_x )) && pixel_max_x=$((fields[2] + fields[4]))
+            (( fields[3] + fields[5] > pixel_max_y )) && pixel_max_y=$((fields[3] + fields[5]))
+            (( fields[6] < point_min_x )) && point_min_x=${fields[6]}
+            (( fields[7] < point_min_y )) && point_min_y=${fields[7]}
+            (( fields[6] + fields[8] > point_max_x )) && point_max_x=$((fields[6] + fields[8]))
+            (( fields[7] + fields[9] > point_max_y )) && point_max_y=$((fields[7] + fields[9]))
+        fi
+        (( index += 1 ))
+    done
+
+    local content_capture="$CAPTURE_DIR/native-content.png"
+    "$MENU_WINDOWS_HELPER" content \
+        "$APP_PID" \
+        "$DISPLAY_ID" \
+        "$point_min_x" \
+        "$point_min_y" \
+        "$((point_max_x - point_min_x))" \
+        "$((point_max_y - point_min_y))" \
+        "$((pixel_max_x - pixel_min_x))" \
+        "$((pixel_max_y - pixel_min_y))" \
+        "$content_capture"
+    [[ -s "$content_capture" ]] || fail "Unable to capture rendered menu content."
+
+    magick \
+        "$content_capture" \
+        -background "$background" \
+        -alpha remove \
+        -alpha off \
+        -bordercolor "$background" \
+        -border 1 \
+        -fuzz 2% \
+        -trim \
+        +repage \
+        -border "$PADDING_PIXELS" \
+        -units PixelsPerInch \
+        -density "$((72 * DISPLAY_SCALE))" \
+        "$output_path"
+    [[ -s "$output_path" ]] || fail "Screenshot was not written to $output_path."
 }
 
 capture_visible_menus() {
@@ -334,10 +410,15 @@ capture_visible_menus() {
         local opaque_bounds=(
             "${(@s:,:)$(magick "$raw_path" -alpha extract -threshold 99% -trim -format '%w,%h,%X,%Y' info:)}"
         )
-        [[ ${#opaque_bounds[@]} -eq 4 \
-            && "${opaque_bounds[1]}" -eq "$content_width" \
-            && "${opaque_bounds[2]}" -eq "$content_height" ]] \
-            || fail "Unable to locate menu window content $window_id."
+        if [[ ${#opaque_bounds[@]} -ne 4 \
+            || "${opaque_bounds[1]:-0}" -ne "$content_width" \
+            || "${opaque_bounds[2]:-0}" -ne "$content_height" ]]; then
+            print "Capturing native menu canvas with ScreenCaptureKit..."
+            capture_native_menu_fallback "$output_path" "$background" "$window_list"
+            rm -r "$CAPTURE_DIR"
+            CAPTURE_DIR=""
+            return 0
+        fi
         local content_mask_path="$CAPTURE_DIR/${index}-content-mask.png"
         local opaque_x="${opaque_bounds[3]#+}"
         local opaque_y="${opaque_bounds[4]#+}"
@@ -553,7 +634,6 @@ capture_variant() {
 
     open_strategy_menu
     capture_visible_menus "$strategy_path" "$background"
-    close_menu
 
     cleanup
     sleep 0.4

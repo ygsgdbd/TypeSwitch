@@ -78,10 +78,11 @@ extension AppFeature.State {
     var fallbackStrategy: InputMethodStrategy { switching.fallbackStrategy }
 
     var fallbackSelectedLabel: String? {
-        if fallbackStrategy == .none {
-            return TypeSwitchStrings.InputMethod.fallbackDefaultOption
-        }
-        return selectedLabel(for: fallbackStrategy)
+        menuSubtitle(for: fallbackStrategy)?.text
+    }
+
+    var fallbackIsSelectedSubtitleSecondary: Bool {
+        menuSubtitle(for: fallbackStrategy)?.isSecondary ?? false
     }
 
     var fallbackHasMissingInputMethod: Bool {
@@ -326,81 +327,68 @@ extension AppFeature.State {
         path: String?,
         strategy: InputMethodStrategy
     ) -> AppMenuItem {
-        AppMenuItem(
+        let selectedSubtitle = menuSubtitle(for: strategy == .none ? fallbackStrategy : strategy)
+        let defaultSubtitle = menuSubtitle(for: fallbackStrategy)
+        let followLastStrategy: InputMethodStrategy
+        if case .followLast = strategy {
+            followLastStrategy = strategy
+        } else {
+            followLastStrategy = .followLast(lastInputMethodId: nil)
+        }
+
+        return AppMenuItem(
             bundleId: bundleId,
             name: name,
             path: path,
             strategy: strategy,
-            defaultOptionLabel: appDefaultOptionLabel,
-            selectedLabel: selectedLabel(for: strategy),
-            followLastOptionLabel: followLastOptionLabel(for: strategy),
-            hasMissingInputMethod: hasMissingInputMethod(in: strategy)
+            defaultOptionSubtitle: defaultSubtitle?.text ?? TypeSwitchStrings.InputMethod.fallbackDefaultOption,
+            selectedLabel: selectedSubtitle?.text,
+            followLastOptionSubtitle: menuSubtitle(for: followLastStrategy)?.text
+                ?? TypeSwitchStrings.InputMethod.followLastUnrecordedOption,
+            isSelectedSubtitleSecondary: selectedSubtitle?.isSecondary ?? false
         )
     }
 
-    private var appDefaultOptionLabel: String {
-        switch fallbackStrategy {
-        case .ignored, .none:
-            return TypeSwitchStrings.InputMethod.appDefaultFallbackNoneOption
-        case .fixed(let inputMethodId):
-            guard let inputMethodName = inputMethodName(for: inputMethodId) else {
-                return inputMethodCatalogStatus == .ready
-                    ? TypeSwitchStrings.InputMethod.appDefaultMissingOption
-                    : TypeSwitchStrings.InputMethod.catalogUnavailableOption
-            }
-            return TypeSwitchStrings.InputMethod.appDefaultWithInputMethod(inputMethodName)
-        case .followLast:
-            return TypeSwitchStrings.InputMethod.appDefaultFallbackNoneOption
-        }
+    private struct MenuSubtitle {
+        let text: String
+        let isSecondary: Bool
     }
 
-    private func selectedLabel(for strategy: InputMethodStrategy) -> String? {
+    private func menuSubtitle(for strategy: InputMethodStrategy) -> MenuSubtitle? {
         switch strategy {
         case .none:
-            return nil
+            return MenuSubtitle(text: TypeSwitchStrings.InputMethod.fallbackDefaultOption, isSecondary: true)
         case .ignored:
             return nil
         case .fixed(let inputMethodId):
-            return inputMethodName(for: inputMethodId) ?? unavailableInputMethodLabel
+            return inputMethodSubtitle(for: inputMethodId)
         case .followLast(let lastInputMethodId):
             guard let lastInputMethodId else {
-                return TypeSwitchStrings.InputMethod.followLastEmptyOption
+                return MenuSubtitle(text: TypeSwitchStrings.InputMethod.followLastUnrecordedOption, isSecondary: true)
             }
-            guard let inputMethodName = inputMethodName(for: lastInputMethodId) else {
-                return inputMethodCatalogStatus == .ready
-                    ? TypeSwitchStrings.InputMethod.followLastMissingOption
-                    : TypeSwitchStrings.InputMethod.catalogUnavailableOption
-            }
-            return TypeSwitchStrings.InputMethod.followLastWithInputMethod(inputMethodName)
+            return inputMethodSubtitle(for: lastInputMethodId)
         }
     }
 
-    private func followLastOptionLabel(for strategy: InputMethodStrategy) -> String {
-        guard case .followLast(let lastInputMethodId) = strategy else {
-            return TypeSwitchStrings.InputMethod.followLastEmptyOption
+    private func inputMethodSubtitle(for inputMethodId: String) -> MenuSubtitle {
+        if let name = inputMethodName(for: inputMethodId) {
+            return MenuSubtitle(text: name, isSecondary: false)
         }
 
-        guard let lastInputMethodId else {
-            return TypeSwitchStrings.InputMethod.followLastEmptyOption
+        let text: String
+        switch inputMethodCatalogStatus {
+        case .loading:
+            text = TypeSwitchStrings.InputMethod.catalogLoadingOption
+        case .failed:
+            text = TypeSwitchStrings.InputMethod.catalogUnavailableOption
+        case .ready:
+            text = TypeSwitchStrings.InputMethod.deletedOption
         }
-
-        guard let inputMethodName = inputMethodName(for: lastInputMethodId) else {
-            return inputMethodCatalogStatus == .ready
-                ? TypeSwitchStrings.InputMethod.followLastMissingOption
-                : TypeSwitchStrings.InputMethod.catalogUnavailableOption
-        }
-
-        return TypeSwitchStrings.InputMethod.followLastWithInputMethod(inputMethodName)
+        return MenuSubtitle(text: text, isSecondary: true)
     }
 
     private func inputMethodName(for inputMethodId: String) -> String? {
         inputMethods.first(where: { $0.id == inputMethodId })?.name
-    }
-
-    private var unavailableInputMethodLabel: String {
-        inputMethodCatalogStatus == .ready
-            ? TypeSwitchStrings.InputMethod.deletedOption
-            : TypeSwitchStrings.InputMethod.catalogUnavailableOption
     }
 
     private var ignoredAppBundleIdsForMenu: Set<String> {

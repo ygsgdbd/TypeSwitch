@@ -1406,9 +1406,11 @@ final class AppFeatureTests: XCTestCase {
         }
 
         XCTAssertEqual(
-            state.runningConfiguredMenuItems.first?.followLastOptionLabel,
-            TypeSwitchStrings.InputMethod.followLastWithInputMethod("Pinyin")
+            state.runningConfiguredMenuItems.first?.followLastOptionSubtitle,
+            "Pinyin"
         )
+        XCTAssertEqual(state.runningConfiguredMenuItems.first?.selectedLabel, "Pinyin")
+        XCTAssertEqual(state.runningConfiguredMenuItems.first?.isSelectedSubtitleSecondary, false)
     }
 
     func testFallbackNoneShowsNoAutomaticSwitchLabel() {
@@ -1418,6 +1420,7 @@ final class AppFeatureTests: XCTestCase {
             state.fallbackSelectedLabel,
             TypeSwitchStrings.InputMethod.fallbackDefaultOption
         )
+        XCTAssertTrue(state.fallbackIsSelectedSubtitleSecondary)
     }
 
     func testAppDefaultOptionShowsNoAutomaticSwitchFallbackRule() {
@@ -1427,9 +1430,14 @@ final class AppFeatureTests: XCTestCase {
         state.runningApps = [app]
 
         XCTAssertEqual(
-            state.runningUnconfiguredMenuItems.first?.defaultOptionLabel,
-            TypeSwitchStrings.InputMethod.appDefaultFallbackNoneOption
+            state.runningUnconfiguredMenuItems.first?.defaultOptionSubtitle,
+            TypeSwitchStrings.InputMethod.fallbackDefaultOption
         )
+        XCTAssertEqual(
+            state.runningUnconfiguredMenuItems.first?.selectedLabel,
+            TypeSwitchStrings.InputMethod.fallbackDefaultOption
+        )
+        XCTAssertEqual(state.runningUnconfiguredMenuItems.first?.isSelectedSubtitleSecondary, true)
     }
 
     func testAppDefaultOptionShowsFixedFallbackRule() {
@@ -1443,8 +1451,198 @@ final class AppFeatureTests: XCTestCase {
         }
 
         XCTAssertEqual(
-            state.runningUnconfiguredMenuItems.first?.defaultOptionLabel,
-            TypeSwitchStrings.InputMethod.appDefaultWithInputMethod("Pinyin")
+            state.runningUnconfiguredMenuItems.first?.defaultOptionSubtitle,
+            "Pinyin"
+        )
+        XCTAssertEqual(state.runningUnconfiguredMenuItems.first?.selectedLabel, "Pinyin")
+        XCTAssertEqual(state.runningUnconfiguredMenuItems.first?.isSelectedSubtitleSecondary, false)
+    }
+
+    func testMenuSubtitlesDistinguishResolvedCachedAndUnavailableTargets() throws {
+        let target = InputMethod(id: "ime.zh", name: "Pinyin")
+        let other = InputMethod(id: "ime.en", name: "English")
+        let catalogs: [(name: String, status: SwitchingFeature.State.InputMethodCatalogStatus, unresolvedLabel: String)] = [
+            ("ready", .ready, TypeSwitchStrings.InputMethod.deletedOption),
+            ("loading", .loading, TypeSwitchStrings.InputMethod.catalogLoadingOption),
+            ("failed", .failed(.failedToFetchInputMethods), TypeSwitchStrings.InputMethod.catalogUnavailableOption),
+        ]
+        let lists: [(name: String, inputMethods: [InputMethod], resolvesTarget: Bool)] = [
+            ("target present", [target, other], true),
+            ("target absent from cached list", [other], false),
+            ("no cached list", [], false),
+        ]
+        let strategies: [(name: String, strategy: InputMethodStrategy)] = [
+            ("fixed", .fixed(inputMethodId: target.id)),
+            ("remember", .followLast(lastInputMethodId: target.id)),
+            ("default", .none),
+        ]
+
+        for catalog in catalogs {
+            for list in lists {
+                for strategy in strategies {
+                    let context = "\(strategy.name), \(catalog.name), \(list.name)"
+                    let state = makeMenuState(
+                        strategy: strategy.strategy,
+                        fallbackStrategy: .fixed(inputMethodId: target.id),
+                        catalogStatus: catalog.status,
+                        inputMethods: list.inputMethods
+                    )
+                    let item = try XCTUnwrap(state.currentAppMenuItem, context)
+                    let expectedLabel = list.resolvesTarget ? target.name : catalog.unresolvedLabel
+                    let targetIsMissing = catalog.status == .ready && !list.resolvesTarget
+
+                    XCTAssertEqual(item.strategy, strategy.strategy, context)
+                    XCTAssertEqual(item.selectedLabel, expectedLabel, context)
+                    XCTAssertEqual(item.isSelectedSubtitleSecondary, !list.resolvesTarget, context)
+                    XCTAssertEqual(item.defaultOptionSubtitle, expectedLabel, context)
+                    if case .followLast = strategy.strategy {
+                        XCTAssertEqual(item.followLastOptionSubtitle, expectedLabel, context)
+                    } else {
+                        XCTAssertEqual(
+                            item.followLastOptionSubtitle,
+                            TypeSwitchStrings.InputMethod.followLastUnrecordedOption,
+                            context
+                        )
+                    }
+                    XCTAssertEqual(state.fallbackSelectedLabel, expectedLabel, context)
+                    XCTAssertEqual(state.fallbackIsSelectedSubtitleSecondary, !list.resolvesTarget, context)
+                    XCTAssertEqual(state.fallbackHasMissingInputMethod, targetIsMissing, context)
+                    XCTAssertEqual(
+                        state.hasMissingInputMethod(in: strategy.strategy),
+                        strategy.strategy != .none && targetIsMissing,
+                        context
+                    )
+                    XCTAssertEqual(
+                        state.hasMissingInputMethodRules,
+                        strategy.strategy != .none && targetIsMissing,
+                        context
+                    )
+                }
+            }
+        }
+    }
+
+    func testMenuOptionSubtitlesUseTheirOwnStrategyTargets() throws {
+        let inputMethods = [
+            InputMethod(id: "ime.zh", name: "Pinyin"),
+            InputMethod(id: "ime.en", name: "English"),
+        ]
+
+        for strategy in [
+            InputMethodStrategy.fixed(inputMethodId: "ime.zh"),
+            .followLast(lastInputMethodId: "ime.zh"),
+        ] {
+            let state = makeMenuState(
+                strategy: strategy,
+                fallbackStrategy: .fixed(inputMethodId: "ime.en"),
+                inputMethods: inputMethods
+            )
+            let item = try XCTUnwrap(state.currentAppMenuItem)
+
+            XCTAssertEqual(item.selectedLabel, "Pinyin")
+            XCTAssertEqual(item.defaultOptionSubtitle, "English")
+            XCTAssertEqual(state.fallbackSelectedLabel, "English")
+            XCTAssertFalse(state.fallbackIsSelectedSubtitleSecondary)
+        }
+    }
+
+    func testTargetlessStrategiesKeepTheirMeaningAcrossCatalogStates() throws {
+        let catalogs: [SwitchingFeature.State.InputMethodCatalogStatus] = [
+            .ready,
+            .loading,
+            .failed(.failedToFetchInputMethods),
+        ]
+
+        for catalog in catalogs {
+            for strategy in [InputMethodStrategy.none, .followLast(lastInputMethodId: nil)] {
+                let state = makeMenuState(strategy: strategy, catalogStatus: catalog)
+                let item = try XCTUnwrap(state.currentAppMenuItem)
+
+                XCTAssertEqual(
+                    item.selectedLabel,
+                    strategy == .none
+                        ? TypeSwitchStrings.InputMethod.fallbackDefaultOption
+                        : TypeSwitchStrings.InputMethod.followLastUnrecordedOption
+                )
+                XCTAssertTrue(item.isSelectedSubtitleSecondary)
+                XCTAssertEqual(item.defaultOptionSubtitle, TypeSwitchStrings.InputMethod.fallbackDefaultOption)
+                XCTAssertEqual(item.followLastOptionSubtitle, TypeSwitchStrings.InputMethod.followLastUnrecordedOption)
+                XCTAssertEqual(state.fallbackSelectedLabel, TypeSwitchStrings.InputMethod.fallbackDefaultOption)
+                XCTAssertTrue(state.fallbackIsSelectedSubtitleSecondary)
+                XCTAssertFalse(state.hasMissingInputMethod(in: strategy))
+                XCTAssertFalse(state.hasMissingInputMethodRules)
+                XCTAssertFalse(state.fallbackHasMissingInputMethod)
+            }
+        }
+    }
+
+    func testInheritedUnavailableTargetDoesNotChangeDefaultRuleOrFallbackDuringCleanup() async throws {
+        let missingStrategy = InputMethodStrategy.fixed(inputMethodId: "ime.missing")
+        let initialState = makeMenuState(strategy: .none, fallbackStrategy: missingStrategy)
+        let inheritedItem = try XCTUnwrap(initialState.currentAppMenuItem)
+        let inheritedRule = try XCTUnwrap(initialState.appRules[inheritedItem.bundleId])
+        let fallbackRule = initialState.fallbackRuleStore
+        let explicitlyConfiguredApp = AppInfo(
+            bundleId: "com.test.missing-fixed",
+            name: "Missing Fixed",
+            path: "/Applications/MissingFixed.app"
+        )
+        initialState.$appRulesStore.withLock {
+            $0.rules[explicitlyConfiguredApp.bundleId] = makeRule(app: explicitlyConfiguredApp, strategy: missingStrategy)
+        }
+
+        XCTAssertEqual(inheritedItem.selectedLabel, TypeSwitchStrings.InputMethod.deletedOption)
+        XCTAssertTrue(inheritedItem.isSelectedSubtitleSecondary)
+        XCTAssertFalse(initialState.hasMissingInputMethod(in: .none))
+        XCTAssertTrue(initialState.fallbackHasMissingInputMethod)
+
+        let updatedAt = Date(timeIntervalSince1970: 20)
+        let store = TestStore(initialState: initialState) { AppFeature() }
+        store.dependencies.date = .constant(updatedAt)
+
+        await store.send(.view(.removeMissingInputMethodRulesTapped)) {
+            $0.$appRulesStore.withLock {
+                $0.rules[explicitlyConfiguredApp.bundleId]?.strategy = InputMethodStrategy.none
+                $0.rules[explicitlyConfiguredApp.bundleId]?.updatedAt = updatedAt
+            }
+        }
+
+        XCTAssertEqual(store.state.appRules[inheritedItem.bundleId], inheritedRule)
+        XCTAssertEqual(store.state.appRules[explicitlyConfiguredApp.bundleId]?.strategy, InputMethodStrategy.none)
+        XCTAssertEqual(store.state.fallbackRuleStore, fallbackRule)
+        XCTAssertFalse(store.state.hasMissingInputMethodRules)
+        XCTAssertTrue(store.state.fallbackHasMissingInputMethod)
+        XCTAssertEqual(store.state.currentAppMenuItem?.selectedLabel, TypeSwitchStrings.InputMethod.deletedOption)
+        XCTAssertEqual(store.state.currentAppMenuItem?.isSelectedSubtitleSecondary, true)
+    }
+
+    func testMenuSubtitlesFollowPresentedStrategySnapshot() throws {
+        let rememberedStrategy = InputMethodStrategy.followLast(lastInputMethodId: "ime.zh")
+        let fixedStrategy = InputMethodStrategy.fixed(inputMethodId: "ime.en")
+        var state = makeMenuState(
+            strategy: rememberedStrategy,
+            inputMethods: [
+                InputMethod(id: "ime.zh", name: "Pinyin"),
+                InputMethod(id: "ime.en", name: "English"),
+            ]
+        )
+        let bundleId = try XCTUnwrap(state.currentFrontmostBundleId)
+        state.isMenuPresented = true
+        state.menuStrategiesAtPresentation = [bundleId: rememberedStrategy]
+        state.$appRulesStore.withLock { $0.rules[bundleId]?.strategy = fixedStrategy }
+
+        XCTAssertEqual(state.currentAppMenuItem?.strategy, rememberedStrategy)
+        XCTAssertEqual(state.currentAppMenuItem?.selectedLabel, "Pinyin")
+        XCTAssertEqual(state.currentAppMenuItem?.followLastOptionSubtitle, "Pinyin")
+
+        state.isMenuPresented = false
+        state.menuStrategiesAtPresentation = [:]
+
+        XCTAssertEqual(state.currentAppMenuItem?.strategy, fixedStrategy)
+        XCTAssertEqual(state.currentAppMenuItem?.selectedLabel, "English")
+        XCTAssertEqual(
+            state.currentAppMenuItem?.followLastOptionSubtitle,
+            TypeSwitchStrings.InputMethod.followLastUnrecordedOption
         )
     }
 
@@ -1969,8 +2167,8 @@ final class AppFeatureTests: XCTestCase {
         }
 
         XCTAssertEqual(
-            state.runningConfiguredMenuItems.first?.followLastOptionLabel,
-            TypeSwitchStrings.InputMethod.followLastEmptyOption
+            state.runningConfiguredMenuItems.first?.followLastOptionSubtitle,
+            TypeSwitchStrings.InputMethod.followLastUnrecordedOption
         )
 
         let unrecordedApp = AppInfo(
@@ -1982,8 +2180,8 @@ final class AppFeatureTests: XCTestCase {
         var defaultState = AppFeature.State()
         defaultState.runningApps = [unrecordedApp]
         XCTAssertEqual(
-            defaultState.runningUnconfiguredMenuItems.first?.followLastOptionLabel,
-            TypeSwitchStrings.InputMethod.followLastEmptyOption
+            defaultState.runningUnconfiguredMenuItems.first?.followLastOptionSubtitle,
+            TypeSwitchStrings.InputMethod.followLastUnrecordedOption
         )
     }
 
@@ -2010,13 +2208,13 @@ final class AppFeatureTests: XCTestCase {
 
         XCTAssertEqual(
             initialState.configuredApps.first?.selectedLabel,
-            TypeSwitchStrings.InputMethod.followLastMissingOption
+            TypeSwitchStrings.InputMethod.deletedOption
         )
         XCTAssertEqual(
-            initialState.configuredApps.first?.followLastOptionLabel,
-            TypeSwitchStrings.InputMethod.followLastMissingOption
+            initialState.configuredApps.first?.followLastOptionSubtitle,
+            TypeSwitchStrings.InputMethod.deletedOption
         )
-        XCTAssertEqual(initialState.configuredApps.first?.hasMissingInputMethod, true)
+        XCTAssertEqual(initialState.configuredApps.first?.isSelectedSubtitleSecondary, true)
 
         let store = TestStore(initialState: initialState) {
             AppFeature()
@@ -2510,6 +2708,24 @@ final class AppFeatureTests: XCTestCase {
         )
         XCTAssertEqual(state.switchStatisticsItems.map(\.count), [4, 3, 3, 2])
         XCTAssertEqual(state.totalSuccessfulSwitchCount, 12)
+    }
+
+    private func makeMenuState(
+        strategy: InputMethodStrategy,
+        fallbackStrategy: InputMethodStrategy = .none,
+        catalogStatus: SwitchingFeature.State.InputMethodCatalogStatus = .ready,
+        inputMethods: [InputMethod] = []
+    ) -> AppFeature.State {
+        let app = AppInfo(bundleId: "com.test.menu-target", name: "Menu Target", path: "/Applications/MenuTarget.app")
+        var state = AppFeature.State(
+            currentFrontmostBundleId: app.bundleId,
+            inputMethodCatalogStatus: catalogStatus,
+            inputMethods: inputMethods
+        )
+        state.runningApps = [app]
+        state.$appRulesStore.withLock { $0.rules = [app.bundleId: makeRule(app: app, strategy: strategy)] }
+        state.$fallbackRuleStore.withLock { $0.strategy = fallbackStrategy }
+        return state
     }
 
     private func makeRule(
