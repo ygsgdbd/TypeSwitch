@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### 🇨🇳 中文
+
+#### 修复
+
+- 未配置的 App 行不再显示继承默认规则的副标题，避免被误认为已单独配置；默认行为仍可在 App 子菜单和默认规则入口查看。
+
+### 🇺🇸 English
+
+#### Fixes
+
+- Hide inherited default-rule subtitles on unconfigured app rows so they do not appear individually configured; the default behavior remains visible in each app's submenu and the default-rule menu.
+
 ## v0.10.2
 
 ### 🇨🇳 中文

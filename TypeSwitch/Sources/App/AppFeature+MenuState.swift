@@ -327,7 +327,7 @@ extension AppFeature.State {
         path: String?,
         strategy: InputMethodStrategy
     ) -> AppMenuItem {
-        let selectedSubtitle = menuSubtitle(for: strategy == .none ? fallbackStrategy : strategy)
+        let selectedSubtitle = strategy == .none ? nil : menuSubtitle(for: strategy)
         let defaultSubtitle = menuSubtitle(for: fallbackStrategy)
         let followLastStrategy: InputMethodStrategy
         if case .followLast = strategy {

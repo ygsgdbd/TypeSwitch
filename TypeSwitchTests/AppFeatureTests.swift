@@ -1433,11 +1433,8 @@ final class AppFeatureTests: XCTestCase {
             state.runningUnconfiguredMenuItems.first?.defaultOptionSubtitle,
             TypeSwitchStrings.InputMethod.fallbackDefaultOption
         )
-        XCTAssertEqual(
-            state.runningUnconfiguredMenuItems.first?.selectedLabel,
-            TypeSwitchStrings.InputMethod.fallbackDefaultOption
-        )
-        XCTAssertEqual(state.runningUnconfiguredMenuItems.first?.isSelectedSubtitleSecondary, true)
+        XCTAssertNil(state.runningUnconfiguredMenuItems.first?.selectedLabel)
+        XCTAssertEqual(state.runningUnconfiguredMenuItems.first?.isSelectedSubtitleSecondary, false)
     }
 
     func testAppDefaultOptionShowsFixedFallbackRule() {
@@ -1454,7 +1451,7 @@ final class AppFeatureTests: XCTestCase {
             state.runningUnconfiguredMenuItems.first?.defaultOptionSubtitle,
             "Pinyin"
         )
-        XCTAssertEqual(state.runningUnconfiguredMenuItems.first?.selectedLabel, "Pinyin")
+        XCTAssertNil(state.runningUnconfiguredMenuItems.first?.selectedLabel)
         XCTAssertEqual(state.runningUnconfiguredMenuItems.first?.isSelectedSubtitleSecondary, false)
     }
 
@@ -1492,8 +1489,12 @@ final class AppFeatureTests: XCTestCase {
                     let targetIsMissing = catalog.status == .ready && !list.resolvesTarget
 
                     XCTAssertEqual(item.strategy, strategy.strategy, context)
-                    XCTAssertEqual(item.selectedLabel, expectedLabel, context)
-                    XCTAssertEqual(item.isSelectedSubtitleSecondary, !list.resolvesTarget, context)
+                    XCTAssertEqual(item.selectedLabel, strategy.strategy == .none ? nil : expectedLabel, context)
+                    XCTAssertEqual(
+                        item.isSelectedSubtitleSecondary,
+                        strategy.strategy != .none && !list.resolvesTarget,
+                        context
+                    )
                     XCTAssertEqual(item.defaultOptionSubtitle, expectedLabel, context)
                     if case .followLast = strategy.strategy {
                         XCTAssertEqual(item.followLastOptionSubtitle, expectedLabel, context)
@@ -1561,10 +1562,10 @@ final class AppFeatureTests: XCTestCase {
                 XCTAssertEqual(
                     item.selectedLabel,
                     strategy == .none
-                        ? TypeSwitchStrings.InputMethod.fallbackDefaultOption
+                        ? nil
                         : TypeSwitchStrings.InputMethod.followLastUnrecordedOption
                 )
-                XCTAssertTrue(item.isSelectedSubtitleSecondary)
+                XCTAssertEqual(item.isSelectedSubtitleSecondary, strategy != .none)
                 XCTAssertEqual(item.defaultOptionSubtitle, TypeSwitchStrings.InputMethod.fallbackDefaultOption)
                 XCTAssertEqual(item.followLastOptionSubtitle, TypeSwitchStrings.InputMethod.followLastUnrecordedOption)
                 XCTAssertEqual(state.fallbackSelectedLabel, TypeSwitchStrings.InputMethod.fallbackDefaultOption)
@@ -1591,8 +1592,8 @@ final class AppFeatureTests: XCTestCase {
             $0.rules[explicitlyConfiguredApp.bundleId] = makeRule(app: explicitlyConfiguredApp, strategy: missingStrategy)
         }
 
-        XCTAssertEqual(inheritedItem.selectedLabel, TypeSwitchStrings.InputMethod.deletedOption)
-        XCTAssertTrue(inheritedItem.isSelectedSubtitleSecondary)
+        XCTAssertNil(inheritedItem.selectedLabel)
+        XCTAssertFalse(inheritedItem.isSelectedSubtitleSecondary)
         XCTAssertFalse(initialState.hasMissingInputMethod(in: .none))
         XCTAssertTrue(initialState.fallbackHasMissingInputMethod)
 
@@ -1612,8 +1613,8 @@ final class AppFeatureTests: XCTestCase {
         XCTAssertEqual(store.state.fallbackRuleStore, fallbackRule)
         XCTAssertFalse(store.state.hasMissingInputMethodRules)
         XCTAssertTrue(store.state.fallbackHasMissingInputMethod)
-        XCTAssertEqual(store.state.currentAppMenuItem?.selectedLabel, TypeSwitchStrings.InputMethod.deletedOption)
-        XCTAssertEqual(store.state.currentAppMenuItem?.isSelectedSubtitleSecondary, true)
+        XCTAssertNil(store.state.currentAppMenuItem?.selectedLabel)
+        XCTAssertEqual(store.state.currentAppMenuItem?.isSelectedSubtitleSecondary, false)
     }
 
     func testMenuSubtitlesFollowPresentedStrategySnapshot() throws {
