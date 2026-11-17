@@ -1,18 +1,20 @@
 # Changelog
 
-## Unreleased
+## v0.10.3
 
 ### 🇨🇳 中文
 
 #### 修复
 
 - 未配置的 App 行不再显示继承默认规则的副标题，避免被误认为已单独配置；默认行为仍可在 App 子菜单和默认规则入口查看。
+- 修复清理“登录时打开”备用配置时产生的无效警告，保留系统登录项优先和备用配置在下次登录时生效的行为。
 
 ### 🇺🇸 English
 
 #### Fixes
 
 - Hide inherited default-rule subtitles on unconfigured app rows so they do not appear individually configured; the default behavior remains visible in each app's submenu and the default-rule menu.
+- Fixed spurious warnings when cleaning up fallback launch-at-login settings, while preserving system login-item registration and fallback configuration for the next login.
 
 ## v0.10.2
 
