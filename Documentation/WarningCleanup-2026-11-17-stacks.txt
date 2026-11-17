@@ -1,0 +1,157 @@
+TypeSwitch warning diagnosis — 2026-11-17
+macOS 27.2 (26B123), Xcode 27.2 (27B52), arm64
+Full main-thread stacks from auto-continuing symbolic breakpoints.
+
+Layout recursion: _NSDetectedLayoutRecursion
+Captured: 2026-11-17T11:46:50.837007+08:00
+Receiver x0: 0x0000007a129e8380
+Frames: 88
+
+frame #0: 0x0000000190d57c34 AppKit`_NSDetectedLayoutRecursion
+frame #1: 0x0000000190450e88 AppKit`NSPerformVisuallyAtomicChange + 128
+frame #2: 0x00000001904553d0 AppKit`-[NSView _layoutSubtreeIfNeededAndAllowTemporaryEngine:] + 100
+frame #3: 0x0000000190450e88 AppKit`NSPerformVisuallyAtomicChange + 128
+frame #4: 0x0000000190455360 AppKit`-[NSView layoutSubtreeIfNeeded] + 96
+frame #5: 0x000000019107b404 AppKit`-[NSWindow(NSConstraintBasedLayoutInternal) _layoutViewTree] + 108
+frame #6: 0x0000000190453020 AppKit`-[NSWindow _oldPlaceWindow:fromServer:] + 640
+frame #7: 0x0000000190452440 AppKit`-[NSWindow _setFrameCommon:display:fromServer:] + 1888
+frame #8: 0x0000000191382074 AppKit`___lldb_unnamed_symbol_18b36dfdc + 152
+frame #9: 0x0000000191460c58 AppKit`___lldb_unnamed_symbol_18b44cb9c + 188
+frame #10: 0x000000018a75a168 CoreFoundation`__CFNOTIFICATIONCENTER_IS_CALLING_OUT_TO_AN_OBSERVER__ + 128
+frame #11: 0x000000018a7e9288 CoreFoundation`___CFXRegistrationPost_block_invoke + 92
+frame #12: 0x000000018a7e91cc CoreFoundation`_CFXRegistrationPost + 440
+frame #13: 0x000000018a72635c CoreFoundation`_CFXNotificationPost + 688
+frame #14: 0x0000000190440188 AppKit`-[NSView _postFrameChangeNotification] + 248
+frame #15: 0x000000019043a5fc AppKit`-[NSView setFrameSize:] + 1520
+frame #16: 0x0000000190448134 AppKit`-[NSView setFrame:] + 320
+frame #17: 0x0000000190497318 AppKit`NSViewActuallyUpdateFrameFromLayoutEngine + 248
+frame #18: 0x0000000190455d3c AppKit`-[NSView layout] + 652
+frame #19: 0x00000001914d6d9c AppKit`___lldb_unnamed_symbol_18b4c2d80 + 28
+frame #20: 0x0000000191672d74 AppKit`___lldb_unnamed_symbol_18b65ed58 + 28
+frame #21: 0x00000001914205f0 AppKit`___lldb_unnamed_symbol_18b40c064 + 1420
+frame #22: 0x0000000191420bec AppKit`___lldb_unnamed_symbol_18b40cbd0 + 28
+frame #23: 0x0000000190d62360 AppKit`___NSViewLayout_block_invoke + 644
+frame #24: 0x0000000190450e88 AppKit`NSPerformVisuallyAtomicChange + 128
+frame #25: 0x000000019045586c AppKit`_NSViewLayout + 96
+frame #26: 0x0000000190d574a8 AppKit`__36-[NSView _layoutSubtreeWithOldSize:]_block_invoke + 380
+frame #27: 0x0000000190450e88 AppKit`NSPerformVisuallyAtomicChange + 128
+frame #28: 0x0000000190455800 AppKit`-[NSView _layoutSubtreeWithOldSize:] + 100
+frame #29: 0x0000000190d5803c AppKit`__56-[NSView _layoutSubtreeIfNeededAndAllowTemporaryEngine:]_block_invoke + 876
+frame #30: 0x0000000190450e88 AppKit`NSPerformVisuallyAtomicChange + 128
+frame #31: 0x00000001904553d0 AppKit`-[NSView _layoutSubtreeIfNeededAndAllowTemporaryEngine:] + 100
+frame #32: 0x0000000190450e88 AppKit`NSPerformVisuallyAtomicChange + 128
+frame #33: 0x0000000190455360 AppKit`-[NSView layoutSubtreeIfNeeded] + 96
+frame #34: 0x0000000190d62a40 AppKit`__NSViewLayoutIfNeededAndSendViewWillDrawAndRecurse_block_invoke + 36
+frame #35: 0x0000000190450e88 AppKit`NSPerformVisuallyAtomicChange + 128
+frame #36: 0x0000000190d5866c AppKit`__25-[NSView displayIfNeeded]_block_invoke + 428
+frame #37: 0x0000000190450e88 AppKit`NSPerformVisuallyAtomicChange + 128
+frame #38: 0x00000001904b781c AppKit`-[NSView displayIfNeeded] + 192
+frame #39: 0x00000001904528bc AppKit`-[NSWindow _setFrameCommon:display:fromServer:] + 3036
+frame #40: 0x00000001906201e4 AppKit`-[NSStatusItem _setDisplayIdentifier:] + 100
+frame #41: 0x0000000190a54744 AppKit`-[NSSceneStatusItem _updateForVariantSceneDiff:] + 116
+frame #42: 0x0000000190a521ac AppKit`-[NSSceneStatusItem _setupVariantScene:] + 528
+frame #43: 0x0000000190a528a8 AppKit`-[NSSceneStatusItem _connectVariantViewScene:] + 548
+frame #44: 0x0000000190b94ecc AppKit`-[NSStatusBar(NSInternal) _connectVariantViewScene:] + 160
+frame #45: 0x00000001911c06b4 AppKit`-[NSStatusItemVariantSceneDelegate scene:willConnectToSession:options:] + 60
+frame #46: 0x00000001915dd0e4 AppKit`NSScene.init(session:connectionOptions:) + 400
+frame #47: 0x00000001915dd154 AppKit`___lldb_unnamed_symbol_18b5c9118 + 60
+frame #48: 0x000000019137f1e0 AppKit`___lldb_unnamed_symbol_18b36b0c0 + 288
+frame #49: 0x000000019137fd34 AppKit`___lldb_unnamed_symbol_18b36bcf8 + 60
+frame #50: 0x0000000191501e14 AppKit`___lldb_unnamed_symbol_18b4ed838 + 1500
+frame #51: 0x000000019150251c AppKit`___lldb_unnamed_symbol_18b4ee0cc + 1104
+frame #52: 0x0000000191500fec AppKit`___lldb_unnamed_symbol_18b4ecf74 + 120
+frame #53: 0x0000000191466768 AppKit`___lldb_unnamed_symbol_18b45239c + 972
+frame #54: 0x0000000191464fb4 AppKit`___lldb_unnamed_symbol_18b450f10 + 164
+frame #55: 0x000000019519351c FrontBoardServices`__93-[FBSWorkspaceScenesClient _callOutQueue_sendDidCreateForScene:transitionContext:completion:]_block_invoke_2 + 168
+frame #56: 0x00000001951682c4 FrontBoardServices`__95-[FBSScene _callOutQueue_didCreateWithTransitionContext:alternativeCreationCallout:completion:]_block_invoke + 504
+frame #57: 0x0000000195168888 FrontBoardServices`-[FBSScene _callOutQueue_maybeCoalesceClientSettingsUpdates:] + 132
+frame #58: 0x0000000195168054 FrontBoardServices`-[FBSScene _callOutQueue_didCreateWithTransitionContext:alternativeCreationCallout:completion:] + 464
+frame #59: 0x00000001951cfb24 FrontBoardServices`__93-[FBSWorkspaceScenesClient _callOutQueue_sendDidCreateForScene:transitionContext:completion:]_block_invoke.405 + 260
+frame #60: 0x000000019514dbbc FrontBoardServices`-[FBSWorkspace _calloutQueue_executeCalloutFromSource:withBlock:] + 180
+frame #61: 0x0000000195190b9c FrontBoardServices`-[FBSWorkspaceScenesClient _callOutQueue_sendDidCreateForScene:transitionContext:completion:] + 516
+frame #62: 0x000000019519230c FrontBoardServices`__92-[FBSWorkspaceScenesClient createSceneWithIdentity:parameters:transitionContext:completion:]_block_invoke.325 + 268
+frame #63: 0x000000019514dbbc FrontBoardServices`-[FBSWorkspace _calloutQueue_executeCalloutFromSource:withBlock:] + 180
+frame #64: 0x000000018b53a5a0 libdispatch.dylib`_dispatch_client_callout + 16
+frame #65: 0x000000018b525700 libdispatch.dylib`_dispatch_block_invoke_direct + 284
+frame #66: 0x0000000192cc0dd4 BoardServices`__BSSERVICEMAINRUNLOOPQUEUE_IS_CALLING_OUT_TO_A_BLOCK__ + 48
+frame #67: 0x0000000192cbfbf8 BoardServices`BSServiceMainRunLoopSourceHandler + 232
+frame #68: 0x000000018a765920 CoreFoundation`__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ + 28
+frame #69: 0x000000018a7658b4 CoreFoundation`__CFRunLoopDoSource0 + 224
+frame #70: 0x000000018a7655ec CoreFoundation`__CFRunLoopDoSources0 + 232
+frame #71: 0x000000018a7641bc CoreFoundation`__CFRunLoopRun + 832
+frame #72: 0x000000018a83ec10 CoreFoundation`_CFRunLoopRunSpecificWithOptions + 536
+frame #73: 0x0000000194f1c5e0 HIToolbox`RunCurrentEventLoopInMode + 320
+frame #74: 0x0000000194f1f96c HIToolbox`ReceiveNextEventCommon + 492
+frame #75: 0x00000001950a5db8 HIToolbox`_BlockUntilNextEventMatchingListInMode + 48
+frame #76: 0x00000001907508c0 AppKit`_DPSBlockUntilNextEventMatchingListInMode + 292
+frame #77: 0x000000019040f59c AppKit`_DPSNextEvent + 576
+frame #78: 0x0000000190ba65f8 AppKit`-[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] + 832
+frame #79: 0x0000000190ba60e8 AppKit`-[NSApplication(NSEventRouting) nextEventMatchingMask:untilDate:inMode:dequeue:] + 344
+frame #80: 0x0000000190402920 AppKit`-[NSApplication run] + 396
+frame #81: 0x00000001903dacec AppKit`NSApplicationMain + 880
+frame #82: 0x00000001a05c0404 SwiftUI`specialized runApp(_:) + 140
+frame #83: 0x00000001a09e74d0 SwiftUI`runApp(_:) + 108
+frame #84: 0x00000001a0cbec54 SwiftUI`static App.main() + 224
+frame #85: 0x0000000103ad9bb4 TypeSwitch.debug.dylib`static TypeSwitchApp.$main() at <compiler-generated>:0
+frame #86: 0x0000000103ada04c TypeSwitch.debug.dylib`main at TypeSwitchApp.swift:0
+frame #87: 0x00000001864ccd7c dyld`start + 6652
+
+Glass window: -[NSWindow makeKeyWindow]
+Captured: 2026-11-17T11:47:07.517451+08:00
+Receiver x0: 0x0000007a11818780
+Frames: 54
+
+frame #0: 0x000000019050745c AppKit`-[NSWindow makeKeyWindow]
+frame #1: 0x00000001905072a4 AppKit`-[NSWindow _makeKeyRegardlessOfVisibility] + 56
+frame #2: 0x0000000190d7c368 AppKit`-[NSWindow _doOrderWindow:] + 80
+frame #3: 0x0000000190d8bc40 AppKit`_NSWindowWalkOrderingGroupInternal + 308
+frame #4: 0x0000000190d82dd0 AppKit`-[NSWindow _synchronizeOrderingGroupVisibility] + 208
+frame #5: 0x0000000190d7b590 AppKit`-[NSWindow _reallyDoOrderWindowAboveOrBelow:] + 1328
+frame #6: 0x0000000190d7c174 AppKit`-[NSWindow _reallyDoOrderWindow:] + 68
+frame #7: 0x0000000190d7c444 AppKit`-[NSWindow _doOrderWindow:] + 300
+frame #8: 0x0000000190aa0b00 AppKit`-[NSPopupMenuWindow updateWindowFrameTo:offset:animated:completion:] + 4028
+frame #9: 0x0000000190974e68 AppKit`-[NSContextMenuImpl _menuBackingViewDidChangeIntrinsicSizeWithAnimation:] + 340
+frame #10: 0x0000000190975390 AppKit`-[NSContextMenuImpl _reloadData] + 284
+frame #11: 0x0000000190975254 AppKit`-[NSContextMenuImpl _populateMenuPresentationIfNeeded] + 60
+frame #12: 0x0000000190975188 AppKit`-[NSContextMenuImpl _prepareForPresentation] + 32
+frame #13: 0x00000001909721f4 AppKit`-[NSContextMenuImpl viewWillAppear] + 464
+frame #14: 0x0000000190a9e9a4 AppKit`__61-[NSPopupMenuWindow _orderFrontWithParentWindow:screenFrame:]_block_invoke + 48
+frame #15: 0x0000000190a9e8dc AppKit`-[NSPopupMenuWindow _orderFrontWithParentWindow:screenFrame:] + 488
+frame #16: 0x0000000190a9e4f4 AppKit`-[NSPopupMenuWindow _commonPresentFromView:animated:] + 580
+frame #17: 0x0000000190a9e234 AppKit`-[NSPopupMenuWindow presentAsPopUpRelativeToView:animated:] + 92
+frame #18: 0x0000000190970cbc AppKit`+[NSContextMenuImpl presentPopup:fromView:withContext:animated:async:completionBlock:] + 1568
+frame #19: 0x0000000190bd4f8c AppKit`_NSPopUpMenu + 2192
+frame #20: 0x0000000190bd4624 AppKit`-[NSCocoaMenuImpl popUpMenu:atLocation:width:view:selectedItemIndexProvider:font:positioningRect:flags:options:] + 424
+frame #21: 0x0000000190bd4454 AppKit`-[NSCocoaMenuImpl popUpMenu:atLocation:width:forView:withSelectedItem:withFont:withFlags:withOptions:] + 96
+frame #22: 0x0000000190b97168 AppKit`+[NSStatusBarButtonCell popUpStatusBarMenu:ofItem:ofBar:inRect:ofView:withEvent:] + 744
+frame #23: 0x0000000190b96b64 AppKit`-[NSStatusBarButtonCell performClick:] + 280
+frame #24: 0x00000001910e7cb4 AppKit`-[NSCell accessibilityPerformPress] + 28
+frame #25: 0x00000001916d2bdc AppKit`NSAccessibilityPerformEntryPointBOOL + 44
+frame #26: 0x0000000190a0913c AppKit`NSAccessibilityEntryPointPerformAction + 220
+frame #27: 0x000000019107dfac AppKit`-[NSAccessibilityMockStatusBarItem accessibilityPerformAction:] + 60
+frame #28: 0x0000000190bac8b8 AppKit`-[NSAccessibilityElement accessibilityPerformPress] + 28
+frame #29: 0x00000001916d2bdc AppKit`NSAccessibilityPerformEntryPointBOOL + 44
+frame #30: 0x0000000190a0913c AppKit`NSAccessibilityEntryPointPerformAction + 220
+frame #31: 0x0000000190768fe8 AppKit`PerformAction + 200
+frame #32: 0x000000019875f234 HIServices`_AXXMIGPerformAction + 428
+frame #33: 0x0000000198781844 HIServices`_XPerformAction + 340
+frame #34: 0x000000019873ceec HIServices`mshMIGPerform + 216
+frame #35: 0x000000018a765efc CoreFoundation`__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM_FUNCTION__ + 60
+frame #36: 0x000000018a765e24 CoreFoundation`__CFRunLoopDoSource1 + 604
+frame #37: 0x000000018a76471c CoreFoundation`__CFRunLoopRun + 2208
+frame #38: 0x000000018a83ec10 CoreFoundation`_CFRunLoopRunSpecificWithOptions + 536
+frame #39: 0x0000000194f1c5e0 HIToolbox`RunCurrentEventLoopInMode + 320
+frame #40: 0x0000000194f1f96c HIToolbox`ReceiveNextEventCommon + 492
+frame #41: 0x00000001950a5db8 HIToolbox`_BlockUntilNextEventMatchingListInMode + 48
+frame #42: 0x00000001907508c0 AppKit`_DPSBlockUntilNextEventMatchingListInMode + 292
+frame #43: 0x000000019040f59c AppKit`_DPSNextEvent + 576
+frame #44: 0x0000000190ba65f8 AppKit`-[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] + 832
+frame #45: 0x0000000190ba60e8 AppKit`-[NSApplication(NSEventRouting) nextEventMatchingMask:untilDate:inMode:dequeue:] + 344
+frame #46: 0x0000000190402920 AppKit`-[NSApplication run] + 396
+frame #47: 0x00000001903dacec AppKit`NSApplicationMain + 880
+frame #48: 0x00000001a05c0404 SwiftUI`specialized runApp(_:) + 140
+frame #49: 0x00000001a09e74d0 SwiftUI`runApp(_:) + 108
+frame #50: 0x00000001a0cbec54 SwiftUI`static App.main() + 224
+frame #51: 0x0000000103ad9bb4 TypeSwitch.debug.dylib`static TypeSwitchApp.$main() at <compiler-generated>:0
+frame #52: 0x0000000103ada04c TypeSwitch.debug.dylib`main at TypeSwitchApp.swift:0
+frame #53: 0x00000001864ccd7c dyld`start + 6652

@@ -7,9 +7,8 @@ struct LaunchAtLoginServiceEnvironment {
     var unregisterMainApp: () throws -> Void
     var plistURL: URL
     var executableURL: () -> URL?
-    var runLaunchctl: ([String]) throws -> Void
-    var userID: () -> uid_t
     var fileManager: FileManager
+    var reportError: (String, URL, Error) -> Void
 }
 
 /// 开机启动服务类
@@ -27,9 +26,10 @@ enum LaunchAtLoginService {
                 .appendingPathComponent("Library/LaunchAgents", isDirectory: true)
                 .appendingPathComponent(launchAgentPlistName),
             executableURL: { Bundle.main.executableURL },
-            runLaunchctl: runLaunchctl,
-            userID: { getuid() },
-            fileManager: .default
+            fileManager: .default,
+            reportError: { operation, url, error in
+                print("❌ \(operation) [\(url.path)]: \(error as NSError)")
+            }
         )
     }
 
@@ -107,7 +107,7 @@ private extension LaunchAtLoginService {
         do {
             try installFallbackLaunchAgent(environment: environment)
         } catch {
-            print("❌ 设置 LaunchAgent 自动启动失败: \(error.localizedDescription)")
+            environment.reportError("写入 LaunchAgent 配置失败", environment.plistURL, error)
         }
     }
 
@@ -124,10 +124,7 @@ private extension LaunchAtLoginService {
     static func fallbackLaunchAgentIsEnabled(environment: LaunchAtLoginServiceEnvironment) -> Bool {
         guard
             let executableURL = environment.executableURL(),
-            let arguments = fallbackProgramArguments(
-                plistURL: environment.plistURL,
-                fileManager: environment.fileManager
-            ),
+            let arguments = fallbackProgramArguments(environment: environment),
             let executablePath = arguments.first
         else {
             return false
@@ -136,23 +133,27 @@ private extension LaunchAtLoginService {
         return normalizedPath(executablePath) == normalizedPath(executableURL.path)
     }
 
-    static func fallbackProgramArguments(
-        plistURL: URL,
-        fileManager: FileManager
-    ) -> [String]? {
-        guard
-            fileManager.fileExists(atPath: plistURL.path),
-            let data = try? Data(contentsOf: plistURL),
-            let plist = try? PropertyListSerialization.propertyList(
+    static func fallbackProgramArguments(environment: LaunchAtLoginServiceEnvironment) -> [String]? {
+        do {
+            let data = try Data(contentsOf: environment.plistURL)
+            guard let plist = try PropertyListSerialization.propertyList(
                 from: data,
                 options: [],
                 format: nil
-            ) as? [String: Any]
-        else {
+            ) as? [String: Any],
+                let arguments = plist["ProgramArguments"] as? [String],
+                !arguments.isEmpty
+            else {
+                throw CocoaError(.propertyListReadCorrupt)
+            }
+
+            return arguments
+        } catch let error as CocoaError where error.code == .fileNoSuchFile || error.code == .fileReadNoSuchFile {
+            return nil
+        } catch {
+            environment.reportError("读取 LaunchAgent 配置失败", environment.plistURL, error)
             return nil
         }
-
-        return plist["ProgramArguments"] as? [String]
     }
 
     static func installFallbackLaunchAgent(environment: LaunchAtLoginServiceEnvironment) throws {
@@ -180,33 +181,17 @@ private extension LaunchAtLoginService {
             options: 0
         )
 
+        // launchd 会在下次登录时加载配置；当前应用无需重新启动或卸载。
         try data.write(to: environment.plistURL, options: .atomic)
-
-        let domain = "gui/\(environment.userID())"
-        try? environment.runLaunchctl(["bootout", domain, environment.plistURL.path])
-        try environment.runLaunchctl(["bootstrap", domain, environment.plistURL.path])
     }
 
     static func removeFallbackLaunchAgent(environment: LaunchAtLoginServiceEnvironment) {
-        let domain = "gui/\(environment.userID())"
-        try? environment.runLaunchctl(["bootout", domain, environment.plistURL.path])
-        try? environment.fileManager.removeItem(at: environment.plistURL)
-    }
-
-    static func runLaunchctl(arguments: [String]) throws {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
-        process.arguments = arguments
-
-        try process.run()
-        process.waitUntilExit()
-
-        guard process.terminationStatus == 0 else {
-            throw NSError(
-                domain: "TypeSwitch.LaunchAtLogin",
-                code: Int(process.terminationStatus),
-                userInfo: [NSLocalizedDescriptionKey: "launchctl \(arguments.joined(separator: " ")) failed"]
-            )
+        do {
+            try environment.fileManager.removeItem(at: environment.plistURL)
+        } catch let error as CocoaError where error.code == .fileNoSuchFile {
+            return
+        } catch {
+            environment.reportError("删除 LaunchAgent 配置失败", environment.plistURL, error)
         }
     }
 
